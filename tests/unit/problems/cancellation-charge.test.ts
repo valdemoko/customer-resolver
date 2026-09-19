@@ -157,7 +157,7 @@ describe("module rules (gating + pure evaluation)", () => {
     // Published rules are the only ones served:
     expect(rules.chargeAfterCancellation.status).toBe("PUBLISHED");
     expect(rules.contractDurationOver24Months.status).toBe("PUBLISHED");
-    expect(rules.chargeAfterPenaltyFreeRescission.status).toBe("PUBLISHED");
+    expect(rules.chargeAfterConfirmedCancellation.status).toBe("PUBLISHED");
   });
 
   it("every published rule declares at least one verified source id", () => {
@@ -165,7 +165,7 @@ describe("module rules (gating + pure evaluation)", () => {
     for (const rule of [
       rules.chargeAfterCancellation,
       rules.contractDurationOver24Months,
-      rules.chargeAfterPenaltyFreeRescission,
+      rules.chargeAfterConfirmedCancellation,
     ]) {
       expect(rule.sourceIds.length).toBeGreaterThanOrEqual(1);
     }

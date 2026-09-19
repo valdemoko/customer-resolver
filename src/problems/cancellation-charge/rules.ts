@@ -105,15 +105,12 @@ const CONTRACT_START = "service.contract_start_date" as FactKey;
 const CANCELLATION_DATE = "cancellation.date" as FactKey;
 const CHARGE_DATE = "charge.date" as FactKey;
 
-/** One year = 366 days threshold on the contract-start window (see rule 2 note). */
-const MONTHS_24_AS_DAYS_UPPER = 731; // 24 calendar months spans 730–731 days depending on leap years
-
 // ── Rules ────────────────────────────────────────────────────────────
 
 export interface CancellationChargeRules {
   readonly chargeAfterCancellation: Rule;
   readonly contractDurationOver24Months: Rule;
-  readonly chargeAfterPenaltyFreeRescission: Rule;
+  readonly chargeAfterConfirmedCancellation: Rule;
   /** DRAFT — NOT in the published ruleset; requires human legal review. */
   readonly penaltyAfterLegalDesistimiento: Rule;
 }
@@ -168,14 +165,15 @@ export function buildRules(): CancellationChargeRules {
   );
 
   // RULE 3 (factual): charge occurred after the cancellation date AND the user
-  // has confirmation — the predicate that, combined with art. 67.7's cost-free
-  // rescission guarantee, the future Result Engine can contextualize. Still
-  // factual: it only checks date ordering + confirmation existence.
-  const chargeAfterPenaltyFreeRescission = lifecycle(
+  // has confirmation. Audit rename (was "charge-after-penalty-free-rescission",
+  // which implied a legal consequence): the rule only establishes that a charge
+  // followed a CONFIRMED cancellation — the "penalty-free" reading belongs to
+  // the future Result Engine, conditional on art. 67.7 circumstances.
+  const chargeAfterConfirmedCancellation = lifecycle(
     createRule({
-      key: `${MODULE_KEY}.charge-after-penalty-free-rescission`,
+      key: `${MODULE_KEY}.charge-after-confirmed-cancellation`,
       version: 1 as Rule["version"],
-      title: "Cargo posterior a la rescisión con confirmación disponible",
+      title: "Cargo posterior a una cancelación con confirmación disponible",
       scope: { level: "COUNTRY_WIDE", country: "ES" },
       root: {
         kind: "ALL",
@@ -208,9 +206,7 @@ export function buildRules(): CancellationChargeRules {
   return {
     chargeAfterCancellation,
     contractDurationOver24Months,
-    chargeAfterPenaltyFreeRescission,
+    chargeAfterConfirmedCancellation,
     penaltyAfterLegalDesistimiento,
   };
 }
-
-export { MONTHS_24_AS_DAYS_UPPER };

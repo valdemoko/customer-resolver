@@ -46,7 +46,7 @@ export const cancellationChargeModule: ProblemModuleDefinition = defineProblemMo
       key: "charge.date",
       type: "date",
       description:
-        "Fecha del cargo cuestionado (rules: charge-after-cancellation, charge-after-penalty-free-rescission).",
+        "Fecha del cargo cuestionado (rules: charge-after-cancellation, charge-after-confirmed-cancellation).",
       questionId: "q-charge-date",
       required: true,
     },
@@ -126,7 +126,7 @@ export const cancellationChargeModule: ProblemModuleDefinition = defineProblemMo
   ruleKeys: [
     "cancellation-charge.charge-after-cancellation",
     "cancellation-charge.contract-duration-over-24-months",
-    "cancellation-charge.charge-after-penalty-free-rescission",
+    "cancellation-charge.charge-after-confirmed-cancellation",
   ],
 
   relatedProblems: [],

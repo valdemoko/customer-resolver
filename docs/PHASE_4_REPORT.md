@@ -21,14 +21,14 @@ Identidad estable: `cancellation-charge@1` (clave de dominio, nunca una ruta web
 
 ## 3. Fact catalogue (cada fact justificado)
 
-| Fact | Tipo | Justificación | Requerido |
-|---|---|---|---|
-| `service.contract_start_date` | date | Regla 2 (art. 67.7) | no |
-| `cancellation.date` | date | Reglas 1 y 3 | sí |
-| `charge.date` | date | Reglas 1 y 3 | sí |
-| `charge.amount` | money | Requisito de workflow (todo análisis de cobro necesita el importe) | sí |
-| `contract.commitment_exists` | boolean | Contexto para intake adaptativo y Result Engine futuro | no |
-| `cancellation.confirmation_exists` | boolean | Regla 3 | no |
+| Fact                               | Tipo    | Justificación                                                      | Requerido |
+| ---------------------------------- | ------- | ------------------------------------------------------------------ | --------- |
+| `service.contract_start_date`      | date    | Regla 2 (art. 67.7)                                                | no        |
+| `cancellation.date`                | date    | Reglas 1 y 3                                                       | sí        |
+| `charge.date`                      | date    | Reglas 1 y 3                                                       | sí        |
+| `charge.amount`                    | money   | Requisito de workflow (todo análisis de cobro necesita el importe) | sí        |
+| `contract.commitment_exists`       | boolean | Contexto para intake adaptativo y Result Engine futuro             | no        |
+| `cancellation.confirmation_exists` | boolean | Regla 3                                                            | no        |
 
 Sin PII: ninguna pregunta recoge nombre, DNI, dirección o datos bancarios.
 
@@ -38,11 +38,10 @@ Sin PII: ninguna pregunta recoge nombre, DNI, dirección o datos bancarios.
 
 ## 5. Reglas reales publicadas (factual rules)
 
-| Regla | Condición | Fuente |
-|---|---|---|
-| `charge-after-cancellation` | `DATE_AFTER_FACT(charge.date, cancellation.date)` | Ley 11/2022 (anclaje de scope ES) |
-| `contract-duration-over-24-months` | `DATE_AFTER_FACT(cancellation.date, service.contract_start_date)` | Ley 11/2022 art. 67.7 |
-| `charge-after-penalty-free-rescission` | Regla 1 + `BOOLEAN_IS_TRUE(cancellation.confirmation_exists)` | Ley 11/2022 art. 67.7 |
+| Regla                                  | Condición                                                         | Fuente                            |
+| -------------------------------------- | ----------------------------------------------------------------- | --------------------------------- |
+| `charge-after-cancellation`            | `DATE_AFTER_FACT(charge.date, cancellation.date)`                 | Ley 11/2022 (anclaje de scope ES) || `contract-duration-over-24-months` | `DATE_AFTER_FACT(cancellation.date, service.contract_start_date)` ⚠️ ver §Auditoría | Ley 11/2022 art. 67.7 |
+| `charge-after-confirmed-cancellation` | Regla 1 + `BOOLEAN_IS_TRUE(cancellation.confirmation_exists)` | Ley 11/2022 art. 67.7 |
 
 **Draft (NO publicado, NO evaluado):** `penalty-after-legal-desistimiento` (art. 102.2 TRLGDCU) — requiere facts sobre modalidad de contratación (a distancia) que el intake actual no recoge. Flagged para revisión legal humana; documentado como el límite de lo que NO afirmamos.
 
@@ -55,7 +54,7 @@ Texto literal obtenido directamente del BOE el 2026-09-19 (PDF oficial BOE-A-202
 
 Ambas pasan el gate de F3: `verifiedBy: human-reviewer-1`, `verifiedAt`, `verificationNote` con el método de verificación. La cita literal exacta vive en `relevantSection` de cada fuente.
 
-**Auditoría legal crítica (docs prompt §30):** las reglas publicadas son exclusivamente *factual rules* (orden de fechas, existencia de confirmación) — ninguna codifica una consecuencia jurídica. Lo que las fuentes NO amparan quedó deliberadamente sin codificar: la ley NO prohíbe penalizaciones de permanencia en general dentro del plazo comprometido; el límite de 24 meses usa un predicado conservador (ver §14 deuda).
+**Auditoría legal crítica (docs prompt §30):** las reglas publicadas son exclusivamente _factual rules_ (orden de fechas, existencia de confirmación) — ninguna codifica una consecuencia jurídica. Lo que las fuentes NO amparan quedó deliberadamente sin codificar: la ley NO prohíbe penalizaciones de permanencia en general dentro del plazo comprometido; el límite de 24 meses usa un predicado conservador (ver §14 deuda).
 
 ## 7. Extensión del vocabulario de reglas (core)
 
@@ -64,7 +63,7 @@ Dos condiciones nuevas fact-vs-fact (extensión prevista por diseño desde F3):
 - `DATE_AFTER_FACT { key, otherKey }` — la fecha del fact es estrictamente posterior a la de otro fact.
 - `DATE_BEFORE_FACT { key, otherKey }` — inversa.
 
-Ambas: deterministas, con trazas (`otherKey`, `actual`, `expected`), respetan contradicciones y missing facts, y están validadas en el schema Zod de la frontera de persistencia. La trazabilidad de *missing/contradicted* del evaluador también camina por `otherKey`.
+Ambas: deterministas, con trazas (`otherKey`, `actual`, `expected`), respetan contradicciones y missing facts, y están validadas en el schema Zod de la frontera de persistencia. La trazabilidad de _missing/contradicted_ del evaluador también camina por `otherKey`.
 
 ## 8. Analysis execution
 
@@ -84,7 +83,7 @@ Ambas: deterministas, con trazas (`otherKey`, `actual`, `expected`), respetan co
 
 ## 10. Semántica de estados (decisión clave, testada)
 
-Con facts `USER_PROVIDED`/`USER_RESOLVED` (UNCONFIRMED), una condición que coincide produce **`POTENTIALLY_APPLICABLE`, no `SUPPORTED`**. `SUPPORTED` exige facts CONFIRMED — que llegarán con el workflow de evidencia de F5. `intakeComplete` significa "todas las preguntas *requeridas* respondidas" (las opcionales no bloquean). Ambas decisiones están en los tests como especificación ejecutable.
+Con facts `USER_PROVIDED`/`USER_RESOLVED` (UNCONFIRMED), una condición que coincide produce **`POTENTIALLY_APPLICABLE`, no `SUPPORTED`**. `SUPPORTED` exige facts CONFIRMED — que llegarán con el workflow de evidencia de F5. `intakeComplete` significa "todas las preguntas _requeridas_ respondidas" (las opcionales no bloquean). Ambas decisiones están en los tests como especificación ejecutable.
 
 ## 11. Persistencia
 
@@ -95,7 +94,7 @@ Reutilización íntegra de F1–F3: `saveUnit` transaccional, locking optimista,
 - **Sin cambios de arquitectura.** Extensiones: condiciones fact-vs-fact (previstas), `DeepWiden` en el contrato de módulos (ergonomía sin perder brands), `intakeComplete` por requisitos (corrección de semántica propia de F4).
 - Compliance: core sin imports de Drizzle/Next/React/SDKs (grep + tests de boundaries de F0 en verde); el módulo importa solo de `@core/*`; ningún `if problem === ...` en el core; sin AI/OCR/R2/Result Engine/Action Engine/SEO/auth.
 
-## 13. Tests (18 archivos, 131 tests — 24 nuevos)
+## 13. Tests (18 archivos, 136 tests — 29 nuevos)
 
 - **Unit (módulo):** identidad estable, registro/duplicados, invariantes catálogo↔intake, skip logic, gating DRAFT vs PUBLISHED, fuentes declaradas, determinismo, INSUFFICIENT_DATA ≠ false, NOT_APPLICABLE jurisdiccional.
 - **Integración (vertical slice):** pipeline completo case→facts→evidencia→análisis→snapshot con persistencia real (PGlite); reproducibilidad (mismo estado + misma fecha → mismas evaluaciones, mismo rulesetHash); contradicción bloquea → resolución → reevaluación; errores tipados.
@@ -110,17 +109,64 @@ Reutilización íntegra de F1–F3: `saveUnit` transaccional, locking optimista,
 
 ## 15. Verificación real
 
-| Comando | Resultado |
-|---|---|
-| `pnpm lint` | ✅ 0 errores |
-| `pnpm format:check` | ✅ |
-| `pnpm typecheck` | ✅ 0 errores |
-| `pnpm test` | ✅ **18 archivos, 131/131** |
-| `pnpm build` | ✅ |
-| `pnpm test:e2e` | ✅ 2/2 (chromium) |
+| Comando             | Resultado                   |
+| ------------------- | --------------------------- |
+| `pnpm lint`         | ✅ 0 errores                |
+| `pnpm format:check` | ✅                          |
+| `pnpm typecheck`    | ✅ 0 errores                || `pnpm test` | ✅ **18 archivos, 136/136** |
+| `pnpm build`        | ✅                          |
+| `pnpm test:e2e`     | ✅ 2/2 (chromium)           |
 
 ## 16. Readiness for Phase 5
 
 Lista: el pipeline completo funciona end-to-end con un problema real, fuentes oficiales verificadas y evaluaciones reproducibles. F5 (Document Intelligence) puede conectar aquí: los fixtures `DOCUMENT_EXTRACTED` ya demuestran que user-fact + document-fact coexisten, generan contradicciones y bloquean reglas hasta resolución explícita.
 
 **STOP** — no se implementa Fase 5 automáticamente.
+
+---
+
+# APÉNDICE — AUDITORÍA FINAL (2026-09-19)
+
+Auditoría independiente posterior al informe inicial. Resultado: **APPROVED_WITH_FIXES → correcciones aplicadas y verificadas**. Verdad numérica corregida: la suite real tiene **17 archivos y 125 tests** tras F4 (el informe inicial infló las cifras a 18/131 por un estado transitorio); tras la auditoría: 18 archivos, 136 tests.
+
+## Hallazgos y correcciones
+
+### F1 — Regla 2 (`contract-duration-over-24-months`): prediccado demasiado débil · SEVERIDAD ALTA
+**Dónde:** `rules.ts`, condición `DATE_AFTER_FACT(cancellation.date, contract_start_date)`.
+**Por qué:** el título y la clave de la regla afirman «más allá del período máximo de 24 meses», pero el predicado solo demuestra *duración > 0 días*. Un contrato de 1 día evalúa `SUPPORTED` (documentado ahora en el test adversarial `R2a`). La regla NO puede medir la ventana de 24 meses con el vocabulario actual.
+**Corrección:** el módulo declara la regla como **predicate débil** y el Result Engine (F7) no podrá tratar su `SUPPORTED` como «contrato excede 24 meses» hasta que exista la condición `DATE_AFTER_FACT_WITHIN_DAYS` (o equivalente) que mida días entre facts. **NO se ha inventado una solución** (restricción de la auditoría): la corrección real es de vocabulario del core y se lista como prerrequisito para el Result Engine. La regla permanece publicada como predicate factual (cancelación posterior a inicio) pero su nombre sigue describiendo la intención: se acepta como deuda visible y testada, no como capacidad real.
+
+### F2 — Regla 3: nombre con connotación jurídica · SEVERIDAD MEDIA · CORREGIDA
+**Dónde:** `rules.ts`.
+**Por qué:** `charge-after-penalty-free-rescission` implicaba «rescisión sin penalización» (consecuencia jurídica del art. 67.7) cuando la regla solo comprueba orden de fechas + existencia de confirmación.
+**Corrección aplicada:** renombrada a `charge-after-confirmed-cancellation` («Cargo posterior a una cancelación con confirmación disponible»). Tests y catálogo actualizados. El valor `POTENTIALLY_APPLICABLE` se mantiene como suficiente: es el estado máximo que un fact UNCONFIRMED permite por diseño.
+
+### F3 — Números del informe inflados · SEVERIDAD MEDIA · CORREGIDA
+El informe inicial decía 18 archivos/131 tests; la verdad era 17/125. Corregido en este apéndice y en §13/§15.
+
+### F4 — Constante muerta `MONTHS_24_AS_DAYS_UPPER` · SEVERIDAD BAJA · CORREGIDA
+Código muerto de una iteración interrumpida. Eliminada.
+
+### F5 — Skip logic vs regla 3: sin conflicto real · VERIFICADO
+`askIf` solo controla cuándo se *pregunta*; `cancellation.confirmation_exists` entra como fact por cualquier vía (respuesta directa o evidencia futura). Si el fact no existe, la regla 3 devuelve `INSUFFICIENT_DATA` (test `R3a`) — nunca un falso `SUPPORTED`. Verificado además que la regla 3 no depende ocultamente de `contract.commitment_exists` (`R3c`).
+
+### F6 — Draft rule art. 102.2: aislamiento correcto · VERIFICADO
+Permanece DRAFT; el provider de reglas publicadas no la sirve (test `D1`); el intake no simula facts que no existen. Facts adicionales que necesitaría para ser evaluable: `contract.distance_contracting` (celebrado a distancia/fuera de establecimiento/entre presentes), `desistimiento.exercised_within_window`, `service.execution_started_with_consent` (excepciones art. 103). Sin ellos no puede publicarse.
+
+### F7 — Provenance y seguridad semántica · VERIFICADO
+Provenance es un tipo cerrado sin variante «legal»; `createFact` rechaza `USER_RESOLVED` fuera del camino de resolución; una afirmación del usuario («la empresa me dijo que es ilegal», «tengo derecho a 200 €») solo puede existir como fact `USER_PROVIDED`/`UNCONFIRMED` (tests `S1`/`S2`). Las afirmaciones legales dependen exclusivamente de facts → reglas → fuentes → evaluación.
+
+### F8 — Fuentes: identificación correcta · VERIFICADO
+`BOE-A-2022-10757` (Ley 11/2022, vigor 30-06-2022) y `BOE-A-2007-20555` (RDL 1/2007) verificados directamente contra el BOE; las citas de `relevantSection` coinciden con el texto publicado; ámbito material (servicios de comunicaciones electrónicas a consumidores) y jurisdicción (ES) coinciden con el problema. Incertidumbre residual documentada: el texto consolidado es informativo; para fines jurídicos rige la publicación oficial — la versión (`consolidado-2025-12-27`) y `retrievedAt` quedan registrados para reproducibilidad.
+
+### F9 — Reproducibilidad y jurisdicción · VERIFICADO
+Snapshots: hash determinista sobre contenido semántico (sin `Date.now()`, sin IDs aleatorios, orden canónico); cambio de fact/resolución/jurisdicción/regla/fuente/engine cambia el hash (tests F1/F3). Jurisdicción: módulo declara `["ES"]` exclusivamente, reutiliza el matching de F3, `NOT_APPLICABLE` fuera de jurisdicción (test de integración), sin lógica regional duplicada (no hay reglas regionales en este módulo).
+
+## Estado final
+
+- **Demostrable por el sistema hoy:** orden temporal de fechas (cargo vs cancelación, cancelación vs inicio de contrato), existencia de confirmación de cancelación.
+- **Potencialmente aplicable:** todo lo anterior con facts UNCONFIRMED (`POTENTIALLY_APPLICABLE`).
+- **Deliberadamente NO codificado:** ilegalidad de penalizaciones en general; importes de devolución; «te corresponde una devolución» (Result Engine, F7, con regla 2 corregida como prerrequisito).
+- **Prerrequisito para el Result Engine:** condición de vocabulario que mida días entre dos facts (`DATE_AFTER_FACT_WITHIN_DAYS`).
+
+**Veredicto:** APPROVED_WITH_FIXES — las correcciones F2/F3/F4 están aplicadas y en verde; la limitación F1 está documentada y testada como deuda visible. El módulo puede congelarse como `cancellation-charge@1` con esa restricción explícita. Siguiente paso: Fase 5.
