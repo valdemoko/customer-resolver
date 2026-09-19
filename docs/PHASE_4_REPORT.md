@@ -230,4 +230,67 @@ La aritmética opera sobre enteros (año, mes, día) y `Date.UTC`/accessors UTC 
 
 ## Estado
 
-Criterio de aceptación cumplido: _si `contract-duration-over-24-months` devuelve `SUPPORTED`, los facts confirmados demuestran realmente una duración superior a 24 meses según la semántica calendárica definida._ F1 cerrada; sin deuda temporal pendiente. El módulo queda listo para congelarse.
+Criterio de aceptación cumplido: _si `contract-duration-exceeds-24-months` devuelve `SUPPORTED`, los facts confirmados demuestran realmente una duración superior a 24 meses según la semántica calendárica definida._ F1 cerrada; sin deuda temporal pendiente. El módulo queda listo para congelarse.
+
+---
+
+# APÉNDICE C — AUDITORÍA JURÍDICA FINAL (2026-09-19)
+
+Auditoría de semántica jurídica de las reglas PUBLICADAS de `cancellation-charge@1`, solicitada explícitamente antes de congelar F4.
+
+## Hallazgo principal: regla 2
+
+**Regla anterior:** `contract-duration-over-24-months` con título *"El contrato estuvo en vigor más allá del período máximo de 24 meses (art. 67.7)"*.
+
+**Problema:** el título afirmaba una consecuencia normativa del art. 67.7 (el contrato incumple el límite legal), pero la condición solo demostraba un hecho temporal (duración > 24 meses). El art. 67.7 tiene condiciones de applicabilidad que la regla no verificaba:
+
+1. Tipo de servicio: comunicaciones electrónicas disponibles al público (no M2M).
+2. Tipo de contratante: consumidor (o micro/pequeña empresa/organización sin renuncia).
+3. Excepción: contrato a plazos destinado exclusivamente al despliegue de conexión física.
+4. Jurisdicción: España.
+
+Una regla que afirma "excede el máximo del art. 67.7" sin verificar estas condiciones estaría sobreafirmando: un contrato de más de 24 meses que fuera M2M o un contrato de despliegue de fibra NO violaría el art. 67.7.
+
+**Decisión adoptada: Opción A** — renombrar a `contract-duration-exceeds-24-months` con título *"La diferencia entre las fechas contractuales supera 24 meses calendáricos"*. La regla ahora demuestra exclusivamente el hecho temporal, sin afirmar consecuencia normativa alguna. El análisis de applicabilidad del art. 67.7 queda para el Result Engine (Fase 7).
+
+**Por qué no Opción B:** añadir 3 facts (party_type, service_type, installment_exception) habría permitido modelar las condiciones de applicabilidad. Pero en F4 estamos construyendo el primer módulo; el intake del consumidor no debe crecer artificialmente con preguntas técnicas sobre tipo de contrato a plazos para despliegue de fibra. La Opción A es más honesta: el sistema demuestra un hecho, y la interpretación jurídica pertenece a una fase posterior con datos suficientes.
+
+## Regla 1 — `charge-after-cancellation`
+
+**Hecho que demuestra:** existe un cargo cuya fecha es posterior a la fecha declarada de cancelación por el usuario.
+
+**Conclusión que NO permite obtener:** que el cargo sea ilegal, indebido o reclamable. El hecho de que un cargo sea posterior a una cancelación no implica por sí solo infracción normativa.
+
+**Estado:** ✅ Correctamente factual. Sin cambios.
+
+## Regla 3 — `charge-after-confirmed-cancellation`
+
+**Hecho que demuestra:** existe un cargo posterior a una cancelación que el usuario puede confirmar documentalmente.
+
+**Conclusión que NO permite obtener:** derecho automático a devolución, incumplimiento contractual, indemnización, o que la cancelación fuera legalmente efectiva. La confirmación del usuario no es verificación jurídica.
+
+**Estado:** ✅ Correctamente factual. Sin cambios.
+
+## Regla DRAFT — `penalty-after-legal-desistimiento`
+
+**Mantener DRAFT.** Para evaluar correctamente el art. 102.2 TRLGDCU se necesitarían facts adicionales:
+
+- `contract.distance_contracting`: tipo de contratación (a distancia / fuera de establecimiento / entre presentes).
+- `desistimiento.exercised_within_window`: si el desistimiento se ejerció dentro del plazo legal.
+- `contract.service_execution_started`: si el servicio comenzó a ejecutarse antes del desistimiento (art. 103).
+- `contract.service_execution_with_consent`: si el consumidor dio consentimiento expreso.
+- Otros hechos de las excepciones del art. 103 (bienes perecederos, sellos precintados, etc.).
+
+No se puede publicar sin estos facts. La regla permanece DRAFT.
+
+## Regla de oro — respuesta para cada regla
+
+| Regla | ¿Qué hecho demuestra exactamente? | ¿Qué conclusión NO permite obtener? |
+|---|---|---|
+| `charge-after-cancellation` | Un cargo es posterior a una cancelación declarada | Ilegalidad, indebidez, reclamabilidad |
+| `contract-duration-exceeds-24-months` | La diferencia entre fechas contractuales supera 24 meses | Que el contrato incumpla el art. 67.7 (faltan condiciones de applicabilidad) |
+| `charge-after-confirmed-cancellation` | Un cargo es posterior a una cancelación con confirmación disponible | Derecho a devolución, efectividad legal de la cancelación |
+
+## Veredicto
+
+**APPROVED** — las tres reglas publicadas demuestran exclusivamente hechos que el sistema puede verificar determinísticamente. Ninguna afirma una consecuencia jurídica que sus facts + condiciones + fuente no puedan respaldar. La regla 2 fue renombrada para eliminar la referencia implícita al art. 67.7. La regla DRAFT permanece bloqueada con facts mínimos documentados. F4 puede congelarse.

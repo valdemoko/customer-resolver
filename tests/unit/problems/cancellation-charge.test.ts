@@ -156,7 +156,7 @@ describe("module rules (gating + pure evaluation)", () => {
     expect(rules.penaltyAfterLegalDesistimiento.status).toBe("DRAFT");
     // Published rules are the only ones served:
     expect(rules.chargeAfterCancellation.status).toBe("PUBLISHED");
-    expect(rules.contractDurationOver24Months.status).toBe("PUBLISHED");
+    expect(rules.contractDurationExceeds24Months.status).toBe("PUBLISHED");
     expect(rules.chargeAfterConfirmedCancellation.status).toBe("PUBLISHED");
   });
 
@@ -164,7 +164,7 @@ describe("module rules (gating + pure evaluation)", () => {
     const rules = buildRules();
     for (const rule of [
       rules.chargeAfterCancellation,
-      rules.contractDurationOver24Months,
+      rules.contractDurationExceeds24Months,
       rules.chargeAfterConfirmedCancellation,
     ]) {
       expect(rule.sourceIds.length).toBeGreaterThanOrEqual(1);

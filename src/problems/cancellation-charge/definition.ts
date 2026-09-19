@@ -30,7 +30,7 @@ export const cancellationChargeModule: ProblemModuleDefinition = defineProblemMo
       key: "service.contract_start_date",
       type: "date",
       description:
-        "Fecha de inicio de vigencia del contrato (rule: contract-duration-over-24-months — Ley 11/2022 art. 67.7).",
+        "Fecha de inicio de vigencia del contrato (rule: contract-duration-exceeds-24-months).",
       questionId: "q-contract-start",
       required: false,
     },
@@ -125,7 +125,7 @@ export const cancellationChargeModule: ProblemModuleDefinition = defineProblemMo
 
   ruleKeys: [
     "cancellation-charge.charge-after-cancellation",
-    "cancellation-charge.contract-duration-over-24-months",
+    "cancellation-charge.contract-duration-exceeds-24-months",
     "cancellation-charge.charge-after-confirmed-cancellation",
   ],
 

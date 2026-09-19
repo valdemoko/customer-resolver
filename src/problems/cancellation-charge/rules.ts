@@ -109,7 +109,7 @@ const CHARGE_DATE = "charge.date" as FactKey;
 
 export interface CancellationChargeRules {
   readonly chargeAfterCancellation: Rule;
-  readonly contractDurationOver24Months: Rule;
+  readonly contractDurationExceeds24Months: Rule;
   readonly chargeAfterConfirmedCancellation: Rule;
   /** DRAFT — NOT in the published ruleset; requires human legal review. */
   readonly penaltyAfterLegalDesistimiento: Rule;
@@ -144,15 +144,18 @@ export function buildRules(): CancellationChargeRules {
     }),
   );
 
-  // RULE 2 (factual, source-backed, audit fix F1): the contract ran past its
-  // maximum vigencia. Ley 11/2022 art. 67.7 caps vigencia at 24 months.
-  // Uses the generic DATE_DIFFERENCE condition with calendar-month arithmetic
-  // (no day approximations): SUPPORTED now really means end > start + 24 months.
-  const contractDurationOver24Months = lifecycle(
+  // RULE 2 (factual — legal audit §7): purely temporal. The title and key
+  // were renamed to remove the art. 67.7 reference: the rule demonstrates
+  // that the contract lasted more than 24 calendar months, but does NOT
+  // assert that the 24-month cap of art. 67.7 was breached — that requires
+  // applicability conditions (service type, party type, exceptions) which
+  // are outside the scope of F4. The Result Engine (Fase 7) will combine
+  // this factual finding with applicability analysis.
+  const contractDurationExceeds24Months = lifecycle(
     createRule({
-      key: `${MODULE_KEY}.contract-duration-over-24-months`,
+      key: `${MODULE_KEY}.contract-duration-exceeds-24-months`,
       version: 1 as Rule["version"],
-      title: "El contrato estuvo en vigor más allá del período máximo de 24 meses (art. 67.7)",
+      title: "La diferencia entre las fechas contractuales supera 24 meses calendáricos",
       scope: { level: "COUNTRY_WIDE", country: "ES" },
       root: {
         kind: "DATE_DIFFERENCE",
@@ -207,7 +210,7 @@ export function buildRules(): CancellationChargeRules {
 
   return {
     chargeAfterCancellation,
-    contractDurationOver24Months,
+    contractDurationExceeds24Months,
     chargeAfterConfirmedCancellation,
     penaltyAfterLegalDesistimiento,
   };

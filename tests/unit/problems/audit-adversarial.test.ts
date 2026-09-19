@@ -84,7 +84,7 @@ describe("audit fix F1: rule 2 now measures the 24-month calendar window", () =>
   const rules = buildRules();
 
   it("R2a-fix: 1-day-old contract does NOT produce SUPPORTED (the audited bug)", () => {
-    const e = evaluateOn(rules.contractDurationOver24Months, [
+    const e = evaluateOn(rules.contractDurationExceeds24Months, [
       dateFact("service.contract_start_date", "2026-09-01"),
       dateFact("cancellation.date", "2026-09-02"),
     ]);
@@ -92,7 +92,7 @@ describe("audit fix F1: rule 2 now measures the 24-month calendar window", () =>
   });
 
   it("R2b: missing contract start → INSUFFICIENT_DATA (never fabricated)", () => {
-    const e = evaluateOn(rules.contractDurationOver24Months, [
+    const e = evaluateOn(rules.contractDurationExceeds24Months, [
       dateFact("cancellation.date", "2026-09-02"),
     ]);
     expect(e.status).toBe("INSUFFICIENT_DATA");
@@ -142,7 +142,7 @@ describe("audit: draft rule isolation and publication gate", () => {
     const rules = buildRules();
     const published = [
       rules.chargeAfterCancellation,
-      rules.contractDurationOver24Months,
+      rules.contractDurationExceeds24Months,
       rules.chargeAfterConfirmedCancellation,
     ];
     // Mimic the analysis service's provider contract:
