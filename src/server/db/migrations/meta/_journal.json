@@ -15,6 +15,13 @@
       "when": 1758326400000,
       "tag": "0002_evidence_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1758412800000,
+      "tag": "0003_rules_sources",
+      "breakpoints": true
     }
   ]
 }

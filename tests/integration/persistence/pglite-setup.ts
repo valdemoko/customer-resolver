@@ -19,7 +19,11 @@ import type { CaseRepository } from "@core/ports";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const migrationsDir = join(here, "..", "..", "..", "src", "server", "db", "migrations");
-const MIGRATION_FILES = ["0001_core_tables.sql", "0002_evidence_tables.sql"];
+const MIGRATION_FILES = [
+  "0001_core_tables.sql",
+  "0002_evidence_tables.sql",
+  "0003_rules_sources.sql",
+];
 const MIGRATION_SQL = MIGRATION_FILES.map((file) =>
   readFileSync(join(migrationsDir, file), "utf8"),
 ).join("\n");

@@ -72,14 +72,14 @@ Ninguna decisión arquitectónica cambió. Adiciones compatibles: `CaseUnitOfWor
 
 ## 14. Verification
 
-| Comando | Resultado |
-|---|---|
-| `pnpm lint` | ✅ |
-| `pnpm format:check` | ✅ |
-| `pnpm typecheck` | ✅ 0 errores |
-| `pnpm test` | ✅ 12 archivos, 71/71 |
-| `pnpm build` | ✅ Compiled successfully |
-| `pnpm test:e2e` | ✅ 2/2 |
+| Comando             | Resultado                |
+| ------------------- | ------------------------ |
+| `pnpm lint`         | ✅                       |
+| `pnpm format:check` | ✅                       |
+| `pnpm typecheck`    | ✅ 0 errores             |
+| `pnpm test`         | ✅ 12 archivos, 71/71    |
+| `pnpm build`        | ✅ Compiled successfully |
+| `pnpm test:e2e`     | ✅ 2/2                   |
 
 Migración aplicada desde estado limpio en cada suite de persistencia (PGlite efímero en memoria — ninguna DB real tocada). Sin secretos ni artefactos en el diff.
 

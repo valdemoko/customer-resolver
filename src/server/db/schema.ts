@@ -143,6 +143,91 @@ export const evidence = pgTable(
   ],
 );
 
+/**
+ * Rules (Fase 3). Definitions are DECLARATIVE DATA validated with Zod at the
+ * boundary — never executed. (key, version) is unique; published versions are
+ * immutable (enforced in the domain layer).
+ */
+export const rules = pgTable(
+  "rules",
+  {
+    id: uuid("id").primaryKey(),
+    key: text("key").notNull(),
+    version: integer("version").notNull(),
+    title: text("title").notNull(),
+    scope: jsonb("scope").notNull(),
+    rootCondition: jsonb("root_condition").notNull(),
+    sourceIds: jsonb("source_ids").notNull().default([]),
+    status: text("status").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("rules_key_version_unique").on(t.key, t.version),
+    index("rules_status_idx").on(t.status, t.key),
+  ],
+);
+
+/** Official sources with identity + version metadata + human verification. */
+export const sources = pgTable(
+  "sources",
+  {
+    id: uuid("id").primaryKey(),
+    externalId: text("external_id").notNull().unique(),
+    title: text("title").notNull(),
+    publisher: text("publisher").notNull(),
+    url: text("url").notNull(),
+    jurisdiction: jsonb("jurisdiction").notNull(),
+    type: text("type").notNull(),
+    publishedOn: text("published_on"),
+    effectiveFrom: text("effective_from"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true, mode: "string" }).notNull(),
+    versionIdentifier: text("version_identifier").notNull(),
+    status: text("status").notNull(),
+    verification: jsonb("verification"),
+    supersededById: uuid("superseded_by_id"),
+    relevantSection: text("relevant_section"),
+  },
+  (t) => [index("sources_status_idx").on(t.status)],
+);
+
+/** Explicit rule ↔ source traceability (queryable, not hidden in JSONB). */
+export const ruleSources = pgTable(
+  "rule_sources",
+  {
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => rules.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id),
+    ruleKey: text("rule_key").notNull(),
+    ruleVersion: integer("rule_version").notNull(),
+    claim: text("claim").notNull(),
+  },
+  (t) => [
+    uniqueIndex("rule_sources_unique").on(t.ruleId, t.sourceId),
+    index("rule_sources_source_idx").on(t.sourceId),
+  ],
+);
+
+/** Persisted rule evaluations — append-only audit, reproducible. */
+export const ruleEvaluations = pgTable(
+  "rule_evaluations",
+  {
+    id: uuid("id").primaryKey(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    ruleKey: text("rule_key").notNull(),
+    ruleVersion: integer("rule_version").notNull(),
+    status: text("status").notNull(),
+    evaluation: jsonb("evaluation").notNull(),
+    rulesetHash: text("ruleset_hash"),
+    evaluatedAt: timestamp("evaluated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [index("rule_evaluations_case_idx").on(t.caseId, t.evaluatedAt)],
+);
+
 /** N:N evidence ↔ fact with explicit semantics (SUPPORTS ≠ proven truth). */
 export const evidenceFactLinks = pgTable(
   "evidence_fact_links",
