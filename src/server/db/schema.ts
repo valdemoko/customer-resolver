@@ -2,7 +2,16 @@
  * Database schema (Fase 1) — mirrors src/core/types.ts 1:1 on semantic fields.
  * Persistence-only columns (surrogate ids, timestamps) live here, not in the core.
  */
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const cases = pgTable(
   "cases",
@@ -105,3 +114,53 @@ export const idempotencyKeys = pgTable("idempotency_keys", {
   /** Reserved for future multi-tenancy scoping; unused in Fase 1. */
   scope: text("scope"),
 });
+
+/**
+ * Evidence (Fase 2). Metadata and content *representation* only — no bytes.
+ * Content lives in a JSONB union (`text` / `url` / `file` descriptor).
+ */
+export const evidence = pgTable(
+  "evidence",
+  {
+    id: uuid("id").primaryKey(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    status: text("status").notNull(),
+    source: text("source").notNull(),
+    content: jsonb("content").notNull(),
+    label: text("label"),
+    checksum: text("checksum"),
+    replacesEvidenceId: uuid("replaces_evidence_id"),
+    replacedByEvidenceId: uuid("replaced_by_evidence_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("evidence_case_idx").on(t.caseId, t.status),
+    index("evidence_checksum_idx").on(t.checksum),
+  ],
+);
+
+/** N:N evidence ↔ fact with explicit semantics (SUPPORTS ≠ proven truth). */
+export const evidenceFactLinks = pgTable(
+  "evidence_fact_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    evidenceId: uuid("evidence_id")
+      .notNull()
+      .references(() => evidence.id, { onDelete: "cascade" }),
+    factId: uuid("fact_id")
+      .notNull()
+      .references(() => caseFacts.id, { onDelete: "cascade" }),
+    relation: text("relation").notNull(),
+    location: text("location"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("evidence_fact_unique_idx").on(t.evidenceId, t.factId, t.relation),
+    index("evidence_fact_fact_idx").on(t.factId),
+  ],
+);

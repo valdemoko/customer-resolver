@@ -21,6 +21,14 @@ import type {
   OwnerId,
   ProblemSlug,
 } from "@core/types";
+import type {
+  Evidence,
+  EvidenceFactLink,
+  EvidenceFactRelation,
+  EvidenceId,
+  EvidenceStatus,
+  EvidenceType,
+} from "@core/evidence/types";
 import type { CaseRepository, CaseUnitOfWork, CreateCaseData, LoadedCase } from "@core/ports";
 import { now as systemNow } from "@core/shared/temporal";
 
@@ -30,6 +38,8 @@ import {
   caseFacts,
   caseSnapshots,
   cases,
+  evidence,
+  evidenceFactLinks,
   idempotencyKeys,
 } from "../schema";
 
@@ -119,6 +129,35 @@ function mapEvent(row: typeof caseEvents.$inferSelect): CaseEvent {
   };
 }
 
+function mapEvidence(row: typeof evidence.$inferSelect): Evidence {
+  return {
+    id: row.id as EvidenceId,
+    caseId: row.caseId,
+    type: row.type as EvidenceType,
+    status: row.status as EvidenceStatus,
+    source: row.source as Evidence["source"],
+    content: row.content as Evidence["content"],
+    label: row.label ?? undefined,
+    checksum: row.checksum ?? undefined,
+    replacesEvidenceId: (row.replacesEvidenceId ?? undefined) as Evidence["replacesEvidenceId"],
+    replacedByEvidenceId: (row.replacedByEvidenceId ??
+      undefined) as Evidence["replacedByEvidenceId"],
+    createdAt: row.createdAt as Evidence["createdAt"],
+    updatedAt: row.updatedAt as Evidence["updatedAt"],
+  };
+}
+
+function mapEvidenceLink(row: typeof evidenceFactLinks.$inferSelect): EvidenceFactLink {
+  return {
+    evidenceId: row.evidenceId as EvidenceId,
+    factId: row.factId,
+    relation: row.relation as EvidenceFactRelation,
+    location: row.location ?? undefined,
+    note: row.note ?? undefined,
+    createdAt: row.createdAt as EvidenceFactLink["createdAt"],
+  };
+}
+
 export class DrizzleCaseRepository implements CaseRepository {
   constructor(private readonly db: Db) {}
 
@@ -155,33 +194,52 @@ export class DrizzleCaseRepository implements CaseRepository {
       return mapCase(row!);
     });
   }
-
   async loadCase(caseId: string): Promise<LoadedCase | null> {
     const [caseRow] = await this.db.select().from(cases).where(eq(cases.id, caseId)).limit(1);
     if (!caseRow) return null;
 
-    const [factRows, contradictionRows, eventRows, snapshotRows] = await Promise.all([
-      this.db
-        .select()
-        .from(caseFacts)
-        .where(eq(caseFacts.caseId, caseId))
-        .orderBy(asc(caseFacts.createdAt)),
-      this.db
-        .select()
-        .from(caseContradictions)
-        .where(eq(caseContradictions.caseId, caseId))
-        .orderBy(asc(caseContradictions.detectedAt)),
-      this.db
-        .select()
-        .from(caseEvents)
-        .where(eq(caseEvents.caseId, caseId))
-        .orderBy(asc(caseEvents.occurredAt)),
-      this.db
-        .select()
-        .from(caseSnapshots)
-        .where(eq(caseSnapshots.caseId, caseId))
-        .orderBy(asc(caseSnapshots.createdAt)),
-    ]);
+    const [factRows, contradictionRows, eventRows, snapshotRows, evidenceRows, linkRows] =
+      await Promise.all([
+        this.db
+          .select()
+          .from(caseFacts)
+          .where(eq(caseFacts.caseId, caseId))
+          .orderBy(asc(caseFacts.createdAt)),
+        this.db
+          .select()
+          .from(caseContradictions)
+          .where(eq(caseContradictions.caseId, caseId))
+          .orderBy(asc(caseContradictions.detectedAt)),
+        this.db
+          .select()
+          .from(caseEvents)
+          .where(eq(caseEvents.caseId, caseId))
+          .orderBy(asc(caseEvents.occurredAt)),
+        this.db
+          .select()
+          .from(caseSnapshots)
+          .where(eq(caseSnapshots.caseId, caseId))
+          .orderBy(asc(caseSnapshots.createdAt)),
+        this.db
+          .select()
+          .from(evidence)
+          .where(eq(evidence.caseId, caseId))
+          .orderBy(asc(evidence.createdAt)),
+        this.db
+          .select({
+            id: evidenceFactLinks.id,
+            evidenceId: evidenceFactLinks.evidenceId,
+            factId: evidenceFactLinks.factId,
+            relation: evidenceFactLinks.relation,
+            location: evidenceFactLinks.location,
+            note: evidenceFactLinks.note,
+            createdAt: evidenceFactLinks.createdAt,
+          })
+          .from(evidenceFactLinks)
+          .innerJoin(evidence, eq(evidenceFactLinks.evidenceId, evidence.id))
+          .where(eq(evidence.caseId, caseId))
+          .orderBy(asc(evidenceFactLinks.createdAt)),
+      ]);
 
     return {
       case: mapCase(caseRow),
@@ -189,6 +247,8 @@ export class DrizzleCaseRepository implements CaseRepository {
       contradictions: contradictionRows.map(mapContradiction),
       events: eventRows.map(mapEvent),
       snapshots: snapshotRows.map(mapSnapshot),
+      evidence: evidenceRows.map(mapEvidence),
+      evidenceLinks: linkRows.map(mapEvidenceLink),
     };
   }
 
@@ -268,6 +328,63 @@ export class DrizzleCaseRepository implements CaseRepository {
             resolvedAt: c.resolvedAt ?? null,
           })
           .where(eq(caseContradictions.id, c.id));
+      }
+
+      // ── Evidence (Fase 2) ────────────────────────────────────────────
+      if (unit.newEvidence && unit.newEvidence.length > 0) {
+        await tx.insert(evidence).values(
+          unit.newEvidence.map((e) => ({
+            id: e.id,
+            caseId: e.caseId,
+            type: e.type,
+            status: e.status,
+            source: e.source,
+            content: e.content,
+            label: e.label ?? null,
+            checksum: e.checksum ?? null,
+            replacesEvidenceId: e.replacesEvidenceId ?? null,
+            replacedByEvidenceId: e.replacedByEvidenceId ?? null,
+            createdAt: e.createdAt,
+            updatedAt: e.updatedAt,
+          })),
+        );
+      }
+
+      for (const e of unit.updatedEvidence ?? []) {
+        await tx
+          .update(evidence)
+          .set({
+            status: e.status,
+            checksum: e.checksum ?? null,
+            replacedByEvidenceId: e.replacedByEvidenceId ?? null,
+            updatedAt: e.updatedAt,
+          })
+          .where(eq(evidence.id, e.id));
+      }
+
+      if (unit.newEvidenceLinks && unit.newEvidenceLinks.length > 0) {
+        await tx.insert(evidenceFactLinks).values(
+          unit.newEvidenceLinks.map((l) => ({
+            evidenceId: l.evidenceId,
+            factId: l.factId,
+            relation: l.relation,
+            location: l.location ?? null,
+            note: l.note ?? null,
+            createdAt: l.createdAt,
+          })),
+        );
+      }
+
+      for (const l of unit.removedEvidenceLinks ?? []) {
+        await tx
+          .delete(evidenceFactLinks)
+          .where(
+            and(
+              eq(evidenceFactLinks.evidenceId, l.evidenceId),
+              eq(evidenceFactLinks.factId, l.factId),
+              eq(evidenceFactLinks.relation, l.relation),
+            ),
+          );
       }
 
       if (unit.newSnapshot) {
