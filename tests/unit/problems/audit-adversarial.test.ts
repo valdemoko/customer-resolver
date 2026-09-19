@@ -55,12 +55,12 @@ function evaluateOn(rule: Rule, facts: RuleEvaluationContext["facts"]) {
 describe("audit: charge-after-cancellation edge cases", () => {
   const rules = buildRules();
 
-  it("A1: charge before cancellation → UNKNOWN (fact, no legal reading)", () => {
+  it("A1: charge before cancellation → NOT_APPLICABLE (fact, no legal reading)", () => {
     const e = evaluateOn(rules.chargeAfterCancellation, [
       dateFact("cancellation.date", "2026-06-10"),
       dateFact("charge.date", "2026-06-01"),
     ]);
-    expect(e.status).toBe("UNKNOWN");
+    expect(e.status).toBe("NOT_APPLICABLE");
   });
 
   it("A3: charge after cancellation → POTENTIALLY_APPLICABLE with UNCONFIRMED facts", () => {
@@ -80,17 +80,15 @@ describe("audit: charge-after-cancellation edge cases", () => {
   });
 });
 
-describe("audit: rule 2 (contract-duration-over-24-months) boundary semantics", () => {
+describe("audit fix F1: rule 2 now measures the 24-month calendar window", () => {
   const rules = buildRules();
 
-  it("R2a: audit finding — 1-day-old contract evaluates TRUE (predicate is duration>0)", () => {
-    // This test DOCUMENTS the audit finding: rule 2 v1 cannot measure the
-    // 24-month window; it fires for any contract with start < cancellation.
+  it("R2a-fix: 1-day-old contract does NOT produce SUPPORTED (the audited bug)", () => {
     const e = evaluateOn(rules.contractDurationOver24Months, [
       dateFact("service.contract_start_date", "2026-09-01"),
       dateFact("cancellation.date", "2026-09-02"),
     ]);
-    expect(e.status).toBe("SUPPORTED");
+    expect(e.status).toBe("NOT_APPLICABLE");
   });
 
   it("R2b: missing contract start → INSUFFICIENT_DATA (never fabricated)", () => {
@@ -114,13 +112,13 @@ describe("audit: rule 3 confirmation condition and skip logic", () => {
     expect(e.missingFacts).toContain("cancellation.confirmation_exists");
   });
 
-  it("R3b: confirmation false → UNKNOWN (all facts present, condition not met)", () => {
+  it("R3b: confirmation false → NOT_APPLICABLE (all facts present, condition not met)", () => {
     const e = evaluateOn(rules.chargeAfterConfirmedCancellation, [
       dateFact("cancellation.date", "2026-06-10"),
       dateFact("charge.date", "2026-07-01"),
       boolFact("cancellation.confirmation_exists", false),
     ]);
-    expect(e.status).toBe("UNKNOWN");
+    expect(e.status).toBe("NOT_APPLICABLE");
   });
 
   it("R3c: rule 3 does NOT read contract.commitment_exists (no hidden dependency)", () => {

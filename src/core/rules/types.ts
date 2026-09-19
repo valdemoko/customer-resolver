@@ -38,6 +38,24 @@ export type Condition =
   | { readonly kind: "DATE_AFTER_FACT"; readonly key: FactKey; readonly otherKey: FactKey }
   /** fact(key) is a calendar date strictly before fact(otherKey). */
   | { readonly kind: "DATE_BEFORE_FACT"; readonly key: FactKey; readonly otherKey: FactKey }
+  /**
+   * Calendar distance between two date facts, compared against a duration.
+   * Semantics (ISO-8601 duration arithmetic, no day approximations):
+   *   date(end) > date(start) + duration  → condition met
+   * with strict `>` (equality means NOT met). End <= start never satisfies
+   * a positive duration (documented, tested semantics for inverted dates).
+   * Unit MONTHS is calendar-arithmetical (addMonths: day preserved, clamped
+   * to end of month); DAYS is 24h-day counting. Pure, deterministic, no
+   * clock reads — the reference dates come from the facts themselves.
+   */
+  | {
+      readonly kind: "DATE_DIFFERENCE";
+      readonly startFact: FactKey;
+      readonly endFact: FactKey;
+      readonly duration: number;
+      readonly unit: "DAYS" | "MONTHS";
+      readonly comparison: "GREATER_THAN" | "GREATER_OR_EQUAL";
+    }
   | { readonly kind: "BOOLEAN_IS_TRUE"; readonly key: FactKey }
   | { readonly kind: "BOOLEAN_IS_FALSE"; readonly key: FactKey }
   | { readonly kind: "ALL"; readonly conditions: readonly Condition[] }

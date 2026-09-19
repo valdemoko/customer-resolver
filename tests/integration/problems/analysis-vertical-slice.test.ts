@@ -29,7 +29,7 @@ function makeRulesProvider() {
   const published = [
     rules.chargeAfterCancellation,
     rules.contractDurationOver24Months,
-    rules.chargeAfterPenaltyFreeRescission,
+    rules.chargeAfterConfirmedCancellation,
   ];
   return {
     async getPublishedRules(keys: readonly string[]) {

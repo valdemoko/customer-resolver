@@ -127,7 +127,7 @@ describe("module rules (gating + pure evaluation)", () => {
       ...baseContext,
       facts: [date("charge.date", "2026-01-05"), date("cancellation.date", "2026-01-10")],
     });
-    expect(contradicted.status).toBe("UNKNOWN"); // facts present, condition false
+    expect(contradicted.status).toBe("NOT_APPLICABLE"); // facts present, condition false → NOT_APPLICABLE
   });
 
   it("rule with missing fact returns INSUFFICIENT_DATA, never false", () => {

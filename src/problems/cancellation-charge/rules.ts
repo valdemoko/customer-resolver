@@ -144,12 +144,10 @@ export function buildRules(): CancellationChargeRules {
     }),
   );
 
-  // RULE 2 (factual, source-backed): the contract ran past its maximum vigencia.
-  // Ley 11/2022 art. 67.7 caps vigencia at 24 months. Vocabulary note: the current
-  // condition set compares two facts directly (DATE_AFTER_FACT) but cannot yet
-  // express "more than N days between two facts"; v1 uses the conservative
-  // predicate "cancellation after contract start" (duration > 0), and the precise
-  // 731-day refinement is a documented vocabulary gap (PHASE_4_REPORT §known debt).
+  // RULE 2 (factual, source-backed, audit fix F1): the contract ran past its
+  // maximum vigencia. Ley 11/2022 art. 67.7 caps vigencia at 24 months.
+  // Uses the generic DATE_DIFFERENCE condition with calendar-month arithmetic
+  // (no day approximations): SUPPORTED now really means end > start + 24 months.
   const contractDurationOver24Months = lifecycle(
     createRule({
       key: `${MODULE_KEY}.contract-duration-over-24-months`,
@@ -157,8 +155,12 @@ export function buildRules(): CancellationChargeRules {
       title: "El contrato estuvo en vigor más allá del período máximo de 24 meses (art. 67.7)",
       scope: { level: "COUNTRY_WIDE", country: "ES" },
       root: {
-        kind: "ALL",
-        conditions: [{ kind: "DATE_AFTER_FACT", key: CANCELLATION_DATE, otherKey: CONTRACT_START }],
+        kind: "DATE_DIFFERENCE",
+        startFact: CONTRACT_START,
+        endFact: CANCELLATION_DATE,
+        duration: 24,
+        unit: "MONTHS",
+        comparison: "GREATER_THAN",
       },
       sourceIds: [leyId as string],
     }),

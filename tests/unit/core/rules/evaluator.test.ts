@@ -56,7 +56,7 @@ describe("atomic conditions", () => {
     const r = rule({ kind: "FACT_EQUALS", key: key("a.b"), equals: "hola" });
     expect(evaluateRule(r, ctx({ facts: [fact("a.b", "hola")] })).status).toBe("SUPPORTED");
     const failed = evaluateRule(r, ctx({ facts: [fact("a.b", "adios")] }));
-    expect(failed.status).toBe("UNKNOWN"); // evaluated false, nothing missing
+    expect(failed.status).toBe("NOT_APPLICABLE"); // evaluated false, nothing missing
     expect(failed.traces[0]!.children?.[0] ?? failed.traces[0]).toMatchObject({
       reason: "NOT_MATCHED",
       actual: "adios",
@@ -69,7 +69,7 @@ describe("atomic conditions", () => {
   it("numeric comparisons", () => {
     const gt = rule({ kind: "FACT_GREATER_THAN", key: key("n"), than: 10 });
     expect(evaluateRule(gt, ctx({ facts: [fact("n", 11)] })).status).toBe("SUPPORTED");
-    expect(evaluateRule(gt, ctx({ facts: [fact("n", 10)] })).status).toBe("UNKNOWN");
+    expect(evaluateRule(gt, ctx({ facts: [fact("n", 10)] })).status).toBe("NOT_APPLICABLE");
     const geq = rule({ kind: "FACT_GREATER_OR_EQUAL", key: key("n"), than: 10 });
     expect(evaluateRule(geq, ctx({ facts: [fact("n", 10)] })).status).toBe("SUPPORTED");
     const lt = rule({ kind: "FACT_LESS_THAN", key: key("n"), than: 10 });
@@ -83,7 +83,9 @@ describe("atomic conditions", () => {
     expect(evaluateRule(before, ctx({ facts: [fact("d", "2026-09-10")] })).status).toBe(
       "SUPPORTED",
     );
-    expect(evaluateRule(before, ctx({ facts: [fact("d", "2026-09-15")] })).status).toBe("UNKNOWN");
+    expect(evaluateRule(before, ctx({ facts: [fact("d", "2026-09-15")] })).status).toBe(
+      "NOT_APPLICABLE",
+    );
     const after = rule({ kind: "DATE_AFTER", key: key("d"), after: isoDate("2026-09-15") });
     expect(evaluateRule(after, ctx({ facts: [fact("d", "2026-09-16")] })).status).toBe("SUPPORTED");
   });
@@ -96,17 +98,19 @@ describe("atomic conditions", () => {
     expect(
       evaluateRule(r, ctx({ facts: [fact("d", "2026-09-09")], currentDate: isoDate("2026-12-31") }))
         .status,
-    ).toBe("UNKNOWN");
+    ).toBe("NOT_APPLICABLE");
     // boundary: exactly withinDays
     expect(evaluateRule(r, ctx({ facts: [fact("d", "2026-09-05")] })).status).toBe("SUPPORTED");
     // fact after reference → outside
-    expect(evaluateRule(r, ctx({ facts: [fact("d", "2026-09-20")] })).status).toBe("UNKNOWN");
+    expect(evaluateRule(r, ctx({ facts: [fact("d", "2026-09-20")] })).status).toBe(
+      "NOT_APPLICABLE",
+    );
   });
 
   it("BOOLEAN_IS_TRUE / BOOLEAN_IS_FALSE", () => {
     const t = rule({ kind: "BOOLEAN_IS_TRUE", key: key("flag") });
     expect(evaluateRule(t, ctx({ facts: [fact("flag", true)] })).status).toBe("SUPPORTED");
-    expect(evaluateRule(t, ctx({ facts: [fact("flag", false)] })).status).toBe("UNKNOWN");
+    expect(evaluateRule(t, ctx({ facts: [fact("flag", false)] })).status).toBe("NOT_APPLICABLE");
     const f = rule({ kind: "BOOLEAN_IS_FALSE", key: key("flag") });
     expect(evaluateRule(f, ctx({ facts: [fact("flag", false)] })).status).toBe("SUPPORTED");
   });
@@ -114,7 +118,7 @@ describe("atomic conditions", () => {
   it("type mismatch fails safely (not crashes, not matches)", () => {
     const r = rule({ kind: "FACT_GREATER_THAN", key: key("n"), than: 10 });
     const result = evaluateRule(r, ctx({ facts: [fact("n", "not-a-number")] }));
-    expect(result.status).toBe("UNKNOWN");
+    expect(result.status).toBe("NOT_APPLICABLE");
     expect(result.traces[0]!.reason).toBe("TYPE_MISMATCH");
   });
 });
@@ -160,7 +164,7 @@ describe("composition", () => {
       ...r,
       root: { kind: "ALL", conditions: [] },
     };
-    expect(evaluateRule(handmade, ctx()).status).toBe("UNKNOWN");
+    expect(evaluateRule(handmade, ctx()).status).toBe("NOT_APPLICABLE");
     expect(evaluateRule(handmade, ctx()).traces[0]!.reason).toBe("EMPTY_COMPOSITION");
   });
 });

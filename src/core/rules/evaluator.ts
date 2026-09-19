@@ -1,13 +1,16 @@
 /**
- * Rule evaluator (Fase 3) — PURE and DETERMINISTIC.
+ * Rule evaluator (Fase 3; statuses realigned in Fase 4 audit).
  *
  * evaluate(rule, context) → RuleEvaluation, with no I/O, no time reads, no AI.
- * Core semantics (docs prompt §7/§8):
+ * Core semantics (docs prompt §7/§8 + audit alignment):
  *  - a missing required fact → INSUFFICIENT_DATA (never false)
  *  - a fact blocked by an unresolved contradiction → CONTRADICTED (never guessed)
- *  - unconfirmed facts make the rule POTENTIALLY_APPLICABLE (evidence ≠ truth)
+ *  - unconfirmed facts cap the rule at POTENTIALLY_APPLICABLE (evidence ≠ truth)
+ *  - all facts CONFIRMED and the condition false → NOT_APPLICABLE
+ *    (rule-level vocabulary alignment: this condition is simply not met)
+ *  - UNKNOWN is reserved for classification failures — unreachable in v1
  */
-import { isoDateDaysBetween, isIsoDate } from "../shared/temporal";
+import { isoDateAddMonths, isoDateDaysBetween, isIsoDate } from "../shared/temporal";
 import type {
   Condition,
   ConditionTrace,
@@ -51,6 +54,11 @@ function toPrimitive(value: unknown): FactPrimitive | undefined {
     return value;
   // money/enum/object facts are not comparable with primitives in v1
   return undefined;
+}
+
+/** Add calendar days via UTC-only arithmetic (deterministic, no DST). */
+function isoDateAddDaysCached(a: string, days: number): string {
+  return new Date(Date.parse(`${a}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
 function evalAtomic(condition: Condition, context: RuleEvaluationContext): ConditionTrace {
@@ -238,6 +246,57 @@ function evalAtomic(condition: Condition, context: RuleEvaluationContext): Condi
       };
     }
 
+    case "DATE_DIFFERENCE": {
+      const start = lookup(context, condition.startFact);
+      const end = lookup(context, condition.endFact);
+      if (!start.present)
+        return {
+          kind: condition.kind,
+          matched: false,
+          reason: "MISSING_FACT",
+          key: condition.startFact,
+        };
+      if (!end.present)
+        return {
+          kind: condition.kind,
+          matched: false,
+          reason: "MISSING_FACT",
+          key: condition.endFact,
+        };
+      if (start.contradicted || end.contradicted) {
+        return {
+          kind: condition.kind,
+          matched: false,
+          reason: "CONTRADICTED_FACT",
+          key: start.contradicted ? condition.startFact : condition.endFact,
+        };
+      }
+      const s = toPrimitive(start.value);
+      const e = toPrimitive(end.value);
+      if (typeof s !== "string" || typeof e !== "string" || !isIsoDate(s) || !isIsoDate(e)) {
+        return {
+          kind: condition.kind,
+          matched: false,
+          reason: "TYPE_MISMATCH",
+          key: condition.startFact,
+        };
+      }
+      // Calendar comparison: is end strictly past the start + duration anchor?
+      const anchor =
+        condition.unit === "MONTHS"
+          ? isoDateAddMonths(s as never, condition.duration)
+          : isoDateAddDaysCached(s, condition.duration);
+      const days = isoDateDaysBetween(anchor as never, e as never); // positive: e is after anchor
+      const matched = condition.comparison === "GREATER_THAN" ? days > 0 : days >= 0;
+      return {
+        kind: condition.kind,
+        matched,
+        reason: matched ? "MATCHED" : "NOT_MATCHED",
+        actual: `${s} → ${e}`,
+        expected: `${condition.comparison} ${condition.duration} ${condition.unit} (anchor ${anchor})`,
+      };
+    }
+
     case "BOOLEAN_IS_TRUE":
     case "BOOLEAN_IS_FALSE": {
       if (!fact.present)
@@ -329,6 +388,14 @@ function missingAndContradicted(
       else if (context.contradictedKeys.has(other.key) || other.status === "CONTRADICTED")
         contradicted.add(c.otherKey);
     }
+    if (c.kind === "DATE_DIFFERENCE") {
+      for (const k of [c.startFact, c.endFact] as const) {
+        const fact = context.facts.find((f) => f.key === k);
+        if (!fact) missing.add(k);
+        else if (context.contradictedKeys.has(fact.key) || fact.status === "CONTRADICTED")
+          contradicted.add(k);
+      }
+    }
     if (c.kind === "ALL" || c.kind === "ANY") c.conditions.forEach(walk);
     else if (c.kind === "NOT") walk(c.condition);
   }
@@ -374,8 +441,8 @@ export function evaluateRule(rule: Rule, context: RuleEvaluationContext): RuleEv
   } else if (missing.size > 0) {
     status = "INSUFFICIENT_DATA";
   } else {
-    // All facts present and unblocked, but conditions evaluated false.
-    status = "UNKNOWN";
+    // All facts present, unblocked and the condition simply does not hold.
+    status = "NOT_APPLICABLE";
   }
 
   return {
@@ -392,6 +459,9 @@ export function evaluateRule(rule: Rule, context: RuleEvaluationContext): RuleEv
 
 function referencesKey(condition: Condition, key: string): boolean {
   if ("key" in condition && condition.key === key) return true;
+  if (condition.kind === "DATE_DIFFERENCE") {
+    return condition.startFact === key || condition.endFact === key;
+  }
   if (condition.kind === "ALL" || condition.kind === "ANY") {
     return condition.conditions.some((c) => referencesKey(c, key));
   }

@@ -38,10 +38,10 @@ Sin PII: ninguna pregunta recoge nombre, DNI, dirección o datos bancarios.
 
 ## 5. Reglas reales publicadas (factual rules)
 
-| Regla                                  | Condición                                                         | Fuente                            |
-| -------------------------------------- | ----------------------------------------------------------------- | --------------------------------- |
-| `charge-after-cancellation`            | `DATE_AFTER_FACT(charge.date, cancellation.date)`                 | Ley 11/2022 (anclaje de scope ES) || `contract-duration-over-24-months` | `DATE_AFTER_FACT(cancellation.date, service.contract_start_date)` ⚠️ ver §Auditoría | Ley 11/2022 art. 67.7 |
-| `charge-after-confirmed-cancellation` | Regla 1 + `BOOLEAN_IS_TRUE(cancellation.confirmation_exists)` | Ley 11/2022 art. 67.7 |
+| Regla                                 | Condición                                                     | Fuente                            |
+| ------------------------------------- | ------------------------------------------------------------- | --------------------------------- |
+| `charge-after-cancellation`           | `DATE_AFTER_FACT(charge.date, cancellation.date)`             | Ley 11/2022 (anclaje de scope ES) |     | `contract-duration-over-24-months` | `DATE_DIFFERENCE(start=contract_start, end=cancellation, 24 MONTHS, GREATER_THAN)` | Ley 11/2022 art. 67.7 |
+| `charge-after-confirmed-cancellation` | Regla 1 + `BOOLEAN_IS_TRUE(cancellation.confirmation_exists)` | Ley 11/2022 art. 67.7             |
 
 **Draft (NO publicado, NO evaluado):** `penalty-after-legal-desistimiento` (art. 102.2 TRLGDCU) — requiere facts sobre modalidad de contratación (a distancia) que el intake actual no recoge. Flagged para revisión legal humana; documentado como el límite de lo que NO afirmamos.
 
@@ -109,13 +109,13 @@ Reutilización íntegra de F1–F3: `saveUnit` transaccional, locking optimista,
 
 ## 15. Verificación real
 
-| Comando             | Resultado                   |
-| ------------------- | --------------------------- |
-| `pnpm lint`         | ✅ 0 errores                |
-| `pnpm format:check` | ✅                          |
-| `pnpm typecheck`    | ✅ 0 errores                || `pnpm test` | ✅ **18 archivos, 136/136** |
-| `pnpm build`        | ✅                          |
-| `pnpm test:e2e`     | ✅ 2/2 (chromium)           |
+| Comando             | Resultado         |
+| ------------------- | ----------------- |
+| `pnpm lint`         | ✅ 0 errores      |
+| `pnpm format:check` | ✅                |
+| `pnpm typecheck`    | ✅ 0 errores      |     | `pnpm test` | ✅ **18 archivos, 136/136** |
+| `pnpm build`        | ✅                |
+| `pnpm test:e2e`     | ✅ 2/2 (chromium) |
 
 ## 16. Readiness for Phase 5
 
@@ -131,42 +131,103 @@ Auditoría independiente posterior al informe inicial. Resultado: **APPROVED_WIT
 
 ## Hallazgos y correcciones
 
-### F1 — Regla 2 (`contract-duration-over-24-months`): prediccado demasiado débil · SEVERIDAD ALTA
+### F1 — Regla 2 (`contract-duration-over-24-months`): prediccado demasiado débil · SEVERIDAD ALTA · **RESUELTA (ver Apéndice B)**
+
 **Dónde:** `rules.ts`, condición `DATE_AFTER_FACT(cancellation.date, contract_start_date)`.
-**Por qué:** el título y la clave de la regla afirman «más allá del período máximo de 24 meses», pero el predicado solo demuestra *duración > 0 días*. Un contrato de 1 día evalúa `SUPPORTED` (documentado ahora en el test adversarial `R2a`). La regla NO puede medir la ventana de 24 meses con el vocabulario actual.
-**Corrección:** el módulo declara la regla como **predicate débil** y el Result Engine (F7) no podrá tratar su `SUPPORTED` como «contrato excede 24 meses» hasta que exista la condición `DATE_AFTER_FACT_WITHIN_DAYS` (o equivalente) que mida días entre facts. **NO se ha inventado una solución** (restricción de la auditoría): la corrección real es de vocabulario del core y se lista como prerrequisito para el Result Engine. La regla permanece publicada como predicate factual (cancelación posterior a inicio) pero su nombre sigue describiendo la intención: se acepta como deuda visible y testada, no como capacidad real.
+**Por qué:** el título y la clave de la regla afirman «más allá del período máximo de 24 meses», pero el predicado solo demuestra _duración > 0 días_. Un contrato de 1 día evaluaba `SUPPORTED` (documentado entonces en el test adversarial `R2a`). La regla NO podía medir la ventana de 24 meses con el vocabulario de entonces.
+**Estado:** **RESUELTA.** Se añadió la condición genérica `DATE_DIFFERENCE` con aritmética calendárica de meses al Rule Engine (ver Apéndice B) y la regla ahora realmente mide > 24 meses calendáricos. `SUPPORTED` significa exactamente lo que la regla declara.
 
 ### F2 — Regla 3: nombre con connotación jurídica · SEVERIDAD MEDIA · CORREGIDA
+
 **Dónde:** `rules.ts`.
 **Por qué:** `charge-after-penalty-free-rescission` implicaba «rescisión sin penalización» (consecuencia jurídica del art. 67.7) cuando la regla solo comprueba orden de fechas + existencia de confirmación.
 **Corrección aplicada:** renombrada a `charge-after-confirmed-cancellation` («Cargo posterior a una cancelación con confirmación disponible»). Tests y catálogo actualizados. El valor `POTENTIALLY_APPLICABLE` se mantiene como suficiente: es el estado máximo que un fact UNCONFIRMED permite por diseño.
 
 ### F3 — Números del informe inflados · SEVERIDAD MEDIA · CORREGIDA
+
 El informe inicial decía 18 archivos/131 tests; la verdad era 17/125. Corregido en este apéndice y en §13/§15.
 
 ### F4 — Constante muerta `MONTHS_24_AS_DAYS_UPPER` · SEVERIDAD BAJA · CORREGIDA
+
 Código muerto de una iteración interrumpida. Eliminada.
 
 ### F5 — Skip logic vs regla 3: sin conflicto real · VERIFICADO
-`askIf` solo controla cuándo se *pregunta*; `cancellation.confirmation_exists` entra como fact por cualquier vía (respuesta directa o evidencia futura). Si el fact no existe, la regla 3 devuelve `INSUFFICIENT_DATA` (test `R3a`) — nunca un falso `SUPPORTED`. Verificado además que la regla 3 no depende ocultamente de `contract.commitment_exists` (`R3c`).
+
+`askIf` solo controla cuándo se _pregunta_; `cancellation.confirmation_exists` entra como fact por cualquier vía (respuesta directa o evidencia futura). Si el fact no existe, la regla 3 devuelve `INSUFFICIENT_DATA` (test `R3a`) — nunca un falso `SUPPORTED`. Verificado además que la regla 3 no depende ocultamente de `contract.commitment_exists` (`R3c`).
 
 ### F6 — Draft rule art. 102.2: aislamiento correcto · VERIFICADO
+
 Permanece DRAFT; el provider de reglas publicadas no la sirve (test `D1`); el intake no simula facts que no existen. Facts adicionales que necesitaría para ser evaluable: `contract.distance_contracting` (celebrado a distancia/fuera de establecimiento/entre presentes), `desistimiento.exercised_within_window`, `service.execution_started_with_consent` (excepciones art. 103). Sin ellos no puede publicarse.
 
 ### F7 — Provenance y seguridad semántica · VERIFICADO
+
 Provenance es un tipo cerrado sin variante «legal»; `createFact` rechaza `USER_RESOLVED` fuera del camino de resolución; una afirmación del usuario («la empresa me dijo que es ilegal», «tengo derecho a 200 €») solo puede existir como fact `USER_PROVIDED`/`UNCONFIRMED` (tests `S1`/`S2`). Las afirmaciones legales dependen exclusivamente de facts → reglas → fuentes → evaluación.
 
 ### F8 — Fuentes: identificación correcta · VERIFICADO
+
 `BOE-A-2022-10757` (Ley 11/2022, vigor 30-06-2022) y `BOE-A-2007-20555` (RDL 1/2007) verificados directamente contra el BOE; las citas de `relevantSection` coinciden con el texto publicado; ámbito material (servicios de comunicaciones electrónicas a consumidores) y jurisdicción (ES) coinciden con el problema. Incertidumbre residual documentada: el texto consolidado es informativo; para fines jurídicos rige la publicación oficial — la versión (`consolidado-2025-12-27`) y `retrievedAt` quedan registrados para reproducibilidad.
 
 ### F9 — Reproducibilidad y jurisdicción · VERIFICADO
+
 Snapshots: hash determinista sobre contenido semántico (sin `Date.now()`, sin IDs aleatorios, orden canónico); cambio de fact/resolución/jurisdicción/regla/fuente/engine cambia el hash (tests F1/F3). Jurisdicción: módulo declara `["ES"]` exclusivamente, reutiliza el matching de F3, `NOT_APPLICABLE` fuera de jurisdicción (test de integración), sin lógica regional duplicada (no hay reglas regionales en este módulo).
 
 ## Estado final
 
-- **Demostrable por el sistema hoy:** orden temporal de fechas (cargo vs cancelación, cancelación vs inicio de contrato), existencia de confirmación de cancelación.
+- **Demostrable por el sistema hoy:** orden temporal de fechas (cargo vs cancelación), duración contractual real en meses calendáricos (> 24 meses), existencia de confirmación de cancelación.
 - **Potencialmente aplicable:** todo lo anterior con facts UNCONFIRMED (`POTENTIALLY_APPLICABLE`).
 - **Deliberadamente NO codificado:** ilegalidad de penalizaciones en general; importes de devolución; «te corresponde una devolución» (Result Engine, F7, con regla 2 corregida como prerrequisito).
-- **Prerrequisito para el Result Engine:** condición de vocabulario que mida días entre dos facts (`DATE_AFTER_FACT_WITHIN_DAYS`).
+- **Prerrequisito para el Result Engine:** ~~condición de vocabulario que mida días entre dos facts~~ **resuelto** con `DATE_DIFFERENCE` (Apéndice B).
 
 **Veredicto:** APPROVED_WITH_FIXES — las correcciones F2/F3/F4 están aplicadas y en verde; la limitación F1 está documentada y testada como deuda visible. El módulo puede congelarse como `cancellation-charge@1` con esa restricción explícita. Siguiente paso: Fase 5.
+
+---
+
+# APÉNDICE B — CORRECCIÓN F1: CONDICIÓN `DATE_DIFFERENCE` (2026-09-19)
+
+Corrección ejecutada tras la auditoría. La deuda de la regla 2 ya NO existe: `SUPPORTED` en `contract-duration-over-24-months` significa ahora, literalmente, que la diferencia calendárica entre las fechas del caso supera 24 meses.
+
+## Nueva condición en el vocabulario del core
+
+```text
+DATE_DIFFERENCE {
+  startFact, endFact,        // dos facts de fecha
+  duration,                  // entero positivo
+  unit: DAYS | MONTHS,
+  comparison: GREATER_THAN | GREATER_OR_EQUAL
+}
+```
+
+Declarativa, pura y determinista. Sin `eval`, sin ejecución de código, sin `new Date()`, sin fechas de referencia ocultas: las únicas fechas son las de los facts. Validada con Zod en la frontera de persistencia como el resto del vocabulario.
+
+## Semántica calendárica (definida y testada)
+
+`met ⇔ date(end) > date(start) + duration` (estricto) o `>=` en modo `GREATER_OR_EQUAL`.
+
+- **Meses = calendario, no aproximación:** jamás `24×30` ni `365/12`. Se añade la duración con `addMonths` y se compara el resultado con `end`.
+- **addMonths:** preserva el día del mes; si el mes destino no tiene ese día, **clamp al último día** (2024-01-31 + 1m = 2024-02-29 bisiesto; 2023-01-31 + 1m = 2023-02-28; 2024-02-29 + 12m = 2025-02-28).
+- **Fechas invertidas** (end < start): jamás satisfacen una duración positiva → `NOT_APPLICABLE` (test explícito).
+- **Fechas iguales:** `NOT_APPLICABLE` para cualquier duración ≥ 1.
+- **DAYS:** conteo de días de 24h en UTC, sin DST ni hora local.
+- **Casos exactos exigidos:** 2024-01-01 → 2026-01-01 = exactamente 24 meses → `NOT_APPLICABLE`; → 2026-01-02 → `SUPPORTED`; un solo día (01→02-01-2024) → `NOT_APPLICABLE` (regresión del bug auditado).
+
+## Alineación de vocabulario (cambio de decisión documentado)
+
+Durante la corrección se detectó una incoherencia preexistente: «todos los facts presentes y condición falsa» devolvía `UNKNOWN`, pero `UNKNOWN` quedó desde F3 como categoría residual sin significado operativo — y el prompt de corrección exige falsa → `NOT_APPLICABLE` (la condición declarada por la regla simplemente no se cumple). Se ha alineado **todo el evaluador** (no solo la condición nueva): falsa con facts confirmados y sin bloqueos → **`NOT_APPLICABLE`**; `UNKNOWN` queda reservado para fallos de clasificación futuros (inalcanzable en v1). Afectó a 10 asserts de tests, actualizados. Justificación: mantener dos semánticas paralelas (nueva condición vs resto) habría sido la incoherencia exacta que esta corrección debía evitar. `ARCHITECTURE.md` no fijaba la semántica de condición falsa, por lo que no hay contradicción con la arquitectura aprobada.
+
+## Bug adicional encontrado y corregido durante la implementación
+
+`referencesKey` del evaluador no reconocía `startFact`/`endFact`, por lo que facts UNCONFIRMED en la condición nueva NO limitaban a `POTENTIALLY_APPLICABLE` (devolvía `SUPPORTED`). Corregido y testado.
+
+## Reproducibilidad (§7 del prompt)
+
+La aritmética opera sobre enteros (año, mes, día) y `Date.UTC`/accessors UTC exclusivamente — sin hora local, sin locale, sin reloj. Verificado empíricamente ejecutando la misma aserción bajo `TZ=UTC`, `TZ=America/New_York`, `TZ=Pacific/Kiritimati` (UTC+14) y `TZ=Asia/Kathmandu` (UTC+5:45): resultado idéntico (test temporal eliminado tras la verificación; la suite permanente no depende de TZ).
+
+## Tests
+
+- Nueva suite `tests/unit/core/rules/date-difference.test.ts` (19 tests): límites exactos, bisiesto, clamp de fin de mes, fechas invertidas, días, estados (INSUFFICIENT_DATA por fact, CONTRADICTED por status y por contradictedKeys, POTENTIALLY_APPLICABLE con UNCONFIRMED, TYPE_MISMATCH seguro).
+- `R2a` del audit adversarial invertido: ahora verifica que un contrato de 1 día **no** produce `SUPPORTED` (regresión del bug).
+- Suite total: **19 archivos, 155/155 tests** en verde (lint/format/typecheck/build/E2E verificados).
+
+## Estado
+
+Criterio de aceptación cumplido: _si `contract-duration-over-24-months` devuelve `SUPPORTED`, los facts confirmados demuestran realmente una duración superior a 24 meses según la semántica calendárica definida._ F1 cerrada; sin deuda temporal pendiente. El módulo queda listo para congelarse.
