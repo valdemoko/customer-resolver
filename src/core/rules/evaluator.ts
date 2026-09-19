@@ -195,6 +195,49 @@ function evalAtomic(condition: Condition, context: RuleEvaluationContext): Condi
       };
     }
 
+    case "DATE_AFTER_FACT":
+    case "DATE_BEFORE_FACT": {
+      if (!fact.present)
+        return { kind: condition.kind, key, matched: false, reason: "MISSING_FACT" };
+      const other = context.facts.find((f) => f.key === condition.otherKey);
+      if (!other)
+        return {
+          kind: condition.kind,
+          key,
+          matched: false,
+          reason: "MISSING_FACT",
+          otherKey: condition.otherKey,
+        };
+      if (
+        fact.contradicted ||
+        other.status === "CONTRADICTED" ||
+        context.contradictedKeys.has(other.key)
+      )
+        return { kind: condition.kind, key, matched: false, reason: "CONTRADICTED_FACT" };
+      const a = toPrimitive(fact.value);
+      const b = toPrimitive(other.value);
+      if (typeof a !== "string" || !isIsoDate(a) || typeof b !== "string" || !isIsoDate(b))
+        return {
+          kind: condition.kind,
+          key,
+          matched: false,
+          reason: "TYPE_MISMATCH",
+          actual: fact.value,
+          otherKey: condition.otherKey,
+        };
+      const days = isoDateDaysBetween(b, a); // positive: a after b
+      const matched = condition.kind === "DATE_AFTER_FACT" ? days > 0 : days < 0;
+      return {
+        kind: condition.kind,
+        key,
+        matched,
+        reason: matched ? "MATCHED" : "NOT_MATCHED",
+        actual: a,
+        expected: b,
+        otherKey: condition.otherKey,
+      };
+    }
+
     case "BOOLEAN_IS_TRUE":
     case "BOOLEAN_IS_FALSE": {
       if (!fact.present)
@@ -279,6 +322,12 @@ function missingAndContradicted(
           contradicted.add(c.key);
         fact.evidenceRefs.forEach((ref) => evidence.add(ref));
       }
+    }
+    if (c.kind === "DATE_AFTER_FACT" || c.kind === "DATE_BEFORE_FACT") {
+      const other = context.facts.find((f) => f.key === c.otherKey);
+      if (!other) missing.add(c.otherKey);
+      else if (context.contradictedKeys.has(other.key) || other.status === "CONTRADICTED")
+        contradicted.add(c.otherKey);
     }
     if (c.kind === "ALL" || c.kind === "ANY") c.conditions.forEach(walk);
     else if (c.kind === "NOT") walk(c.condition);

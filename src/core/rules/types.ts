@@ -34,6 +34,10 @@ export type Condition =
       /** Optional reference date; defaults to context.currentDate. */
       readonly referenceDate?: IsoDate;
     }
+  /** fact(key) is a calendar date strictly after fact(otherKey). */
+  | { readonly kind: "DATE_AFTER_FACT"; readonly key: FactKey; readonly otherKey: FactKey }
+  /** fact(key) is a calendar date strictly before fact(otherKey). */
+  | { readonly kind: "DATE_BEFORE_FACT"; readonly key: FactKey; readonly otherKey: FactKey }
   | { readonly kind: "BOOLEAN_IS_TRUE"; readonly key: FactKey }
   | { readonly kind: "BOOLEAN_IS_FALSE"; readonly key: FactKey }
   | { readonly kind: "ALL"; readonly conditions: readonly Condition[] }
@@ -66,6 +70,7 @@ export interface ConditionTrace {
     | "NEGATED";
   readonly actual?: unknown;
   readonly expected?: unknown;
+  readonly otherKey?: FactKey;
   readonly children?: readonly ConditionTrace[];
 }
 

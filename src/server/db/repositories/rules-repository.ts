@@ -40,6 +40,8 @@ const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
       withinDays: z.number(),
       referenceDate: z.string().optional(),
     }),
+    z.object({ kind: z.literal("DATE_AFTER_FACT"), key: z.string(), otherKey: z.string() }),
+    z.object({ kind: z.literal("DATE_BEFORE_FACT"), key: z.string(), otherKey: z.string() }),
     z.object({ kind: z.literal("BOOLEAN_IS_TRUE"), key: z.string() }),
     z.object({ kind: z.literal("BOOLEAN_IS_FALSE"), key: z.string() }),
     z.object({ kind: z.literal("ALL"), conditions: z.array(conditionSchema).min(1) }),
