@@ -32,15 +32,17 @@ pnpm dev
 
 ## Comandos
 
-| Comando                             | Descripción                                        |
-| ----------------------------------- | -------------------------------------------------- |
-| `pnpm dev`                          | Dev server (Turbopack)                             |
-| `pnpm build` / `pnpm start`         | Build de producción / servirlo                     |
-| `pnpm lint`                         | ESLint + boundaries arquitectónicas                |
-| `pnpm typecheck`                    | `tsc --noEmit` (strict)                            |
-| `pnpm test` / `pnpm test:watch`     | Vitest                                             |
-| `pnpm test:e2e`                     | Playwright (levanta su propio dev server en :3100) |
-| `pnpm format` / `pnpm format:check` | Prettier                                           |
+| Comando                             | Descripción                                                  |
+| ----------------------------------- | ------------------------------------------------------------ |
+| `pnpm dev`                          | Dev server (Turbopack)                                       |
+| `pnpm build` / `pnpm start`         | Build de producción / servirlo                               |
+| `pnpm lint`                         | ESLint + boundaries arquitectónicas                          |
+| `pnpm typecheck`                    | `tsc --noEmit` (strict)                                      |
+| `pnpm test` / `pnpm test:watch`     | Vitest                                                       |     | `pnpm test:e2e` | Playwright (levanta su propio dev server en :3100) |
+| `pnpm test:persistence`             | Tests de persistencia (PGlite, Postgres embebido en memoria) |
+| `pnpm db:generate`                  | Genera migración Drizzle desde `schema.ts`                   |
+| `pnpm db:migrate`                   | Aplica migraciones (requiere `DATABASE_URL`)                 |
+| `pnpm format` / `pnpm format:check` | Prettier                                                     |
 
 ## Arquitectura básica
 
@@ -67,7 +69,8 @@ importa infraestructura de servidor; `domain` no importa UI ni `app`.
 
 ## Testing
 
-- **Unit** (`tests/unit/`): dominio puro + propiedad de independencia del core.
+- **Unit** (`tests/unit/`): dominio puro (state machine, facts, contradicciones, snapshots) + propiedad de independencia del core.
+- **Integración/persistencia** (`tests/integration/`): vertical slice completo contra Postgres embebido (PGlite, en memoria, con la migración SQL real). Sin Docker ni DB externa.
 - **Boundaries**: test arquitectónico + reglas ESLint.
 - **E2E** (`tests/e2e/`): smoke mínimo en Fase 0.
 - Rule tests, contract tests de IA y regression jurídica llegan en fases 3–7.

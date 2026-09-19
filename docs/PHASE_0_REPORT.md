@@ -45,12 +45,12 @@ Desarrollo: `typescript`, `typescript-eslint`, `eslint`, `@next/eslint-plugin-ne
 
 ## Tests
 
-| Suite | Archivos | Tests | Qué verifica |
-|---|---|---|---|
-| Unit core | money, dates | 8 | determinismo, validación, sin drift decimal, fechas imposibles |
-| Independencia del core | domain-independence | 3 | core corre sin infra; errores user-safe sin filtrar internals |
-| Boundaries | architecture-boundaries | 1 | ninguna capa importa direcciones prohibidas (escaneo FS) |
-| E2E | homepage | 2 | homepage carga con heading esperado; `/health` responde |
+| Suite                  | Archivos                | Tests | Qué verifica                                                   |
+| ---------------------- | ----------------------- | ----- | -------------------------------------------------------------- |
+| Unit core              | money, dates            | 8     | determinismo, validación, sin drift decimal, fechas imposibles |
+| Independencia del core | domain-independence     | 3     | core corre sin infra; errores user-safe sin filtrar internals  |
+| Boundaries             | architecture-boundaries | 1     | ninguna capa importa direcciones prohibidas (escaneo FS)       |
+| E2E                    | homepage                | 2     | homepage carga con heading esperado; `/health` responde        |
 
 ## CI
 
@@ -75,14 +75,14 @@ Desarrollo: `typescript`, `typescript-eslint`, `eslint`, `@next/eslint-plugin-ne
 
 Resultados reales (Windows, Node 24.14.1, pnpm 10.17.0):
 
-| Comando | Resultado |
-|---|---|
-| `pnpm lint` | ✅ 0 errores (tras 2 violaciones deliberadas detectadas y eliminadas) |
-| `pnpm format:check` | ✅ All matched files use Prettier code style! |
-| `pnpm typecheck` | ✅ sin errores |
-| `pnpm test` | ✅ 4 archivos, 13 tests pasados |
-| `pnpm build` | ✅ producción OK — 5 rutas (/, /_not-found, /health, /robots.txt, /sitemap.xml), First Load JS ~103 kB |
-| `pnpm test:e2e` | ✅ 2 E2E pasados (chromium, servidor propio :3100) |
+| Comando             | Resultado                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| `pnpm lint`         | ✅ 0 errores (tras 2 violaciones deliberadas detectadas y eliminadas)                                  |
+| `pnpm format:check` | ✅ All matched files use Prettier code style!                                                          |
+| `pnpm typecheck`    | ✅ sin errores                                                                                         |
+| `pnpm test`         | ✅ 4 archivos, 13 tests pasados                                                                        |
+| `pnpm build`        | ✅ producción OK — 5 rutas (/, /_not-found, /health, /robots.txt, /sitemap.xml), First Load JS ~103 kB |
+| `pnpm test:e2e`     | ✅ 2 E2E pasados (chromium, servidor propio :3100)                                                     |
 
 ## Known Issues
 
