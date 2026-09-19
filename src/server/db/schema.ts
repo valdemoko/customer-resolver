@@ -303,6 +303,10 @@ export const documentProcessingRuns = pgTable(
   (t) => [
     index("processing_runs_case_idx").on(t.caseId, t.createdAt),
     index("processing_runs_physical_idx").on(t.physicalObjectId),
+    uniqueIndex("processing_runs_physical_extractor_unique").on(
+      t.physicalObjectId,
+      t.extractorType,
+    ),
   ],
 );
 

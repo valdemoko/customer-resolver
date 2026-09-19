@@ -96,6 +96,8 @@ export type CandidateRelation = "EXTRACTED" | "PROPOSED";
 export interface DocumentLocation {
   /** Physical object this location refers to. */
   readonly physicalObjectId: string;
+  /** Processing run that produced this location (persistence detail). */
+  readonly processingRunId?: string;
   readonly page?: number;
   readonly startOffset?: number;
   readonly endOffset?: number;

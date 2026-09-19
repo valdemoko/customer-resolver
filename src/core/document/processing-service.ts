@@ -13,15 +13,14 @@ import { CaseNotFoundError } from "../case/service";
 import { createEvent } from "../case/events";
 import { now as systemNow, type IsoDateTime } from "../shared/temporal";
 import {
-  DEFAULT_UPLOAD_CONFIG,
   type DocumentFactCandidate,
   type DocumentFactCandidateId,
   type DocumentProcessingRun,
+  type ExtractorType,
   type PhysicalObject,
   type PhysicalObjectId,
   type ProcessingRunId,
   type ProcessingRunResult,
-  type UploadConfig,
 } from "./types";
 import type { ObjectStoragePort, TextExtractorPort, UploadValidatorPort } from "./ports";
 import { validateUpload, generateStorageKey, sanitizeFilename } from "./validation";
@@ -56,6 +55,22 @@ export class DocumentProcessingError extends DomainError {
   }
 }
 
+// ── MIME → ExtractorType mapping ───────────────────────────────────
+
+/** Map MIME type to the correct extractor type. Deterministic, pure. */
+function mapExtractorType(mimeType: string): ExtractorType {
+  switch (mimeType) {
+    case "text/plain":
+      return "TEXT_PLAIN";
+    case "text/csv":
+      return "TEXT_CSV";
+    case "application/pdf":
+      return "PDF_TEXT";
+    default:
+      return "UNSUPPORTED";
+  }
+}
+
 // ── Core logic functions (pure, testable) ───────────────────────────
 
 /**
@@ -73,7 +88,6 @@ export function validateDocumentUpload(
   buffer: Uint8Array,
   declaredMimeType: string,
   filename: string,
-  config: UploadConfig = DEFAULT_UPLOAD_CONFIG,
 ): {
   valid: boolean;
   sanitizedFilename: string;
@@ -82,10 +96,7 @@ export function validateDocumentUpload(
   const sanitized = sanitizeFilename(filename);
   const sizeBytes = buffer.length;
 
-  const result = validateUpload(
-    { buffer, declaredMimeType, filename: sanitized, sizeBytes },
-    config,
-  );
+  const result = validateUpload({ buffer, declaredMimeType, filename: sanitized, sizeBytes });
 
   return {
     valid: result.valid,
@@ -210,7 +221,6 @@ export class DocumentProcessingService {
     private readonly storage: ObjectStoragePort,
     private readonly extractor: TextExtractorPort,
     private readonly validator: UploadValidatorPort,
-    _config: UploadConfig = DEFAULT_UPLOAD_CONFIG,
   ) {}
 
   /**
@@ -246,10 +256,10 @@ export class DocumentProcessingService {
     // 4. Compute checksum from actual bytes
     const checksumSha256 = computeChecksum(buffer);
 
-    // 5. Check idempotency: same checksum + same evidence = already processed
-    const existingPhysical = loaded.evidence
-      .filter((e) => e.content.kind === "file")
-      .find((e) => e.checksum === checksumSha256);
+    // 5. Check idempotency: same byte checksum + same case = already processed
+    const existingPhysical = loaded.physicalObjects.find(
+      (po) => po.checksumSha256 === checksumSha256,
+    );
     if (existingPhysical) {
       throw new DomainError("Document with same checksum already processed for this case");
     }
@@ -277,12 +287,15 @@ export class DocumentProcessingService {
       at,
     });
 
-    // 9. Create processing run
+    // 9. Determine extractor type from MIME type
+    const extractorType = mapExtractorType(mimeType);
+
+    // 10. Create processing run
     const run = createProcessingRun({
       caseId,
       physicalObjectId: physicalObject.id,
       evidenceId,
-      extractorType: this.extractor.supports(mimeType) ? "PDF_TEXT" : "UNSUPPORTED",
+      extractorType,
       at,
     });
 
@@ -345,6 +358,9 @@ export class DocumentProcessingService {
             updatedContradictions: [],
             newEvidence: [],
             updatedEvidence: [{ ...evidence, status: "PROCESSED" as const, updatedAt: at }],
+            newPhysicalObjects: [physicalObject],
+            newProcessingRuns: [completedRun],
+            newFactCandidates: factCandidates,
             newEvents: [
               createEvent(
                 caseId,
@@ -366,7 +382,8 @@ export class DocumentProcessingService {
       }
     }
 
-    // Unsupported format — store but don't extract
+    // Unsupported format — store but mark as AVAILABLE (not PROCESSED)
+    // H2: PROCESSED must mean "extraction completed successfully"
     const failedRun: DocumentProcessingRun = {
       ...run,
       status: "FAILED",
@@ -385,7 +402,9 @@ export class DocumentProcessingService {
         newContradictions: [],
         updatedContradictions: [],
         newEvidence: [],
-        updatedEvidence: [{ ...evidence, status: "PROCESSED" as const, updatedAt: at }],
+        updatedEvidence: [{ ...evidence, status: "AVAILABLE" as const, updatedAt: at }],
+        newPhysicalObjects: [physicalObject],
+        newProcessingRuns: [failedRun],
         newEvents: [
           createEvent(
             caseId,

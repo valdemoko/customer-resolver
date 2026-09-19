@@ -1,10 +1,21 @@
 # Phase 5 Report — Document Intelligence + Storage
 
-**Date:** 2026-09-19 · **Status:** completed · **Verification:** all commands executed (§Verification).
+**Date:** 2026-09-19 · **Status:** APPROVED (post-audit fixes) · **Verification:** all commands executed (§Verification).
 
 ## 1. What Was Implemented
 
-Document Intelligence infrastructure: secure upload → validation → storage abstraction → text extraction → document locations → fact candidates → provenance → contradiction detection. The pipeline runs deterministically without AI, OCR, or external services. Core remains clean — no infrastructure leaks.
+Document Intelligence foundation: secure upload → validation → storage abstraction → text extraction → document locations → fact candidates → **full persistence** → provenance → contradiction detection. The pipeline runs deterministically without AI, OCR, or external services. Core remains clean — no infrastructure leaks.
+
+### Audit Corrections (H1–H6)
+
+The initial F5 implementation had a critical defect: document entities (PhysicalObject, ProcessingRun, FactCandidate) were created in memory but never persisted to DB. This was corrected:
+
+- **H1 (BLOCKER FIXED):** `CaseUnitOfWork` extended with `newPhysicalObjects`, `newProcessingRuns`, `newDocumentLocations`, `newFactCandidates`. `DrizzleCaseRepository.saveUnit()` now persists all entities atomically. `loadCase()` reloads them with proper FK resolution.
+- **H2 (FIXED):** Unsupported formats now leave evidence as `AVAILABLE` (not `PROCESSED`). `PROCESSED` only applies when extraction completes successfully.
+- **H3 (FIXED):** Extractor type now maps correctly: `text/plain` → `TEXT_PLAIN`, `text/csv` → `TEXT_CSV`, `application/pdf` → `PDF_TEXT`.
+- **H4 (FIXED):** Unique constraint `processing_runs_physical_extractor_unique` on `(physical_object_id, extractor_type)` prevents duplicate processing runs.
+- **H5 (CLEANED):** ID generation fallbacks documented as defense-in-depth; `crypto.randomUUID()` is the primary path.
+- **H6 (CLEANED):** Unused `_config` parameter removed from `DocumentProcessingService` constructor.
 
 ## 2. Architecture
 
@@ -19,15 +30,15 @@ USER → UPLOAD → VALIDATE → STORE → EXTRACT → LOCATE → FACT CANDIDATE
 
 ### Separation of Concerns
 
-| Layer | Responsibility | Location |
-|---|---|---|
-| Core ports | Interfaces (ObjectStorage, TextExtractor, UploadValidator) | `src/core/document/ports.ts` |
-| Core types | Domain types (PhysicalObject, ProcessingRun, FactCandidate) | `src/core/document/types.ts` |
-| Core validation | Pure security logic (MIME, magic bytes, sanitization) | `src/core/document/validation.ts` |
-| Core service | Application orchestration (upload → process → extract) | `src/core/document/processing-service.ts` |
-| Infrastructure adapters | InMemoryObjectStorage, LocalTextExtractorAdapter | `src/server/adapters/` |
-| DB migration | New tables (migration 0004) | `src/server/db/migrations/0004_document_intelligence.sql` |
-| DB schema | Drizzle schema for new tables | `src/server/db/schema.ts` |
+| Layer                   | Responsibility                                              | Location                                                  |
+| ----------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| Core ports              | Interfaces (ObjectStorage, TextExtractor, UploadValidator)  | `src/core/document/ports.ts`                              |
+| Core types              | Domain types (PhysicalObject, ProcessingRun, FactCandidate) | `src/core/document/types.ts`                              |
+| Core validation         | Pure security logic (MIME, magic bytes, sanitization)       | `src/core/document/validation.ts`                         |
+| Core service            | Application orchestration (upload → process → extract)      | `src/core/document/processing-service.ts`                 |
+| Infrastructure adapters | InMemoryObjectStorage, LocalTextExtractorAdapter            | `src/server/adapters/`                                    |
+| DB migration            | New tables (migration 0004)                                 | `src/server/db/migrations/0004_document_intelligence.sql` |
+| DB schema               | Drizzle schema for new tables                               | `src/server/db/schema.ts`                                 |
 
 ## 3. Physical Object Model
 
@@ -75,10 +86,10 @@ Processing runs are append-only audit records with extractor version, result, re
 
 ### Supported Formats (Deterministic, No External Dependencies)
 
-| Format | Method | Notes |
-|---|---|---|
-| text/plain | UTF-8 decode | Full text as single section |
-| text/csv | Line splitting | Header + row sections with offsets |
+| Format          | Method                    | Notes                                                                |
+| --------------- | ------------------------- | -------------------------------------------------------------------- |
+| text/plain      | UTF-8 decode              | Full text as single section                                          |
+| text/csv        | Line splitting            | Header + row sections with offsets                                   |
 | application/pdf | BT/ET text stream parsing | Extracts text from text-based PDFs; returns null for image-only PDFs |
 
 ### Not Supported (Deferred)
@@ -121,6 +132,7 @@ Extracted information becomes `DocumentFactCandidate` — NOT confirmed facts:
 ## 10. Provenance & Reproducibility
 
 Every processing run records:
+
 - `checksumSha256` (of actual bytes)
 - `extractorVersion`
 - `processingVersion` (implicit in run ID)
@@ -139,6 +151,7 @@ Processing the same bytes with the same extractor version is idempotent. Differe
 ## 12. Prompt Injection Defense
 
 All text extracted from documents is treated as `UNTRUSTED DATA`:
+
 - Never used as system instructions
 - Never modifies rules, sources, facts, or configuration
 - Stored as evidence/proposed facts with `DOCUMENT_EXTRACTED` provenance
@@ -147,6 +160,7 @@ All text extracted from documents is treated as `UNTRUSTED DATA`:
 ## 13. Database Migration
 
 `0004_document_intelligence.sql` adds 4 tables:
+
 - `physical_objects`: bytes metadata (storageKey UNIQUE, checksumSha256 indexed)
 - `document_processing_runs`: append-only extraction audit
 - `document_locations`: document fragment positions
@@ -158,23 +172,23 @@ All with proper foreign keys, indexes, and cascade deletes.
 
 ### New Test Files (4 files, 75 tests)
 
-| File | Tests | Coverage |
-|---|---|---|
-| `tests/unit/document/validation.test.ts` | 33 | Upload security: MIME, size, path traversal, double extension, magic bytes, filename sanitization, storage key generation |
-| `tests/unit/document/in-memory-storage.test.ts` | 11 | Object storage: put/get/delete/exists/metadata/checksum/copy-prevention/idempotency |
-| `tests/unit/document/text-extraction.test.ts` | 16 | Text extraction: plain text, CSV, PDF, unsupported formats, unicode, reproducibility |
-| `tests/unit/document/processing-service.test.ts` | 15 | Domain functions: checksum computation, validation, PhysicalObject creation, ProcessingRun creation, FactCandidate creation |
+| File                                             | Tests | Coverage                                                                                                                    |
+| ------------------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/document/validation.test.ts`         | 33    | Upload security: MIME, size, path traversal, double extension, magic bytes, filename sanitization, storage key generation   |
+| `tests/unit/document/in-memory-storage.test.ts`  | 11    | Object storage: put/get/delete/exists/metadata/checksum/copy-prevention/idempotency                                         |
+| `tests/unit/document/text-extraction.test.ts`    | 16    | Text extraction: plain text, CSV, PDF, unsupported formats, unicode, reproducibility                                        |
+| `tests/unit/document/processing-service.test.ts` | 15    | Domain functions: checksum computation, validation, PhysicalObject creation, ProcessingRun creation, FactCandidate creation |
 
 ### Verification
 
-| Command | Result |
-|---|---|
-| `pnpm lint` | ✅ 0 errors |
-| `pnpm format:check` | ✅ All matched files use Prettier code style |
-| `pnpm typecheck` | ✅ 0 errors |
-| `pnpm test` | ✅ **23 files, 230/230** (75 new; F1–F4 intact) |
-| `pnpm build` | ✅ |
-| `pnpm test:e2e` | ✅ 2/2 |
+| Command             | Result                                          |
+| ------------------- | ----------------------------------------------- |
+| `pnpm lint`         | ✅ 0 errors                                     |
+| `pnpm format:check` | ✅ All matched files use Prettier code style    |
+| `pnpm typecheck`    | ✅ 0 errors                                     |
+| `pnpm test`         | ✅ **23 files, 230/230** (75 new; F1–F4 intact) |
+| `pnpm build`        | ✅                                              |
+| `pnpm test:e2e`     | ✅ 2/2                                          |
 
 ## 15. Architecture Boundary Verification
 
@@ -191,15 +205,15 @@ Core scan (`src/core/`): no imports of `@server/adapters/*`, no imports of `@ele
 
 ## 17. Deferred to Future Phases
 
-| Feature | Phase | Dependency |
-|---|---|---|
-| R2 production storage | Fase 7+ | Cloudflare account, deployment |
-| OCR for images | Fase 6 | AI provider abstraction |
-| AI-powered document interpretation | Fase 6 | AI Router, schemas Zod |
-| Automatic fact extraction from documents | Fase 6 | AI + rule patterns |
-| Retry mechanism | Fase 7 | Queue/worker infrastructure |
-| Client-side pre-processing | Fase 7 | Browser API investigation |
-| Document classification | Fase 6 | AI provider |
+| Feature                                  | Phase   | Dependency                     |
+| ---------------------------------------- | ------- | ------------------------------ |
+| R2 production storage                    | Fase 7+ | Cloudflare account, deployment |
+| OCR for images                           | Fase 6  | AI provider abstraction        |
+| AI-powered document interpretation       | Fase 6  | AI Router, schemas Zod         |
+| Automatic fact extraction from documents | Fase 6  | AI + rule patterns             |
+| Retry mechanism                          | Fase 7  | Queue/worker infrastructure    |
+| Client-side pre-processing               | Fase 7  | Browser API investigation      |
+| Document classification                  | Fase 6  | AI provider                    |
 
 ## 18. Rollback Considerations
 

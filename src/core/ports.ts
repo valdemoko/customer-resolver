@@ -1,5 +1,6 @@
 /**
- * CaseRepository port (Fase 1, extended in Fase 2 with Evidence operations).
+ * CaseRepository port (Fase 1, extended in Fase 2 with Evidence operations,
+ * Fase 5 with Document Intelligence entities).
  *
  * The core defines WHAT persistence it needs; infrastructure (Drizzle/Postgres)
  * implements HOW (ports & adapters, ARCHITECTURE.md §4). The core never imports
@@ -7,6 +8,12 @@
  */
 import type { Case, CaseEvent, CaseSnapshot, Contradiction, Fact } from "./types";
 import type { Evidence, EvidenceFactLink } from "./evidence/types";
+import type {
+  DocumentFactCandidate,
+  DocumentLocation,
+  DocumentProcessingRun,
+  PhysicalObject,
+} from "./document/types";
 
 export interface CreateCaseData {
   readonly problemSlug: string;
@@ -25,6 +32,11 @@ export interface LoadedCase {
   /** Fase 2: evidence and its fact links load with the aggregate. */
   readonly evidence: readonly Evidence[];
   readonly evidenceLinks: readonly EvidenceFactLink[];
+  /** Fase 5: document intelligence entities. */
+  readonly physicalObjects: readonly PhysicalObject[];
+  readonly processingRuns: readonly DocumentProcessingRun[];
+  readonly documentLocations: readonly DocumentLocation[];
+  readonly factCandidates: readonly DocumentFactCandidate[];
 }
 
 export interface CaseRepository {
@@ -61,6 +73,11 @@ export interface CaseUnitOfWork {
   readonly updatedEvidence?: readonly Evidence[];
   /** Fase 2: relationships removed (the fact and the evidence both remain). */
   readonly removedEvidenceLinks?: readonly EvidenceFactLink[];
+  /** Fase 5: document intelligence entities — all persisted atomically. */
+  readonly newPhysicalObjects?: readonly PhysicalObject[];
+  readonly newProcessingRuns?: readonly DocumentProcessingRun[];
+  readonly newDocumentLocations?: readonly DocumentLocation[];
+  readonly newFactCandidates?: readonly DocumentFactCandidate[];
   readonly newEvents: readonly CaseEvent[];
   readonly newSnapshot?: CaseSnapshot;
   readonly nextStatus?: Case["status"];

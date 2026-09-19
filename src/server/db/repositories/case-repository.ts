@@ -29,6 +29,15 @@ import type {
   EvidenceStatus,
   EvidenceType,
 } from "@core/evidence/types";
+import type {
+  DocumentFactCandidate,
+  DocumentFactCandidateId,
+  DocumentLocation,
+  DocumentProcessingRun,
+  PhysicalObject,
+  PhysicalObjectId,
+  ProcessingRunId,
+} from "@core/document/types";
 import type { CaseRepository, CaseUnitOfWork, CreateCaseData, LoadedCase } from "@core/ports";
 import { now as systemNow } from "@core/shared/temporal";
 
@@ -38,9 +47,13 @@ import {
   caseFacts,
   caseSnapshots,
   cases,
+  documentFactCandidates,
+  documentLocations,
+  documentProcessingRuns,
   evidence,
   evidenceFactLinks,
   idempotencyKeys,
+  physicalObjects,
 } from "../schema";
 
 /**
@@ -158,6 +171,73 @@ function mapEvidenceLink(row: typeof evidenceFactLinks.$inferSelect): EvidenceFa
   };
 }
 
+function mapPhysicalObject(row: typeof physicalObjects.$inferSelect): PhysicalObject {
+  return {
+    id: row.id as PhysicalObjectId,
+    caseId: row.caseId,
+    evidenceId: row.evidenceId,
+    storageKey: row.storageKey,
+    mimeType: row.mimeType,
+    sizeBytes: row.sizeBytes,
+    checksumSha256: row.checksumSha256,
+    originalFilename: row.originalFilename ?? undefined,
+    status: row.status as PhysicalObject["status"],
+    createdAt: row.createdAt as PhysicalObject["createdAt"],
+  };
+}
+
+function mapProcessingRun(row: typeof documentProcessingRuns.$inferSelect): DocumentProcessingRun {
+  return {
+    id: row.id as ProcessingRunId,
+    caseId: row.caseId,
+    physicalObjectId: row.physicalObjectId,
+    evidenceId: row.evidenceId,
+    status: row.status as DocumentProcessingRun["status"],
+    extractorType: row.extractorType as DocumentProcessingRun["extractorType"],
+    extractorVersion: row.extractorVersion,
+    result: (row.result ?? undefined) as DocumentProcessingRun["result"],
+    retryCount: row.retryCount,
+    createdAt: row.createdAt as DocumentProcessingRun["createdAt"],
+    completedAt: (row.completedAt ?? undefined) as DocumentProcessingRun["completedAt"],
+  };
+}
+
+function mapDocumentLocation(row: Record<string, unknown>): DocumentLocation {
+  return {
+    physicalObjectId: row.physicalObjectId as string,
+    page: (row.page as number | null) ?? undefined,
+    startOffset: row.startOffset as number,
+    endOffset: row.endOffset as number,
+    boundingBox: (row.boundingBox as DocumentLocation["boundingBox"]) ?? undefined,
+  };
+}
+
+function mapFactCandidate(
+  row: typeof documentFactCandidates.$inferSelect,
+  locationMap: Map<string, DocumentLocation>,
+): DocumentFactCandidate {
+  const resolvedLocation = row.locationId ? locationMap.get(row.locationId) : undefined;
+  return {
+    id: row.id as DocumentFactCandidateId,
+    caseId: row.caseId,
+    evidenceId: row.evidenceId,
+    physicalObjectId: row.physicalObjectId,
+    processingRunId: row.processingRunId,
+    factKey: row.factKey,
+    proposedValue: row.proposedValue,
+    location: resolvedLocation ?? {
+      physicalObjectId: row.physicalObjectId,
+      startOffset: 0,
+      endOffset: 0,
+    },
+    extractorVersion: row.extractorVersion,
+    extractorConfidence: row.extractorConfidence ?? undefined,
+    relation: row.relation as DocumentFactCandidate["relation"],
+    linkedFactId: row.linkedFactId ?? undefined,
+    createdAt: row.createdAt as DocumentFactCandidate["createdAt"],
+  };
+}
+
 export class DrizzleCaseRepository implements CaseRepository {
   constructor(private readonly db: Db) {}
 
@@ -198,48 +278,88 @@ export class DrizzleCaseRepository implements CaseRepository {
     const [caseRow] = await this.db.select().from(cases).where(eq(cases.id, caseId)).limit(1);
     if (!caseRow) return null;
 
-    const [factRows, contradictionRows, eventRows, snapshotRows, evidenceRows, linkRows] =
-      await Promise.all([
-        this.db
-          .select()
-          .from(caseFacts)
-          .where(eq(caseFacts.caseId, caseId))
-          .orderBy(asc(caseFacts.createdAt)),
-        this.db
-          .select()
-          .from(caseContradictions)
-          .where(eq(caseContradictions.caseId, caseId))
-          .orderBy(asc(caseContradictions.detectedAt)),
-        this.db
-          .select()
-          .from(caseEvents)
-          .where(eq(caseEvents.caseId, caseId))
-          .orderBy(asc(caseEvents.occurredAt)),
-        this.db
-          .select()
-          .from(caseSnapshots)
-          .where(eq(caseSnapshots.caseId, caseId))
-          .orderBy(asc(caseSnapshots.createdAt)),
-        this.db
-          .select()
-          .from(evidence)
-          .where(eq(evidence.caseId, caseId))
-          .orderBy(asc(evidence.createdAt)),
-        this.db
-          .select({
-            id: evidenceFactLinks.id,
-            evidenceId: evidenceFactLinks.evidenceId,
-            factId: evidenceFactLinks.factId,
-            relation: evidenceFactLinks.relation,
-            location: evidenceFactLinks.location,
-            note: evidenceFactLinks.note,
-            createdAt: evidenceFactLinks.createdAt,
-          })
-          .from(evidenceFactLinks)
-          .innerJoin(evidence, eq(evidenceFactLinks.evidenceId, evidence.id))
-          .where(eq(evidence.caseId, caseId))
-          .orderBy(asc(evidenceFactLinks.createdAt)),
-      ]);
+    const [
+      factRows,
+      contradictionRows,
+      eventRows,
+      snapshotRows,
+      evidenceRows,
+      linkRows,
+      physicalObjectRows,
+      processingRunRows,
+      locationRows,
+      candidateRows,
+    ] = await Promise.all([
+      this.db
+        .select()
+        .from(caseFacts)
+        .where(eq(caseFacts.caseId, caseId))
+        .orderBy(asc(caseFacts.createdAt)),
+      this.db
+        .select()
+        .from(caseContradictions)
+        .where(eq(caseContradictions.caseId, caseId))
+        .orderBy(asc(caseContradictions.detectedAt)),
+      this.db
+        .select()
+        .from(caseEvents)
+        .where(eq(caseEvents.caseId, caseId))
+        .orderBy(asc(caseEvents.occurredAt)),
+      this.db
+        .select()
+        .from(caseSnapshots)
+        .where(eq(caseSnapshots.caseId, caseId))
+        .orderBy(asc(caseSnapshots.createdAt)),
+      this.db
+        .select()
+        .from(evidence)
+        .where(eq(evidence.caseId, caseId))
+        .orderBy(asc(evidence.createdAt)),
+      this.db
+        .select({
+          id: evidenceFactLinks.id,
+          evidenceId: evidenceFactLinks.evidenceId,
+          factId: evidenceFactLinks.factId,
+          relation: evidenceFactLinks.relation,
+          location: evidenceFactLinks.location,
+          note: evidenceFactLinks.note,
+          createdAt: evidenceFactLinks.createdAt,
+        })
+        .from(evidenceFactLinks)
+        .innerJoin(evidence, eq(evidenceFactLinks.evidenceId, evidence.id))
+        .where(eq(evidence.caseId, caseId))
+        .orderBy(asc(evidenceFactLinks.createdAt)),
+      // Fase 5: document intelligence entities
+      this.db
+        .select()
+        .from(physicalObjects)
+        .where(eq(physicalObjects.caseId, caseId))
+        .orderBy(asc(physicalObjects.createdAt)),
+      this.db
+        .select()
+        .from(documentProcessingRuns)
+        .where(eq(documentProcessingRuns.caseId, caseId))
+        .orderBy(asc(documentProcessingRuns.createdAt)),
+      this.db
+        .select()
+        .from(documentLocations)
+        .innerJoin(physicalObjects, eq(documentLocations.physicalObjectId, physicalObjects.id))
+        .where(eq(physicalObjects.caseId, caseId))
+        .orderBy(asc(documentLocations.createdAt)),
+      this.db
+        .select()
+        .from(documentFactCandidates)
+        .where(eq(documentFactCandidates.caseId, caseId))
+        .orderBy(asc(documentFactCandidates.createdAt)),
+    ]);
+
+    const locations = locationRows.map(mapDocumentLocation);
+    const locationMap = new Map<string, DocumentLocation>();
+    // Build a lookup for candidates: each candidate references a location by physicalObjectId
+    // Since multiple locations can exist per physical object, we use the most recent one
+    for (const loc of locations) {
+      locationMap.set(loc.physicalObjectId, loc);
+    }
 
     return {
       case: mapCase(caseRow),
@@ -249,6 +369,10 @@ export class DrizzleCaseRepository implements CaseRepository {
       snapshots: snapshotRows.map(mapSnapshot),
       evidence: evidenceRows.map(mapEvidence),
       evidenceLinks: linkRows.map(mapEvidenceLink),
+      physicalObjects: physicalObjectRows.map(mapPhysicalObject),
+      processingRuns: processingRunRows.map(mapProcessingRun),
+      documentLocations: locations,
+      factCandidates: candidateRows.map((r) => mapFactCandidate(r, locationMap)),
     };
   }
 
@@ -401,6 +525,76 @@ export class DrizzleCaseRepository implements CaseRepository {
           contradictionIds: s.contradictionIds,
           createdAt: s.createdAt,
         });
+      }
+
+      // ── Fase 5: Document Intelligence entities ──────────────────────
+      if (unit.newPhysicalObjects && unit.newPhysicalObjects.length > 0) {
+        await tx.insert(physicalObjects).values(
+          unit.newPhysicalObjects.map((po) => ({
+            id: po.id,
+            caseId: po.caseId,
+            evidenceId: po.evidenceId,
+            storageKey: po.storageKey,
+            mimeType: po.mimeType,
+            sizeBytes: po.sizeBytes,
+            checksumSha256: po.checksumSha256,
+            originalFilename: po.originalFilename ?? null,
+            status: po.status,
+            createdAt: po.createdAt,
+          })),
+        );
+      }
+
+      if (unit.newProcessingRuns && unit.newProcessingRuns.length > 0) {
+        await tx.insert(documentProcessingRuns).values(
+          unit.newProcessingRuns.map((pr) => ({
+            id: pr.id,
+            caseId: pr.caseId,
+            physicalObjectId: pr.physicalObjectId,
+            evidenceId: pr.evidenceId,
+            status: pr.status,
+            extractorType: pr.extractorType,
+            extractorVersion: pr.extractorVersion,
+            result: pr.result ?? null,
+            retryCount: pr.retryCount,
+            createdAt: pr.createdAt,
+            completedAt: pr.completedAt ?? null,
+          })),
+        );
+      }
+
+      if (unit.newDocumentLocations && unit.newDocumentLocations.length > 0) {
+        await tx.insert(documentLocations).values(
+          unit.newDocumentLocations.map((loc) => ({
+            physicalObjectId: loc.physicalObjectId,
+            processingRunId: loc.processingRunId ?? "",
+            page: loc.page ?? null,
+            startOffset: loc.startOffset ?? 0,
+            endOffset: loc.endOffset ?? 0,
+            boundingBox: loc.boundingBox ?? null,
+            createdAt: systemNow(),
+          })),
+        );
+      }
+
+      if (unit.newFactCandidates && unit.newFactCandidates.length > 0) {
+        await tx.insert(documentFactCandidates).values(
+          unit.newFactCandidates.map((fc) => ({
+            id: fc.id,
+            caseId: fc.caseId,
+            evidenceId: fc.evidenceId,
+            physicalObjectId: fc.physicalObjectId,
+            processingRunId: fc.processingRunId,
+            factKey: fc.factKey,
+            proposedValue: fc.proposedValue,
+            locationId: null, // resolved separately if needed
+            extractorVersion: fc.extractorVersion,
+            extractorConfidence: fc.extractorConfidence ?? null,
+            relation: fc.relation,
+            linkedFactId: fc.linkedFactId ?? null,
+            createdAt: fc.createdAt,
+          })),
+        );
       }
 
       if (unit.newEvents.length > 0) {

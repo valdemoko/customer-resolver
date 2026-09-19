@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS "document_processing_runs" (
 
 CREATE INDEX IF NOT EXISTS "processing_runs_case_idx" ON "document_processing_runs" ("case_id", "created_at");
 CREATE INDEX IF NOT EXISTS "processing_runs_physical_idx" ON "document_processing_runs" ("physical_object_id");
+-- H4: Prevent duplicate processing runs for same document + extractor version.
+-- Allows re-processing when extractorVersion changes (new extractor = new run).
+CREATE UNIQUE INDEX IF NOT EXISTS "processing_runs_physical_extractor_unique"
+  ON "document_processing_runs" ("physical_object_id", "extractor_version");
 
 -- Document locations: where in a document a piece of content was found.
 CREATE TABLE IF NOT EXISTS "document_locations" (
