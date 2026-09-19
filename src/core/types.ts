@@ -171,7 +171,8 @@ export type CaseEventType =
   | "EVIDENCE_LINKED_TO_FACT"
   | "EVIDENCE_UNLINKED_FROM_FACT"
   | "SNAPSHOT_CREATED"
-  | "CASE_UPDATED";
+  | "CASE_UPDATED"
+  | "DOCUMENT_UPLOADED";
 
 export type CaseEventPayload = Readonly<Record<string, string | number | boolean | null>>;
 

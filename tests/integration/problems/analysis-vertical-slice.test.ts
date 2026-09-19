@@ -28,7 +28,7 @@ function makeRulesProvider() {
   const rules = buildRules();
   const published = [
     rules.chargeAfterCancellation,
-    rules.contractDurationOver24Months,
+    rules.contractDurationExceeds24Months,
     rules.chargeAfterConfirmedCancellation,
   ];
   return {

@@ -23,6 +23,7 @@ const MIGRATION_FILES = [
   "0001_core_tables.sql",
   "0002_evidence_tables.sql",
   "0003_rules_sources.sql",
+  "0004_document_intelligence.sql",
 ];
 const MIGRATION_SQL = MIGRATION_FILES.map((file) =>
   readFileSync(join(migrationsDir, file), "utf8"),

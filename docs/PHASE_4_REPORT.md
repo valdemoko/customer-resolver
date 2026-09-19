@@ -240,7 +240,7 @@ Auditoría de semántica jurídica de las reglas PUBLICADAS de `cancellation-cha
 
 ## Hallazgo principal: regla 2
 
-**Regla anterior:** `contract-duration-over-24-months` con título *"El contrato estuvo en vigor más allá del período máximo de 24 meses (art. 67.7)"*.
+**Regla anterior:** `contract-duration-over-24-months` con título _"El contrato estuvo en vigor más allá del período máximo de 24 meses (art. 67.7)"_.
 
 **Problema:** el título afirmaba una consecuencia normativa del art. 67.7 (el contrato incumple el límite legal), pero la condición solo demostraba un hecho temporal (duración > 24 meses). El art. 67.7 tiene condiciones de applicabilidad que la regla no verificaba:
 
@@ -251,7 +251,7 @@ Auditoría de semántica jurídica de las reglas PUBLICADAS de `cancellation-cha
 
 Una regla que afirma "excede el máximo del art. 67.7" sin verificar estas condiciones estaría sobreafirmando: un contrato de más de 24 meses que fuera M2M o un contrato de despliegue de fibra NO violaría el art. 67.7.
 
-**Decisión adoptada: Opción A** — renombrar a `contract-duration-exceeds-24-months` con título *"La diferencia entre las fechas contractuales supera 24 meses calendáricos"*. La regla ahora demuestra exclusivamente el hecho temporal, sin afirmar consecuencia normativa alguna. El análisis de applicabilidad del art. 67.7 queda para el Result Engine (Fase 7).
+**Decisión adoptada: Opción A** — renombrar a `contract-duration-exceeds-24-months` con título _"La diferencia entre las fechas contractuales supera 24 meses calendáricos"_. La regla ahora demuestra exclusivamente el hecho temporal, sin afirmar consecuencia normativa alguna. El análisis de applicabilidad del art. 67.7 queda para el Result Engine (Fase 7).
 
 **Por qué no Opción B:** añadir 3 facts (party_type, service_type, installment_exception) habría permitido modelar las condiciones de applicabilidad. Pero en F4 estamos construyendo el primer módulo; el intake del consumidor no debe crecer artificialmente con preguntas técnicas sobre tipo de contrato a plazos para despliegue de fibra. La Opción A es más honesta: el sistema demuestra un hecho, y la interpretación jurídica pertenece a una fase posterior con datos suficientes.
 
@@ -285,11 +285,11 @@ No se puede publicar sin estos facts. La regla permanece DRAFT.
 
 ## Regla de oro — respuesta para cada regla
 
-| Regla | ¿Qué hecho demuestra exactamente? | ¿Qué conclusión NO permite obtener? |
-|---|---|---|
-| `charge-after-cancellation` | Un cargo es posterior a una cancelación declarada | Ilegalidad, indebidez, reclamabilidad |
-| `contract-duration-exceeds-24-months` | La diferencia entre fechas contractuales supera 24 meses | Que el contrato incumpla el art. 67.7 (faltan condiciones de applicabilidad) |
-| `charge-after-confirmed-cancellation` | Un cargo es posterior a una cancelación con confirmación disponible | Derecho a devolución, efectividad legal de la cancelación |
+| Regla                                 | ¿Qué hecho demuestra exactamente?                                   | ¿Qué conclusión NO permite obtener?                                          |
+| ------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `charge-after-cancellation`           | Un cargo es posterior a una cancelación declarada                   | Ilegalidad, indebidez, reclamabilidad                                        |
+| `contract-duration-exceeds-24-months` | La diferencia entre fechas contractuales supera 24 meses            | Que el contrato incumpla el art. 67.7 (faltan condiciones de applicabilidad) |
+| `charge-after-confirmed-cancellation` | Un cargo es posterior a una cancelación con confirmación disponible | Derecho a devolución, efectividad legal de la cancelación                    |
 
 ## Veredicto
 

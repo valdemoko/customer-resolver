@@ -249,3 +249,112 @@ export const evidenceFactLinks = pgTable(
     index("evidence_fact_fact_idx").on(t.factId),
   ],
 );
+
+// ── Fase 5: Document Intelligence ───────────────────────────────────
+
+/** Physical objects: stored bytes metadata (actual bytes live in ObjectStorage). */
+export const physicalObjects = pgTable(
+  "physical_objects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    evidenceId: uuid("evidence_id")
+      .notNull()
+      .references(() => evidence.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull().unique(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    checksumSha256: text("checksum_sha256").notNull(),
+    originalFilename: text("original_filename"),
+    status: text("status").notNull().default("STORED"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("physical_objects_case_idx").on(t.caseId, t.status),
+    index("physical_objects_evidence_idx").on(t.evidenceId),
+    index("physical_objects_checksum_idx").on(t.checksumSha256),
+  ],
+);
+
+/** Document processing runs: append-only audit of extraction attempts. */
+export const documentProcessingRuns = pgTable(
+  "document_processing_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    physicalObjectId: uuid("physical_object_id")
+      .notNull()
+      .references(() => physicalObjects.id, { onDelete: "cascade" }),
+    evidenceId: uuid("evidence_id")
+      .notNull()
+      .references(() => evidence.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("PENDING"),
+    extractorType: text("extractor_type").notNull(),
+    extractorVersion: text("extractor_version").notNull(),
+    result: jsonb("result"),
+    retryCount: integer("retry_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
+  },
+  (t) => [
+    index("processing_runs_case_idx").on(t.caseId, t.createdAt),
+    index("processing_runs_physical_idx").on(t.physicalObjectId),
+  ],
+);
+
+/** Document locations: where in a document a piece of content was found. */
+export const documentLocations = pgTable(
+  "document_locations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    physicalObjectId: uuid("physical_object_id")
+      .notNull()
+      .references(() => physicalObjects.id, { onDelete: "cascade" }),
+    processingRunId: uuid("processing_run_id")
+      .notNull()
+      .references(() => documentProcessingRuns.id, { onDelete: "cascade" }),
+    page: integer("page"),
+    startOffset: integer("start_offset").notNull(),
+    endOffset: integer("end_offset").notNull(),
+    boundingBox: jsonb("bounding_box"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [index("document_locations_physical_idx").on(t.physicalObjectId)],
+);
+
+/** Document fact candidates: proposed facts from extraction (NOT confirmed). */
+export const documentFactCandidates = pgTable(
+  "document_fact_candidates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    evidenceId: uuid("evidence_id")
+      .notNull()
+      .references(() => evidence.id, { onDelete: "cascade" }),
+    physicalObjectId: uuid("physical_object_id")
+      .notNull()
+      .references(() => physicalObjects.id, { onDelete: "cascade" }),
+    processingRunId: uuid("processing_run_id")
+      .notNull()
+      .references(() => documentProcessingRuns.id, { onDelete: "cascade" }),
+    factKey: text("fact_key").notNull(),
+    proposedValue: jsonb("proposed_value").notNull(),
+    locationId: uuid("location_id").references(() => documentLocations.id),
+    extractorVersion: text("extractor_version").notNull(),
+    extractorConfidence: integer("extractor_confidence"),
+    relation: text("relation").notNull().default("EXTRACTED"),
+    linkedFactId: uuid("linked_fact_id").references(() => caseFacts.id),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("fact_candidates_case_idx").on(t.caseId, t.factKey),
+    index("fact_candidates_evidence_idx").on(t.evidenceId),
+    index("fact_candidates_run_idx").on(t.processingRunId),
+  ],
+);
