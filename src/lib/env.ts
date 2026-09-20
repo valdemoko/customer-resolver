@@ -21,9 +21,17 @@ const serverEnvSchema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().optional(),
 
   // Fase 6 (AI providers) — placeholders documented in .env.example.
+  // Keys are never required: without them the AI layer degrades to typed
+  // AI_PROVIDER_UNAVAILABLE errors (development/test keep working).
   GROQ_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+
+  // Fase 6 (AI orchestration tuning) — server-side only.
+  AI_DEFAULT_PROVIDER: z.string().optional(),
+  AI_DEFAULT_MODEL: z.string().optional(),
+  AI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).optional(),
+  AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).optional(),
 
   // Email (Fase 2) — placeholder.
   RESEND_API_KEY: z.string().optional(),

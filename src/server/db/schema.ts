@@ -331,6 +331,39 @@ export const documentLocations = pgTable(
 );
 
 /** Document fact candidates: proposed facts from extraction (NOT confirmed). */
+/**
+ * AI request provenance (Fase 6) — append-only audit trail.
+ * Stores identifiers/metrics ONLY: never prompts, never document content,
+ * never PII. Attempts are a JSONB trace (per-attempt provider/model/status);
+ * a separate ai_attempts table is deliberately avoided — the per-request
+ * trace is small, bounded and always read together with its request.
+ */
+export const aiRequests = pgTable(
+  "ai_requests",
+  {
+    id: uuid("id").primaryKey(), // = aiRequestId
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    task: text("task").notNull(),
+    provider: text("provider"),
+    model: text("model"),
+    promptId: text("prompt_id").notNull(),
+    promptVersion: integer("prompt_version").notNull(),
+    schemaVersion: text("schema_version").notNull(),
+    inputHash: text("input_hash").notNull(),
+    status: text("status").notNull(),
+    usage: jsonb("usage"),
+    attempts: jsonb("attempts").notNull().default([]),
+    durationMs: integer("duration_ms").notNull().default(0),
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("ai_requests_case_idx").on(t.caseId, t.createdAt),
+    index("ai_requests_task_idx").on(t.task, t.status),
+    index("ai_requests_input_hash_idx").on(t.inputHash),
+  ],
+);
+
 export const documentFactCandidates = pgTable(
   "document_fact_candidates",
   {
@@ -353,6 +386,8 @@ export const documentFactCandidates = pgTable(
     extractorVersion: text("extractor_version").notNull(),
     extractorConfidence: integer("extractor_confidence"),
     relation: text("relation").notNull().default("EXTRACTED"),
+    certainty: text("certainty"),
+    aiRequestId: uuid("ai_request_id"),
     linkedFactId: uuid("linked_fact_id").references(() => caseFacts.id),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },

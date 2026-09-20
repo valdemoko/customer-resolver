@@ -245,9 +245,11 @@ describe("createFactCandidates", () => {
       ],
       at: NOW,
     });
-    expect(at(candidates, 0).location.page).toBe(3);
-    expect(at(candidates, 0).location.startOffset).toBe(100);
-    expect(at(candidates, 0).location.endOffset).toBe(200);
-    expect(at(candidates, 0).location.physicalObjectId).toBe("po");
+    const location = at(candidates, 0).location;
+    expect(location).not.toBeNull();
+    expect(location?.page).toBe(3);
+    expect(location?.startOffset).toBe(100);
+    expect(location?.endOffset).toBe(200);
+    expect(location?.physicalObjectId).toBe("po");
   });
 });

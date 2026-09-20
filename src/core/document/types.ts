@@ -115,12 +115,21 @@ export interface DocumentFactCandidate {
   readonly factKey: string;
   /** The proposed value — typed as unknown, validated at the boundary. */
   readonly proposedValue: unknown;
-  /** Where in the document this was extracted from. */
-  readonly location: DocumentLocation;
+  /**
+   * Where in the document this was extracted from. NULL when the origin
+   * (e.g. AI interpretation) could not be located in the actual text —
+   * a location is NEVER fabricated. (Fase 6: AI candidates must locate
+   * their sourceQuote in the document or carry no location at all.)
+   */
+  readonly location: DocumentLocation | null;
   readonly extractorVersion: string;
   readonly extractorConfidence?: number;
   /** Relation to the document: EXTRACTED = directly from text, PROPOSED = inferred. */
   readonly relation: CandidateRelation;
+  /** Fase 6: AI request provenance when this candidate came from an AI run. */
+  readonly aiRequestId?: string;
+  /** Fase 6: model-declared certainty (never upgraded by the system). */
+  readonly certainty?: "EXPLICIT" | "INFERRED" | "AMBIGUOUS";
   /** Has this candidate been linked to a fact in the case? */
   readonly linkedFactId?: string;
   readonly createdAt: IsoDateTime;
