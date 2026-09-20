@@ -4,7 +4,7 @@ test.describe("homepage smoke", () => {
   test("loads and shows the expected heading", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle(/Consumer Resolver/);
-    const heading = page.getByRole("heading", { level: 1, name: "Consumer Resolver" });
+    const heading = page.getByRole("heading", { level: 1, name: /problema/i });
     await expect(heading).toBeVisible();
   });
 

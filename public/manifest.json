@@ -1,0 +1,16 @@
+{
+  "name": "Consumer Resolver",
+  "short_name": "CR",
+  "description": "Resuelve problemas de consumo con información estructurada, fuentes verificables y pasos claros.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

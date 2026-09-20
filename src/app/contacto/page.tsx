@@ -1,3 +1,6 @@
+/**
+ * Contacto — Consumer Resolver.
+ */
 import type { Metadata } from "next";
 
 const CONTACT_EMAIL = "contacto.webproyectos@gmail.com";
@@ -11,28 +14,33 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-4">
+    <div className="mx-auto max-w-3xl px-5 md:px-8 py-12 md:py-16">
+      <h1
+        className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
+        style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+      >
         Contacto
       </h1>
 
-      <p className="text-lg text-gray-600 leading-relaxed mb-8">
-        Si has detectado un error técnico, tienes una sugerencia o deseas
-        ejercer tus derechos de privacidad, puedes escribirnos por correo
-        electrónico.
+      <p className="text-lg text-slate-500 leading-relaxed mb-8">
+        Si has detectado un error técnico, tienes una sugerencia o deseas ejercer tus derechos de
+        privacidad, puedes escribirnos por correo electrónico.
       </p>
 
-      <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+      <div className="cr-surface p-6 md:p-8">
+        <h2
+          className="text-lg font-semibold text-slate-900 mb-2"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
           Correo de contacto
         </h2>
-        <p className="text-gray-600 mb-4">
-          Para sugerencias, correcciones técnicas, consultas sobre privacidad o
-          cualquier otra cuestión:
+        <p className="text-slate-500 mb-4 text-sm">
+          Para sugerencias, correcciones técnicas, consultas sobre privacidad o cualquier otra
+          cuestión:
         </p>
         <a
           href={`mailto:${CONTACT_EMAIL}?subject=Contacto desde Consumer Resolver`}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-base font-semibold text-gray-900 hover:bg-gray-100 transition-colors"
+          className="cr-btn-secondary inline-flex"
         >
           <svg
             className="h-4 w-4"
@@ -51,10 +59,10 @@ export default function ContactPage() {
         </a>
       </div>
 
-      <div className="mt-8 text-sm text-gray-500">
+      <div className="mt-8 text-sm text-slate-400">
         <p>
-          Este canal de contacto no es un servicio de asesoría legal. No podemos
-          responder a preguntas individuales sobre tu caso particular.
+          Este canal de contacto no es un servicio de asesoría legal. No podemos responder a
+          preguntas individuales sobre tu caso particular.
         </p>
       </div>
     </div>
