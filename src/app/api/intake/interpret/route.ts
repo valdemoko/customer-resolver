@@ -168,6 +168,15 @@ export async function POST(request: Request) {
 
     const errorMsg = error instanceof Error ? error.message : "Unexpected error";
 
+    // Log ALL errors for debugging (never expose internals to client)
+    console.error("[interpret] Error:", {
+      name: error instanceof Error ? error.name : typeof error,
+      message: errorMsg,
+      detail: error instanceof Error && "detail" in error ? String((error as Record<string, unknown>).detail) : undefined,
+      code: error instanceof Error && "aiCode" in error ? String((error as Record<string, unknown>).aiCode) : undefined,
+      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+    });
+
     // Map known error types
     if (errorMsg.includes("budget exceeded")) {
       return NextResponse.json(
@@ -185,13 +194,6 @@ export async function POST(request: Request) {
         { status: 503 },
       );
     }
-
-    // Log the real error for debugging (never expose to client)
-    console.error("[interpret] Unhandled error:", {
-      code: error instanceof Error ? error.constructor.name : typeof error,
-      message: errorMsg,
-      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
-    });
 
     return NextResponse.json(
       { error: { code: "INTERPRETATION_FAILED", message: "Could not interpret your message" } },
