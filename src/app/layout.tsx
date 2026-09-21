@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
 import { PlausibleLoader } from "@/components/PlausibleLoader";
 import "./globals.css";
 
@@ -95,54 +95,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main className="flex-1">{children}</main>
 
           {/* ── Footer ───────────────────────────────────────────── */}
-          <footer className="border-t border-[var(--border-light)] bg-[var(--surface-paper)]">
-            <div className="max-w-[1200px] mx-auto px-5 md:px-8">
-              <div className="py-12 grid grid-cols-1 md:grid-cols-12 gap-10">
-
-                {/* Brand */}
-                <div className="md:col-span-5">
-                  <Logo size="sm" linked={false} />
-                  <p className="mt-4 text-sm text-[var(--color-ink-muted)] leading-relaxed max-w-xs">
-                    Una forma más clara de entender qué hacer cuando algo sale mal con una compra, un servicio o un vuelo.
-                  </p>
-                </div>
-
-                {/* Producto */}
-                <div className="md:col-span-3">
-                  <p className="label">Producto</p>
-                  <ul className="space-y-2.5">
-                    <li><Link href="/" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Resolver un problema</Link></li>
-                    <li><Link href="/problemas" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Problemas</Link></li>
-                    <li><Link href="/como-funciona" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Cómo funciona</Link></li>
-                    <li><Link href="/fuentes" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Fuentes</Link></li>
-                  </ul>
-                </div>
-
-                {/* Información */}
-                <div className="md:col-span-4">
-                  <p className="label">Información</p>
-                  <ul className="space-y-2.5">
-                    <li><Link href="/sobre" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Sobre Resolveo</Link></li>
-                    <li><Link href="/contacto" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Contacto</Link></li>
-                    <li><Link href="/autor" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Autor</Link></li>
-                    <li><Link href="/privacidad" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Privacidad</Link></li>
-                    <li><Link href="/cookies" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Cookies</Link></li>
-                    <li><Link href="/terminos" className="text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors">Términos</Link></li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Bottom */}
-              <div className="py-5 border-t border-[var(--border-light)] flex flex-col md:flex-row items-center justify-between gap-3">
-                <p className="text-xs text-[var(--color-ink-faint)]">
-                  &copy; {new Date().getFullYear()} Resolveo
-                </p>
-                <p className="text-xs text-[var(--color-ink-faint)]">
-                  Información basada en normativa vigente. No constituye asesoría legal.
-                </p>
-              </div>
-            </div>
-          </footer>
+          <Footer />
         </div>
         {plausibleDomain && <PlausibleLoader domain={plausibleDomain} />}
       </body>
