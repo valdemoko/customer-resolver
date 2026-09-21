@@ -169,13 +169,14 @@ export async function POST(request: Request) {
     const errorMsg = error instanceof Error ? error.message : "Unexpected error";
 
     // Log ALL errors for debugging (never expose internals to client)
-    console.error("[interpret] Error:", {
+    console.error("[interpret] Error:", JSON.stringify({
       name: error instanceof Error ? error.name : typeof error,
       message: errorMsg,
       detail: error instanceof Error && "detail" in error ? String((error as Record<string, unknown>).detail) : undefined,
       code: error instanceof Error && "aiCode" in error ? String((error as Record<string, unknown>).aiCode) : undefined,
-      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
-    });
+      causeMessage: error instanceof Error && error.cause instanceof Error ? error.cause.message : undefined,
+      causeDetail: error instanceof Error && error.cause && typeof error.cause === "object" && "detail" in error.cause ? String((error.cause as Record<string, unknown>).detail) : undefined,
+    }, null, 0));
 
     // Map known error types
     if (errorMsg.includes("budget exceeded")) {

@@ -80,6 +80,9 @@ export class HttpAIProvider implements AIProviderPort {
       });
 
       if (!response.ok) {
+        // Log the actual error response for debugging
+        const errorBody = await response.text().catch(() => "unable to read body");
+        console.error(`[ai:${this.config.providerId}] HTTP ${response.status}:`, errorBody.slice(0, 500));
         throw this.mapHttpError(response.status, response.headers);
       }
 
