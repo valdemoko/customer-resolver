@@ -23,6 +23,7 @@ export type CaseTransitionEvent =
   | "ANALYSIS_TIMED_OUT"
   | "ACTION_STARTED"
   | "RESPONSE_RECEIVED"
+  | "ESCALATE"
   | "CLOSE_CASE"
   | "REOPEN";
 
@@ -56,7 +57,11 @@ const TRANSITIONS: Readonly<Record<CaseTransitionEvent, TransitionRule>> = {
   ANALYSIS_COMPLETED: { from: ["ANALYZING_X", "READY_FOR_ANALYSIS"], to: "RESULT_AVAILABLE" },
   ANALYSIS_TIMED_OUT: { from: ["ANALYZING_X"], to: "NEEDS_INFORMATION" },
   ACTION_STARTED: { from: ["RESULT_AVAILABLE"], to: "ACTION_IN_PROGRESS" },
-  RESPONSE_RECEIVED: { from: ["ACTION_IN_PROGRESS", "AWAITING_RESPONSE"], to: "RESULT_AVAILABLE" },
+  RESPONSE_RECEIVED: { from: ["ACTION_IN_PROGRESS", "AWAITING_RESPONSE", "ESCALATED"], to: "RESULT_AVAILABLE" },
+  ESCALATE: {
+    from: ["RESULT_AVAILABLE", "ACTION_IN_PROGRESS", "AWAITING_RESPONSE"],
+    to: "ESCALATED",
+  },
   CLOSE_CASE: {
     from: [
       "DRAFT",
@@ -64,6 +69,7 @@ const TRANSITIONS: Readonly<Record<CaseTransitionEvent, TransitionRule>> = {
       "RESULT_AVAILABLE",
       "ACTION_IN_PROGRESS",
       "AWAITING_RESPONSE",
+      "ESCALATED",
     ],
     to: "CLOSED",
   },

@@ -1,0 +1,251 @@
+/**
+ * Autor — Resolveo.
+ *
+ * Editorial identity page. Uses real project metadata only —
+ * no invented credentials, titles, or professional affiliations.
+ */
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Autor",
+  description:
+    "Quién mantiene Resolveo, cómo se revisa el contenido, qué fuentes se utilizan y cuál es el objetivo editorial del proyecto.",
+  alternates: { canonical: "/autor" },
+  openGraph: {
+    title: "Autor — Resolveo",
+    description:
+      "Quién mantiene Resolveo y cómo se revisa el contenido del proyecto.",
+    type: "website",
+    locale: "es_ES",
+  },
+};
+
+export default function AuthorPage() {
+  return (
+    <div className="mx-auto max-w-3xl px-5 md:px-8 py-12 md:py-16">
+      {/* Header */}
+      <header className="mb-12">
+        <p className="text-slate-400 text-sm font-medium tracking-wide uppercase mb-3">
+          Resolveo
+        </p>
+        <h1
+          className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Autor
+        </h1>
+      </header>
+
+      {/* Project identity */}
+      <section className="mb-12">
+        <div className="cr-surface p-6 md:p-8">
+          <div className="flex items-start gap-5">
+            {/* Logo mark */}
+            <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center">
+              <span
+                className="text-white font-bold text-xl"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
+                R
+              </span>
+            </div>
+
+            <div>
+              <h2
+                className="text-xl font-semibold text-slate-900 mb-1"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
+                Resolveo
+              </h2>
+              <p className="text-sm text-slate-500 mb-3">
+                Proyecto de ingeniería de software orientado a problemas de
+                consumo
+              </p>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Herramienta de análisis de problemas de consumo con información
+                estructurada, reglas deterministas y fuentes oficiales
+                verificables.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Who maintains it */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Quién mantiene el contenido
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            Resolveo es mantenido por un desarrollador de software. No es un
+            despacho jurídico, una empresa de servicios legales ni una
+            asociación de consumidores.
+          </p>
+          <p>
+            El contenido de las páginas públicas — descripciones de problemas,
+            explicaciones de proceso, información sobre fuentes — está escrito
+            y revisado por la persona que desarrolla el proyecto. No hay un
+            equipo editorial externo ni colaboradores jurídicos.
+          </p>
+        </div>
+      </section>
+
+      {/* How content is reviewed */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Cómo se revisa el contenido
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            El proceso de revisión tiene dos niveles:
+          </p>
+          <ul className="space-y-2 ml-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              <span>
+                <strong>Contenido textual:</strong> las descripciones de
+                problemas, páginas informativas y textos de interfaz son
+                escritos directamente por el desarrollador y se revisan
+                antes de publicarse.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              <span>
+                <strong>Reglas de análisis:</strong> cada módulo de problema
+                tiene reglas vinculadas a normativa oficial concreta (BOE,
+                EUR-Lex). Las reglas se documentan con su fuente, versión y
+                lógica de evaluación. Los 995 tests del proyecto verifican
+                que las reglas se comportan como se espera.
+              </span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      {/* Sources */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Qué fuentes se utilizan
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            Toda la normativa utilizada es legislación vigente en España y
+            regulaciones europeas directamente aplicables:
+          </p>
+          <ul className="space-y-2 ml-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              BOE (Boletín Oficial del Estado)
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              EUR-Lex (legislación europea)
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              Código Civil
+            </li>
+          </ul>
+          <p>
+            No se utilizan blogs jurídicos, foros, redes sociales ni opiniones
+            como fuente primaria para las reglas de análisis.
+          </p>
+          <p>
+            <Link
+              href="/fuentes"
+              className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+            >
+              Ver el listado completo de fuentes →
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {/* How pages are updated */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Cómo se actualizan las páginas
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            Las páginas de Resolveo se actualizan cuando:
+          </p>
+          <ul className="space-y-2 ml-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              Cambia la normativa aplicable a un tipo de problema.
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              Se incorpora un nuevo módulo de análisis.
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              Se detecta un error en la información publicada.
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              Se mejora la precisión de las descripciones o explicaciones.
+            </li>
+          </ul>
+          <p>
+            El proyecto es de código abierto y cualquier persona puede revisar
+            tanto el código como las reglas de análisis que implementa.
+          </p>
+        </div>
+      </section>
+
+      {/* Editorial objective */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Objetivo editorial
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            El objetivo de Resolveo es ofrecer información clara, verificable
+            y sin ambigüedades sobre problemas de consumo comunes en España.
+          </p>
+          <p>
+            Cada página está diseñada para que una persona sin conocimientos
+            legales pueda entender su situación, saber qué documentación
+            necesita y conocer los pasos concretos que puede dar.
+          </p>
+          <p>
+            Cuando la información disponible no es suficiente para una
+            conclusión, Resolveo lo declara en lugar de fabricar una respuesta.
+            La transparencia sobre las limitaciones es parte del diseño del
+            proyecto, no una deficiencia.
+          </p>
+        </div>
+      </section>
+
+      {/* Disclaimer */}
+      <section className="border-t border-slate-200/60 pt-8">
+        <p className="text-xs text-slate-400 leading-relaxed">
+          Resolveo es un proyecto de ingeniería de software. No es un despacho
+          jurídico ni una empresa de servicios legales. La información
+          proporcionada por el sistema tiene carácter orientativo y no
+          constituye asesoría legal profesional.
+        </p>
+      </section>
+    </div>
+  );
+}

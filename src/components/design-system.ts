@@ -1,5 +1,5 @@
 /**
- * Consumer Resolver Design System (Fase 7).
+ * Resolveo Design System (Fase 7).
  *
  * Professional, trustworthy, distinctive. Not a SaaS template.
  * Typography: Source Serif 4 (serif for trust) + DM Sans (sans for UI).

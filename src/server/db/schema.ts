@@ -364,6 +364,235 @@ export const aiRequests = pgTable(
   ],
 );
 
+// ── Fase 11: Production persistence infrastructure ───────────────
+
+/**
+ * Durable AI budget per case (Fase 11).
+ * Replaces the in-memory Map in budget-store.ts.
+ * Atomic UPDATE ensures concurrent requests cannot exceed the global limit.
+ */
+export const aiBudgets = pgTable(
+  "ai_budgets",
+  {
+    caseId: uuid("case_id")
+      .primaryKey()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    task: text("task").notNull().default("PROBLEM_INTERPRETATION"),
+    count: integer("count").notNull().default(0),
+    maxAllowed: integer("max_allowed").notNull().default(3),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [index("ai_budgets_task_idx").on(t.task, t.count)],
+);
+
+/**
+ * Distributed rate limiting (Fase 11).
+ * Sliding-window counter with automatic expiry.
+ * scope+key+window_start is unique — concurrent inserts are safe via ON CONFLICT.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    scope: text("scope").notNull(),
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true, mode: "string" }).notNull(),
+    count: integer("count").notNull().default(1),
+    maxRequests: integer("max_requests").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("rate_limits_scope_key_window_idx").on(t.scope, t.key, t.windowStart),
+    index("rate_limits_expires_idx").on(t.expiresAt),
+  ],
+);
+
+// ── Fase 12: Generated Documents ──────────────────────────────────
+
+/**
+ * Generated documents (Fase 12).
+ * Stores document metadata and content. Files are in R2.
+ * Versioning: each version is a separate row linked by previous_version_id.
+ */
+export const generatedDocuments = pgTable(
+  "generated_documents",
+  {
+    id: uuid("id").primaryKey(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    status: text("status").notNull().default("DRAFT"),
+    version: integer("version").notNull().default(1),
+    format: text("format").notNull().default("txt"),
+    title: text("title").notNull(),
+    recipient: text("recipient").notNull(),
+    subject: text("subject").notNull(),
+    /** Full document content as JSONB (sections, statements, citations). */
+    content: jsonb("content").notNull(),
+    /** Analysis snapshot that produced this document. */
+    analysisSnapshotId: uuid("analysis_snapshot_id"),
+    /** AI request that generated the draft. */
+    aiRequestId: uuid("ai_request_id"),
+    /** Prompt used for generation. */
+    promptId: text("prompt_id"),
+    promptVersion: integer("prompt_version"),
+    /** Storage key for the exported file (R2). */
+    storageKey: text("storage_key"),
+    fileSize: integer("file_size"),
+    /** Previous version (for version chain). */
+    previousVersionId: uuid("previous_version_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("generated_documents_case_idx").on(t.caseId, t.createdAt),
+    index("generated_documents_status_idx").on(t.status),
+    uniqueIndex("generated_documents_case_version_idx").on(t.caseId, t.version),
+  ],
+);
+
+// ── Fase 14: Research Resolver ──────────────────────────────────
+
+/**
+ * Research sessions (Fase 14).
+ * Stores research investigations for unsupported problems.
+ */
+export const researchSessions = pgTable(
+  "research_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("RESEARCH_PENDING"),
+    jurisdiction: text("jurisdiction").notNull(),
+    problemDescription: text("problem_description").notNull(),
+    legalDomain: text("legal_domain").notNull(),
+    researchVersion: text("research_version").notNull(),
+    previousResearchId: uuid("previous_research_id"),
+    plan: jsonb("plan").notNull(),
+    aiRequestIds: jsonb("ai_request_ids").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
+  },
+  (t) => [
+    index("idx_research_sessions_case_idx").on(t.caseId, t.createdAt),
+  ],
+);
+
+/**
+ * Research findings (Fase 14).
+ * Stores conclusions from source analysis.
+ */
+export const researchFindings = pgTable(
+  "research_findings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    researchId: uuid("research_id")
+      .notNull()
+      .references(() => researchSessions.id, { onDelete: "cascade" }),
+    proposition: text("proposition").notNull(),
+    status: text("status").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    reasoningSummary: text("reasoning_summary").notNull(),
+    uncertainty: text("uncertainty"),
+    researchVersion: text("research_version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("idx_research_findings_research_idx").on(t.researchId),
+  ],
+);
+
+/**
+ * Research sources (Fase 14).
+ * Stores sources discovered during research.
+ */
+export const researchSources = pgTable(
+  "research_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    researchId: uuid("research_id")
+      .notNull()
+      .references(() => researchSessions.id, { onDelete: "cascade" }),
+    findingId: uuid("finding_id").references(() => researchFindings.id, { onDelete: "set null" }),
+    url: text("url").notNull(),
+    title: text("title").notNull(),
+    publisher: text("publisher").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    sourceType: text("source_type").notNull(),
+    authority: text("authority").notNull(),
+    publicationDate: text("publication_date"),
+    effectiveDate: text("effective_date"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true, mode: "string" }).notNull(),
+    versionIdentifier: text("version_identifier"),
+    relevantSection: text("relevant_section"),
+    contentHash: text("content_hash"),
+    validationStatus: text("validation_status").notNull().default("UNVERIFIED"),
+    validationNotes: text("validation_notes"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("idx_research_sources_research_idx").on(t.researchId),
+    index("idx_research_sources_validation_idx").on(t.validationStatus),
+  ],
+);
+
+/**
+ * Research conflicts (Fase 14).
+ * Stores conflicts between sources.
+ */
+export const researchConflicts = pgTable(
+  "research_conflicts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    researchId: uuid("research_id")
+      .notNull()
+      .references(() => researchSessions.id, { onDelete: "cascade" }),
+    conflictType: text("conflict_type").notNull(),
+    sourceAId: uuid("source_a_id")
+      .notNull()
+      .references(() => researchSources.id),
+    sourceBId: uuid("source_b_id")
+      .notNull()
+      .references(() => researchSources.id),
+    description: text("description").notNull(),
+    resolutionStatus: text("resolution_status").notNull().default("UNRESOLVED"),
+    resolutionNotes: text("resolution_notes"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("idx_research_conflicts_research_idx").on(t.researchId),
+  ],
+);
+
+export const caseCommunications = pgTable(
+  "case_communications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    direction: text("direction").notNull(),
+    channel: text("channel").notNull(),
+    counterparty: text("counterparty").notNull(),
+    subject: text("subject"),
+    summary: text("summary").notNull(),
+    linkedEvidenceIds: jsonb("linked_evidence_ids").notNull().default([]),
+    linkedDocumentId: uuid("linked_document_id"),
+    relatedActionId: text("related_action_id"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (t) => [
+    index("idx_communications_case_idx").on(t.caseId, t.occurredAt),
+    index("idx_communications_direction_idx").on(t.direction),
+  ],
+);
+
 export const documentFactCandidates = pgTable(
   "document_fact_candidates",
   {

@@ -177,7 +177,7 @@ export class TxtExportAdapter implements ExportPort {
       format: "txt",
       content,
       mimeType: "text/plain; charset=utf-8",
-      filename: `consumer-resolver-${data.result.caseId}.txt`,
+      filename: `resolveo-${data.result.caseId}.txt`,
       sizeBytes: bytes.length,
     };
   }

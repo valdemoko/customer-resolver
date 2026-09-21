@@ -25,7 +25,7 @@ import type {
   SnapshotId,
 } from "../types";
 import { now as systemNow, type IsoDateTime } from "../shared/temporal";
-import { applyResolution, createFact, type CreateFactInput } from "./facts";
+import { applyResolution, confirmFact, createFact, type CreateFactInput } from "./facts";
 import { detectContradiction, resolveContradiction } from "./contradictions";
 import { createSnapshot } from "./snapshots";
 import { createEvent } from "./events";
@@ -208,6 +208,112 @@ export class CaseService {
       contradiction: newContradictions[0],
       supersededFact: undefined,
     };
+  }
+
+  /**
+   * Confirm a user-confirmed fact (F8.3 intake flow).
+   * Creates a CONFIRMED fact with USER_PROVIDED provenance.
+   * If a fact with the same key exists and conflicts, a contradiction is detected.
+   * If a fact with the same key exists with the same value, it's a no-op (idempotent).
+   */
+  async confirmFactForCase(
+    caseId: string,
+    input: {
+      key: FactKey;
+      value: FactValue;
+      evidenceRefs?: readonly EvidenceReference[];
+    },
+    options?: { at?: IsoDateTime },
+  ): Promise<AddFactResult> {
+    const loaded = await this.loadCase(caseId);
+    const at = options?.at ?? systemNow();
+
+    // Check for existing fact with same key
+    const existing = loaded.facts.find(
+      (f) => f.key === input.key && f.status !== "SUPERSEDED",
+    );
+
+    if (existing && existing.status === "CONFIRMED") {
+      const { valuesEqual } = await import("./fact-value");
+      if (valuesEqual(existing.value, input.value)) {
+        // Same key, same value, already confirmed — idempotent no-op
+        return { case: loaded.case, fact: existing };
+      }
+      // Same key, different value, already confirmed — contradiction
+      const fact = confirmFact({
+        caseId,
+        key: input.key,
+        value: input.value,
+        evidenceRefs: input.evidenceRefs,
+        now: at,
+      });
+      const contradiction = detectContradiction({
+        caseId,
+        factA: existing,
+        factB: fact,
+        now: at,
+      });
+      const events = [
+        createEvent(caseId, "FACT_ADDED", { factKey: input.key, provenance: "USER_PROVIDED" }, at),
+        createEvent(caseId, "CONTRADICTION_DETECTED", { factKey: input.key }, at),
+      ];
+      const savedCase = await this.repo.saveUnit(
+        {
+          caseId,
+          newFacts: [fact],
+          updatedFacts: [],
+          newContradictions: [contradiction],
+          updatedContradictions: [],
+          newEvents: events,
+          nextStatus: "HAS_CONTRADICTIONS",
+        },
+        loaded.case.version,
+      );
+      return { case: savedCase, fact, contradiction };
+    }
+
+    // No existing confirmed fact — create new confirmed fact
+    const fact = confirmFact({
+      caseId,
+      key: input.key,
+      value: input.value,
+      evidenceRefs: input.evidenceRefs,
+      now: at,
+    });
+
+    const events = [
+      createEvent(caseId, "FACT_ADDED", { factKey: input.key, provenance: "USER_PROVIDED" }, at),
+    ];
+
+    let nextStatus = loaded.case.status;
+    if (nextStatus === "DRAFT" || nextStatus === "NEEDS_INFORMATION") {
+      nextStatus = "COLLECTING_INFORMATION";
+    }
+    if (nextStatus !== loaded.case.status) {
+      events.push(
+        createEvent(
+          caseId,
+          "CASE_STATUS_CHANGED",
+          { from: loaded.case.status, to: nextStatus },
+          at,
+        ),
+      );
+    }
+
+    const savedCase = await this.repo.saveUnit(
+      {
+        caseId,
+        newFacts: [fact],
+        updatedFacts: [],
+        newContradictions: [],
+        updatedContradictions: [],
+        newEvents: events,
+        nextStatus,
+      },
+      loaded.case.version,
+    );
+
+    return { case: savedCase, fact };
   }
 
   /**

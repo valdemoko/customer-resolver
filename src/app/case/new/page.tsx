@@ -1,5 +1,5 @@
 /**
- * Case Creation Page — Consumer Resolver.
+ * Case Creation Page — Resolveo.
  *
  * Progressive intake form for cancellation-charge.
  * Improved visuals: better progress, transitions, input styling, status feedback.
@@ -312,7 +312,31 @@ export default function NewCasePage() {
             pero ayuda a fortalecer tu caso.
           </p>
 
-          <div className="cr-upload mb-8">
+          <div
+            className="cr-upload mb-8 cursor-pointer"
+            onClick={() => document.getElementById("file-input")?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const files = e.dataTransfer.files;
+              if (files.length > 0) {
+                console.log("Files dropped:", files);
+              }
+            }}
+          >
+            <input
+              id="file-input"
+              type="file"
+              multiple
+              accept=".pdf,.txt,.csv,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                  console.log("Files selected:", Array.from(files).map(f => f.name));
+                }
+              }}
+            />
             <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <svg
                 className="w-6 h-6 text-slate-400"

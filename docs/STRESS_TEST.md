@@ -1,4 +1,4 @@
-# Consumer Resolver — Architecture Stress Test (Fase 0.5)
+# Resolveo — Architecture Stress Test (Fase 0.5)
 
 > **Estado:** auditoría completada sobre `docs/ARCHITECTURE.md` (releído íntegro).
 > **Veredicto:** ver §48 del informe. Los fallos detectados se han corregido EN el documento de arquitectura (ver "Architecture Decision Changes" al final de ese archivo); no se ha escrito código.

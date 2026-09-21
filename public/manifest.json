@@ -1,6 +1,6 @@
 {
-  "name": "Consumer Resolver",
-  "short_name": "CR",
+  "name": "Resolveo",
+  "short_name": "Resolveo",
   "description": "Resuelve problemas de consumo con información estructurada, fuentes verificables y pasos claros.",
   "start_url": "/",
   "display": "standalone",

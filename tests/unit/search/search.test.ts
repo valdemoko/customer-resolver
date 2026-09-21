@@ -1,5 +1,5 @@
 /**
- * Search functionality tests — Consumer Resolver.
+ * Search functionality tests — Resolveo.
  *
  * Tests the search scoring, matching, and result generation logic.
  */

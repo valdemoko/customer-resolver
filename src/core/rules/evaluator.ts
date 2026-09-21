@@ -164,7 +164,11 @@ function evalAtomic(condition: Condition, context: RuleEvaluationContext): Condi
           actual: fact.value,
         };
       }
-      const anchor = condition.kind === "DATE_BEFORE" ? condition.before : condition.after;
+      const defaultAnchor = context.currentDate;
+      const anchor =
+        condition.kind === "DATE_BEFORE"
+          ? (condition.before ?? defaultAnchor)
+          : (condition.after ?? defaultAnchor);
       const days = isoDateDaysBetween(actual, anchor);
       const matched = condition.kind === "DATE_BEFORE" ? days > 0 : days < 0;
       return {
@@ -396,8 +400,56 @@ function missingAndContradicted(
           contradicted.add(k);
       }
     }
-    if (c.kind === "ALL" || c.kind === "ANY") c.conditions.forEach(walk);
-    else if (c.kind === "NOT") walk(c.condition);
+    if (c.kind === "ANY") {
+      // For ANY conditions: if at least one child matches, the condition
+      // is satisfied. We ONLY collect missing facts from MATCHED children.
+      // Missing facts from non-matching children are irrelevant because
+      // the ANY is already satisfied.
+      //
+      // Critically, if a matched child itself is an ANY or ALL with
+      // its own children, we walk THOSE children for missing facts.
+      // But we do NOT walk children of an ANY that didn't match.
+      const childTraces = c.conditions.map((child) => ({
+        child,
+        trace: evalCondition(child, context),
+      }));
+      const anyMatched = childTraces.some(({ trace }) => trace.matched);
+      if (anyMatched) {
+        // Only walk matched children — their internal structure
+        // may have children with missing facts that ARE relevant.
+        for (const { child, trace } of childTraces) {
+          if (trace.matched) walk(child);
+        }
+      } else {
+        // No child matched — collect all missing/contradicted as usual
+        c.conditions.forEach(walk);
+      }
+    } else if (c.kind === "ALL") {
+      c.conditions.forEach(walk);
+    } else if (c.kind === "NOT") {
+      // NOT matches when its child does NOT match. When the child has
+      // a MISSING fact, NOT still matches (negation of absence is true).
+      // We must NOT propagate that missing fact upward because the NOT
+      // condition is satisfied — the missing fact is irrelevant.
+      const childTrace = evalCondition(c.condition, context);
+      if (childTrace.matched) {
+        // NOT didn't match (child matched). Walk child for contradictions/evidence.
+        walk(c.condition);
+      } else {
+        // NOT matched (child didn't match). Only collect contradicted and evidence,
+        // NOT missing facts — the NOT is satisfied by the child's failure.
+        const condKey = "key" in c.condition ? (c.condition as { key: string }).key : undefined;
+        if (condKey) {
+          const f = context.facts.find((fx) => fx.key === condKey);
+          if (f) {
+            if (context.contradictedKeys.has(f.key) || f.status === "CONTRADICTED")
+              contradicted.add(condKey);
+            f.evidenceRefs.forEach((ref) => evidence.add(ref));
+          }
+          // Do NOT add to missing — NOT is satisfied
+        }
+      }
+    }
   }
   walk(condition);
   return { missing, contradicted, evidence };

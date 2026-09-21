@@ -16,7 +16,11 @@ import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
 import { getServerEnv } from "@/lib/env";
+import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { cancellationChargeModule } from "@problems/cancellation-charge";
+import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
+import { warrantyRejectionModule } from "@problems/warranty-rejection";
+import { flightCancelModule } from "@problems/flight-cancel";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +37,9 @@ function compositionRoot() {
   const rulesRepo = new RulesRepository(db);
   const registry = new ProblemRegistry();
   registry.register(cancellationChargeModule);
+  registry.register(noDeliveryRefundModule);
+  registry.register(warrantyRejectionModule);
+  registry.register(flightCancelModule);
 
   const analysisService = new ProblemAnalysisService({
     repo,
@@ -50,8 +57,21 @@ function compositionRoot() {
   return { repo, caseService, analysisService, registry };
 }
 
+const PRIVATE_CACHE_HEADERS = {
+  "Cache-Control": "private, no-store, no-cache, must-revalidate",
+  "Pragma": "no-cache",
+} as const;
+
 export async function GET(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
+
+  if (!isValidCaseId(caseId)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Invalid case ID format" } },
+      { status: 400 },
+    );
+  }
+
   const url = new URL(request.url);
   const format = (url.searchParams.get("format") ?? "txt") as "txt" | "pdf" | "docx";
 
@@ -116,6 +136,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       headers: {
         "Content-Type": exported.mimeType,
         "Content-Disposition": `attachment; filename="${exported.filename}"`,
+        ...PRIVATE_CACHE_HEADERS,
       },
     });
   } catch (error) {
@@ -123,10 +144,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       {
         error: {
           code: "EXPORT_FAILED",
-          message: error instanceof Error ? error.message : "Unexpected error",
+          message: sanitizeErrorMessage(error),
         },
       },
-      { status: 500 },
+      { status: 500, headers: PRIVATE_CACHE_HEADERS },
     );
   }
 }

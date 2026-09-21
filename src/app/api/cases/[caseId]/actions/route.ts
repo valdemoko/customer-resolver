@@ -14,7 +14,13 @@ import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
 import { getServerEnv } from "@/lib/env";
+import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { cancellationChargeModule } from "@problems/cancellation-charge";
+import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
+import { warrantyRejectionModule } from "@problems/warranty-rejection";
+import { flightCancelModule } from "@problems/flight-cancel";
+import { cases, physicalObjects } from "@server/db/schema";
+import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +37,9 @@ function compositionRoot() {
   const rulesRepo = new RulesRepository(db);
   const registry = new ProblemRegistry();
   registry.register(cancellationChargeModule);
+  registry.register(noDeliveryRefundModule);
+  registry.register(warrantyRejectionModule);
+  registry.register(flightCancelModule);
 
   const analysisService = new ProblemAnalysisService({
     repo,
@@ -48,8 +57,20 @@ function compositionRoot() {
   return { repo, caseService, analysisService, registry };
 }
 
+const PRIVATE_CACHE_HEADERS = {
+  "Cache-Control": "private, no-store, no-cache, must-revalidate",
+  "Pragma": "no-cache",
+} as const;
+
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
+
+  if (!isValidCaseId(caseId)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Invalid case ID format" } },
+      { status: 400 },
+    );
+  }
 
   let services: ReturnType<typeof compositionRoot>;
   try {
@@ -90,16 +111,109 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
     // Derive actions
     const actionPlan = deriveActions(result);
 
-    return NextResponse.json({ actionPlan });
+    return NextResponse.json({ actionPlan }, { headers: PRIVATE_CACHE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       {
         error: {
           code: "ANALYSIS_FAILED",
-          message: error instanceof Error ? error.message : "Unexpected error",
+          message: sanitizeErrorMessage(error),
         },
       },
+      { status: 500, headers: PRIVATE_CACHE_HEADERS },
+    );
+  }
+}
+
+/**
+ * DELETE /api/cases/:caseId/actions
+ *
+ * Soft-delete a case and all its associated data.
+ * DB cascade handles: facts, contradictions, events, snapshots, evidence,
+ * physical objects, processing runs, document locations, fact candidates,
+ * ai_requests, ai_budgets.
+ *
+ * R2 objects are cleaned up asynchronously if storage is configured.
+ */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
+  const { caseId } = await params;
+
+  if (!isValidCaseId(caseId)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Invalid case ID format" } },
+      { status: 400 },
+    );
+  }
+
+  let services: ReturnType<typeof compositionRoot>;
+  try {
+    services = compositionRoot();
+  } catch {
+    return NextResponse.json(
+      { error: { code: "SERVICE_UNAVAILABLE", message: "Database not configured" } },
+      { status: 503 },
+    );
+  }
+
+  // 1. Verify case exists
+  const loaded = await services.repo.loadCase(caseId);
+  if (!loaded) {
+    return NextResponse.json(
+      { error: { code: "NOT_FOUND", message: "Case not found" } },
+      { status: 404 },
+    );
+  }
+
+  // 2. Collect storage keys for R2 cleanup (before cascade deletes the metadata)
+  const storageKeys: string[] = [];
+  try {
+    const env = getServerEnv();
+    if (!env.DATABASE_URL) throw new Error("No DB");
+    const db = createNeonDb(env.DATABASE_URL);
+    const physicalRows = await db
+      .select({ storageKey: physicalObjects.storageKey })
+      .from(physicalObjects)
+      .where(eq(physicalObjects.caseId, caseId));
+    storageKeys.push(...physicalRows.map((r) => r.storageKey));
+  } catch {
+    // Physical objects query failed — proceed with DB deletion
+    // R2 cleanup can be handled by orphan cleanup later
+  }
+
+  // 3. Delete from DB (cascade handles all child tables)
+  try {
+    const env = getServerEnv();
+    if (!env.DATABASE_URL) throw new Error("No DB");
+    const db = createNeonDb(env.DATABASE_URL);
+    await db.delete(cases).where(eq(cases.id, caseId));
+  } catch {
+    return NextResponse.json(
+      { error: { code: "DELETE_FAILED", message: "Could not delete case" } },
       { status: 500 },
     );
   }
+
+  // 4. Clean up R2 objects (best-effort, non-blocking)
+  if (storageKeys.length > 0) {
+    try {
+      const env = getServerEnv();
+      if (env.R2_ACCOUNT_ID && env.R2_BUCKET_DOCUMENTS && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
+        const { R2ObjectStorage } = await import("@server/adapters/storage/r2-object-storage");
+        const storage = new R2ObjectStorage({
+          accountId: env.R2_ACCOUNT_ID,
+          bucketName: env.R2_BUCKET_DOCUMENTS,
+          accessKeyId: env.R2_ACCESS_KEY_ID,
+          secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+        });
+        for (const key of storageKeys) {
+          await storage.delete(key).catch(() => {}); // best-effort
+        }
+      }
+    } catch {
+      // R2 cleanup failed — objects are orphaned but DB is consistent
+      // Orphan cleanup job will handle these
+    }
+  }
+
+  return NextResponse.json({ success: true, caseId }, { headers: PRIVATE_CACHE_HEADERS });
 }

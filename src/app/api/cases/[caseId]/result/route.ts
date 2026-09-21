@@ -13,7 +13,11 @@ import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
 import { getServerEnv } from "@/lib/env";
+import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { cancellationChargeModule } from "@problems/cancellation-charge";
+import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
+import { warrantyRejectionModule } from "@problems/warranty-rejection";
+import { flightCancelModule } from "@problems/flight-cancel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +34,9 @@ function compositionRoot() {
   const rulesRepo = new RulesRepository(db);
   const registry = new ProblemRegistry();
   registry.register(cancellationChargeModule);
+  registry.register(noDeliveryRefundModule);
+  registry.register(warrantyRejectionModule);
+  registry.register(flightCancelModule);
 
   const analysisService = new ProblemAnalysisService({
     repo,
@@ -47,8 +54,20 @@ function compositionRoot() {
   return { repo, caseService, analysisService, registry };
 }
 
+const PRIVATE_CACHE_HEADERS = {
+  "Cache-Control": "private, no-store, no-cache, must-revalidate",
+  "Pragma": "no-cache",
+} as const;
+
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
+
+  if (!isValidCaseId(caseId)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Invalid case ID format" } },
+      { status: 400 },
+    );
+  }
 
   let services: ReturnType<typeof compositionRoot>;
   try {
@@ -86,16 +105,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
       intakeComplete: analysis.intakeComplete,
     });
 
-    return NextResponse.json({ result });
+    return NextResponse.json({ result }, { headers: PRIVATE_CACHE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       {
         error: {
           code: "ANALYSIS_FAILED",
-          message: error instanceof Error ? error.message : "Unexpected error",
+          message: sanitizeErrorMessage(error),
         },
       },
-      { status: 500 },
+      { status: 500, headers: PRIVATE_CACHE_HEADERS },
     );
   }
 }

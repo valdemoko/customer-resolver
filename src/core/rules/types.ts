@@ -24,8 +24,8 @@ export type Condition =
   | { readonly kind: "FACT_LESS_THAN"; readonly key: FactKey; readonly than: number }
   | { readonly kind: "FACT_GREATER_OR_EQUAL"; readonly key: FactKey; readonly than: number }
   | { readonly kind: "FACT_LESS_OR_EQUAL"; readonly key: FactKey; readonly than: number }
-  | { readonly kind: "DATE_BEFORE"; readonly key: FactKey; readonly before: IsoDate }
-  | { readonly kind: "DATE_AFTER"; readonly key: FactKey; readonly after: IsoDate }
+  | { readonly kind: "DATE_BEFORE"; readonly key: FactKey; readonly before?: IsoDate }
+  | { readonly kind: "DATE_AFTER"; readonly key: FactKey; readonly after?: IsoDate }
   | {
       readonly kind: "DATE_WITHIN_DAYS";
       readonly key: FactKey;

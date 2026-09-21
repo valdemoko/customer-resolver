@@ -1,5 +1,5 @@
 {
-  "name": "consumer-resolver",
+  "name": "resolveo",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.17.0",
@@ -23,11 +23,14 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1136.0",
+    "@aws-sdk/s3-request-presigner": "^3.1136.0",
     "@neondatabase/serverless": "^1.1.0",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "next": "^15.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "sharp": "^0.35.4",
     "zod": "^4.1.11"
   },
   "devDependencies": {

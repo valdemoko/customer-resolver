@@ -13,7 +13,11 @@ import { ProblemRegistry } from "@core/problems";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { getServerEnv } from "@/lib/env";
+import { isValidProblemKey, sanitizeErrorMessage } from "@/lib/validation";
 import { cancellationChargeModule } from "@problems/cancellation-charge";
+import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
+import { warrantyRejectionModule } from "@problems/warranty-rejection";
+import { flightCancelModule } from "@problems/flight-cancel";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +31,9 @@ function compositionRoot(): { registry: ProblemRegistry; caseService: CaseServic
   }
   const registry = new ProblemRegistry();
   registry.register(cancellationChargeModule);
+  registry.register(noDeliveryRefundModule);
+  registry.register(warrantyRejectionModule);
+  registry.register(flightCancelModule);
   const repo = new DrizzleCaseRepository(createNeonDb(DATABASE_URL) as unknown as Repo);
   return { registry, caseService: new CaseService(repo) };
 }
@@ -36,6 +43,14 @@ export async function POST(
   { params }: { params: Promise<{ problemKey: string }> },
 ) {
   const { problemKey } = await params;
+
+  if (!isValidProblemKey(problemKey)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Invalid problem key format" } },
+      { status: 400 },
+    );
+  }
+
   let body: { ownerId?: string };
   try {
     body = (await request.json()) as { ownerId?: string };
@@ -68,7 +83,7 @@ export async function POST(
   try {
     const created = await services.caseService.createCase({
       problemSlug: problemKey,
-      jurisdiction: "ES",
+      jurisdiction: "UNKNOWN",
       locale: "es-ES",
       currency: "EUR",
       ownerId: body.ownerId ?? "anonymous",
@@ -79,7 +94,7 @@ export async function POST(
       {
         error: {
           code: "CASE_CREATE_FAILED",
-          message: error instanceof Error ? error.message : "Unexpected error",
+          message: sanitizeErrorMessage(error),
         },
       },
       { status: 500 },

@@ -1,6 +1,6 @@
 # core — Pure domain
 
-Dominio puro de Consumer Resolver: sin React, Next.js, base de datos, red ni SDKs.
+Dominio puro de Resolveo: sin React, Next.js, base de datos, red ni SDKs.
 Debe poder ejecutarse en Node puro (propiedad verificada por
 `tests/unit/core/domain-independence.test.ts`).
 

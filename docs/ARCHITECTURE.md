@@ -1,4 +1,4 @@
-# Consumer Resolver — Arquitectura (Fase 0)
+# Resolveo — Arquitectura (Fase 0)
 
 > **Estado:** APROBADA PARA IMPLEMENTACIÓN tras stress test (ver `docs/STRESS_TEST.md`).
 > **Principio rector:** el producto es un _Consumer Problem Resolution Engine_, no un chatbot. La IA es una herramienta dentro del sistema, no el sistema.
@@ -8,7 +8,7 @@
 
 ## 1. Resumen ejecutivo
 
-**Consumer Resolver** es un motor de resolución de problemas de consumidor. La propuesta central: convertir el relato en lenguaje natural de un usuario ("me han cobrado una penalización después de cancelar") en un **caso estructurado, verificable y accionable**, guiado por un flujo adaptativo que solo pregunta lo que falta, extrae evidencia de documentos con procesamiento local siempre que sea posible, aplica reglas deterministas versionadas y auditables, cita fuentes oficiales reales, y termina siempre en un plan de acción concreto con seguimiento.
+**Resolveo** es un motor de resolución de problemas de consumidor. La propuesta central: convertir el relato en lenguaje natural de un usuario ("me han cobrado una penalización después de cancelar") en un **caso estructurado, verificable y accionable**, guiado por un flujo adaptativo que solo pregunta lo que falta, extrae evidencia de documentos con procesamiento local siempre que sea posible, aplica reglas deterministas versionadas y auditables, cita fuentes oficiales reales, y termina siempre en un plan de acción concreto con seguimiento.
 
 Diferencia con un LLM puro: aquí la IA se usa en puntos quirúrgicos (clasificación, interpretación de cláusulas ambiguas, redacción, explicación). Todo el razonamiento normativo y aritmético es **código determinista testeable**. El sistema está diseñado para degradar con elegancia: si la IA falla, el flujo de preguntas, reglas y acciones sigue funcionando.
 
@@ -104,7 +104,7 @@ Decisiones **no** tomadas ahora (explícitamente): microservicios (no), Kubernet
 ## 4. Estructura de carpetas
 
 ```
-consumer-resolver/
+resolveo/
 ├─ docs/
 │  ├─ ARCHITECTURE.md          ← este documento
 │  ├─ DECISIONS.md             ← ADRs (Architecture Decision Records)

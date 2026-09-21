@@ -22,6 +22,55 @@
       "when": 1758412800000,
       "tag": "0003_rules_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1758499200000,
+      "tag": "0004_document_intelligence",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1758585600000,
+      "tag": "0005_fix_processing_run_constraint",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1758672000000,
+      "tag": "0006_ai_orchestration",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1758758400000,
+      "tag": "0007_persistence_infra",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758844800000,
+      "tag": "0008_generated_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1758931200000,
+      "tag": "0009_f13_case_management",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1759017600000,
+      "tag": "0010_f14_research_resolver",
+      "breakpoints": true
     }
   ]
 }

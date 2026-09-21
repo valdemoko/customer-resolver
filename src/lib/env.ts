@@ -39,6 +39,7 @@ const serverEnvSchema = z.object({
 
 const publicEnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

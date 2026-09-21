@@ -10,6 +10,7 @@ import type {
   FactId,
   FactKey,
   FactProvenance,
+  FactStatus,
   FactValue,
 } from "../types";
 import type { IsoDateTime } from "../shared/temporal";
@@ -41,6 +42,8 @@ export interface CreateFactInput {
   readonly id?: string; // injection point for deterministic tests
   /** Only CaseService passes this when creating USER_RESOLVED winners. */
   readonly allowUserResolved?: boolean;
+  /** Override initial status. Default: UNCONFIRMED. Use "CONFIRMED" for user-confirmed facts. */
+  readonly initialStatus?: FactStatus;
 }
 
 export function createFact(input: CreateFactInput): Fact {
@@ -52,19 +55,48 @@ export function createFact(input: CreateFactInput): Fact {
     );
   }
 
+  const status = input.initialStatus ?? "UNCONFIRMED";
+
+  // Only USER_PROVIDED and USER_RESOLVED provenance can produce CONFIRMED facts
+  if (status === "CONFIRMED" && input.provenance !== "USER_PROVIDED" && input.provenance !== "USER_RESOLVED") {
+    throw new DomainError(
+      `Cannot create CONFIRMED fact with provenance ${input.provenance}. Only USER_PROVIDED or USER_RESOLVED allowed.`,
+    );
+  }
+
   return {
     id: (input.id ?? newFactId()) as FactId,
     caseId: input.caseId,
     key: input.key,
     value: input.value,
     provenance: input.provenance,
-    status: "UNCONFIRMED",
+    status,
     confidence: input.confidence ?? defaultConfidenceFor(input.provenance),
     evidenceRefs: input.evidenceRefs ?? [],
     createdAt: input.now,
     updatedAt: input.now,
     supersedesId: input.supersedesId as FactId | undefined,
   };
+}
+
+/**
+ * Create a user-confirmed fact from an intake candidate.
+ * This is the ONLY way to go from UNCONFIRMED candidate to CONFIRMED fact.
+ * Enforces F8.3 invariant: AI output → user confirmation → CONFIRMED fact.
+ */
+export function confirmFact(input: {
+  readonly caseId: string;
+  readonly key: FactKey;
+  readonly value: FactValue;
+  readonly evidenceRefs?: readonly EvidenceReference[];
+  readonly now: IsoDateTime;
+  readonly id?: string;
+}): Fact {
+  return createFact({
+    ...input,
+    provenance: "USER_PROVIDED",
+    initialStatus: "CONFIRMED",
+  });
 }
 
 export interface UpdateFactInput {

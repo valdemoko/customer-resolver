@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export function GET(): NextResponse {
   return NextResponse.json(
-    { status: "ok", service: "consumer-resolver" },
+    { status: "ok", service: "resolveo" },
     { headers: { "cache-control": "no-store" } },
   );
 }

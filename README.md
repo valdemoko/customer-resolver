@@ -1,4 +1,4 @@
-# Consumer Resolver
+# Resolveo
 
 > **Consumer Problem Resolution Engine** — convierte "me ha pasado esto" en un caso
 > estructurado: datos, evidencia, reglas deterministas, fuentes verificables y acciones

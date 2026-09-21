@@ -1,5 +1,5 @@
 /**
- * Case Lookup — Consumer Resolver.
+ * Case Lookup — Resolveo.
  *
  * Lets users retrieve an existing case by its ID.
  * Without full authentication, this provides a direct lookup mechanism.

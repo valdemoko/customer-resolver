@@ -12,8 +12,8 @@ Guía para que cualquier desarrollador clone, ejecute y contribuya en menos de 1
 ## Setup
 
 ```bash
-git clone <repo-url> consumer-resolver
-cd consumer-resolver
+git clone <repo-url> resolveo
+cd resolveo
 nvm use
 corepack enable pnpm
 pnpm install

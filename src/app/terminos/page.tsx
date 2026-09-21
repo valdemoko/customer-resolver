@@ -1,12 +1,12 @@
 /**
- * Términos de Uso — Consumer Resolver.
+ * Términos de Uso — Resolveo.
  */
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Términos de uso",
   description:
-    "Condiciones de uso de Consumer Resolver. Limitaciones de responsabilidad y uso del servicio.",
+    "Condiciones de uso de Resolveo. Limitaciones de responsabilidad y uso del servicio.",
   alternates: { canonical: "/terminos" },
 };
 
@@ -31,7 +31,7 @@ export default function TermsPage() {
             Aceptación
           </h2>
           <p>
-            Al utilizar Consumer Resolver aceptas estos términos. Si no estás de acuerdo, no
+            Al utilizar Resolveo aceptas estos términos. Si no estás de acuerdo, no
             utilices el servicio.
           </p>
         </section>
@@ -44,7 +44,7 @@ export default function TermsPage() {
             Naturaleza del servicio
           </h2>
           <p className="mb-3">
-            Consumer Resolver proporciona información estructurada sobre problemas de consumo
+            Resolveo proporciona información estructurada sobre problemas de consumo
             basándose en normativa vigente. Esta información:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
@@ -67,7 +67,7 @@ export default function TermsPage() {
           <p>
             El servicio se proporciona &ldquo;tal cual&rdquo;. No garantizamos la disponibilidad
             continua ni la ausencia de errores. No nos hacemos responsables de decisiones tomadas
-            exclusivamente en base a la información proporcionada por Consumer Resolver.
+            exclusivamente en base a la información proporcionada por Resolveo.
           </p>
         </section>
 
@@ -79,7 +79,7 @@ export default function TermsPage() {
             Propiedad intelectual
           </h2>
           <p>
-            El código, diseño y contenido de Consumer Resolver son propiedad de sus autores. No se
+            El código, diseño y contenido de Resolveo son propiedad de sus autores. No se
             autoriza su reproducción sin permiso.
           </p>
         </section>

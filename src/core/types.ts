@@ -36,6 +36,7 @@ export type CaseStatus =
   | "RESULT_AVAILABLE"
   | "ACTION_IN_PROGRESS"
   | "AWAITING_RESPONSE"
+  | "ESCALATED"
   | "CLOSED";
 
 // ── Facts ───────────────────────────────────────────────────────────
@@ -172,7 +173,15 @@ export type CaseEventType =
   | "EVIDENCE_UNLINKED_FROM_FACT"
   | "SNAPSHOT_CREATED"
   | "CASE_UPDATED"
-  | "DOCUMENT_UPLOADED";
+  | "DOCUMENT_UPLOADED"
+  | "ANALYSIS_RECALCULATED"
+  | "DOCUMENT_GENERATED"
+  | "DOCUMENT_FINALIZED"
+  | "COMMUNICATION_RECORDED"
+  | "FOLLOW_UP_CREATED"
+  | "CASE_ESCALATED"
+  | "CASE_REOPENED"
+  | "CASE_CLOSED";
 
 export type CaseEventPayload = Readonly<Record<string, string | number | boolean | null>>;
 
@@ -183,6 +192,37 @@ export interface CaseEvent {
   readonly occurredAt: IsoDateTime;
   /** Small, PII-free structured payload (e.g. { factKey, from, to }). */
   readonly payload: CaseEventPayload;
+}
+
+// ── Communications ────────────────────────────────────────────────
+
+export type CommunicationDirection = "SENT" | "RECEIVED" | "PHONE_CALL" | "IN_PERSON" | "OTHER";
+export type CommunicationChannel = "EMAIL" | "LETTER" | "PHONE" | "ONLINE_FORM" | "IN_PERSON" | "OTHER";
+
+export interface CaseCommunication {
+  readonly id: string;
+  readonly caseId: string;
+  readonly direction: CommunicationDirection;
+  readonly channel: CommunicationChannel;
+  readonly occurredAt: IsoDateTime;
+  readonly counterparty: string;
+  readonly subject?: string;
+  readonly summary: string;
+  readonly linkedEvidenceIds: readonly string[];
+  readonly linkedDocumentId?: string;
+  readonly relatedActionId?: string;
+  readonly createdAt: IsoDateTime;
+}
+
+// ── Case timeline summary ─────────────────────────────────────────
+
+export interface CaseTimelineEntry {
+  readonly eventId: string;
+  readonly caseId: string;
+  readonly type: CaseEventType;
+  readonly occurredAt: IsoDateTime;
+  readonly payload: CaseEventPayload;
+  readonly description: string;
 }
 
 // ── Optimistic concurrency ──────────────────────────────────────────

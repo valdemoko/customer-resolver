@@ -42,7 +42,12 @@ export type AITaskType =
   | "TEXT_NORMALIZATION"
   | "AMBIGUITY_INTERPRETATION"
   | "EXPLANATION"
-  | "DRAFTING";
+  | "DRAFTING"
+  | "PROBLEM_INTERPRETATION"
+  | "RESEARCH_PLAN_GENERATION"
+  | "SOURCE_CLASSIFICATION"
+  | "LEGAL_TEXT_EXTRACTION"
+  | "SOURCE_COMPARISON";
 
 // ── Model capabilities ──────────────────────────────────────────────
 

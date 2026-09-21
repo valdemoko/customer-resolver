@@ -1,5 +1,5 @@
 /**
- * Contacto — Consumer Resolver.
+ * Contacto — Resolveo.
  */
 import type { Metadata } from "next";
 
@@ -8,7 +8,7 @@ const CONTACT_EMAIL = "contacto.webproyectos@gmail.com";
 export const metadata: Metadata = {
   title: "Contacto",
   description:
-    "Canal de contacto de Consumer Resolver para sugerencias, correcciones técnicas y consultas sobre privacidad.",
+    "Canal de contacto de Resolveo para sugerencias, correcciones técnicas y consultas sobre privacidad.",
   alternates: { canonical: "/contacto" },
 };
 
@@ -39,7 +39,7 @@ export default function ContactPage() {
           cuestión:
         </p>
         <a
-          href={`mailto:${CONTACT_EMAIL}?subject=Contacto desde Consumer Resolver`}
+          href={`mailto:${CONTACT_EMAIL}?subject=Contacto desde Resolveo`}
           className="cr-btn-secondary inline-flex"
         >
           <svg

@@ -1,142 +1,24 @@
 "use client";
 
 /**
- * Consumer Resolver — SearchBar.
+ * SearchBar — Resolveo.
  *
- * Central entry point to the product. Lets users describe their problem
- * in natural language and routes them to available modules or free-form entry.
+ * AI-powered search entry point for consumer problems.
+ * Connects to the intake API for real analysis.
  *
- * No Algolia, no external search. Local deterministic matching over registered problems.
+ * Design: Clean, editorial, premium input.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 
-/* ── Problem catalogue (mirrors available modules) ───────────────── */
-
-interface ProblemEntry {
-  slug: string;
-  title: string;
-  category: string;
-  keywords: string[];
-  available: boolean;
-}
-
-const PROBLEMS: ProblemEntry[] = [
-  {
-    slug: "cancellation-charge",
-    title: "Cancelación y cargos posteriores",
-    category: "Pagos y facturas",
-    keywords: [
-      "cancelar",
-      "cancelación",
-      "cobrado",
-      "cargo",
-      "factura",
-      "servicio",
-      "telecomunicaciones",
-      "suscripción",
-      "permanencia",
-      "internet",
-      "móvil",
-      "telefonía",
-      "contrato",
-    ],
-    available: true,
-  },
-  {
-    slug: "no-delivery-refund",
-    title: "Compras y reembolsos",
-    category: "Compras",
-    keywords: [
-      "pedido",
-      "compra",
-      "reembolso",
-      "devolución",
-      "dinero",
-      "vendedor",
-      "tienda",
-      "envío",
-      "entrega",
-      "llegar",
-    ],
-    available: false,
-  },
-  {
-    slug: "warranty-rejection",
-    title: "Garantías y reparaciones",
-    category: "Garantías",
-    keywords: [
-      "garantía",
-      "reparación",
-      "producto",
-      "defectuoso",
-      "sustitución",
-      "rechazado",
-      "técnico",
-    ],
-    available: false,
-  },
-];
-
-const CATEGORIES = [...new Set(PROBLEMS.map((p) => p.category))];
-
-/* ── Search scoring ──────────────────────────────────────────────── */
-
-function scoreProblem(problem: ProblemEntry, query: string): number {
-  if (!query.trim()) return 0;
-  const terms = query
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/\s+/)
-    .filter((t) => t.length >= 2);
-
-  let score = 0;
-  const titleLower = problem.title
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const categoryLower = problem.category
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  for (const term of terms) {
-    // Title match — strong signal
-    if (titleLower.includes(term)) score += 10;
-    // Category match
-    if (categoryLower.includes(term)) score += 5;
-    // Keyword match
-    for (const kw of problem.keywords) {
-      const kwNorm = kw
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-      if (kwNorm === term) score += 8;
-      else if (kwNorm.includes(term) || term.includes(kwNorm)) score += 4;
-    }
-  }
-
-  return score;
-}
-
-interface SearchResult {
-  problem: ProblemEntry;
-  score: number;
-}
-
-function searchProblems(query: string): SearchResult[] {
-  return PROBLEMS.map((problem) => ({ problem, score: scoreProblem(problem, query) }))
-    .filter((r) => r.score > 0)
-    .sort((a, b) => b.score - a.score);
-}
+import {
+  searchProblems as catalogueSearch,
+  type ProblemCatalogueEntry,
+} from "@/lib/problem-catalogue";
 
 /* ── Component ───────────────────────────────────────────────────── */
 
 interface SearchBarProps {
-  /** Render size variant */
   size?: "default" | "large";
-  /** Auto-focus on mount */
   autoFocus?: boolean;
 }
 
@@ -144,38 +26,63 @@ export function SearchBar({ size = "default", autoFocus = false }: SearchBarProp
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [pendingNotice, setPendingNotice] = useState<ProblemEntry | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const results = query.trim().length >= 2 ? searchProblems(query) : [];
+  const results = query.trim().length >= 2 ? catalogueSearch(query) : [];
   const hasQuery = query.trim().length > 0;
 
-  // Build menu items: results + custom problem option
-  type MenuItem = { kind: "result"; result: SearchResult } | { kind: "custom"; label: string };
+  type MenuItem =
+    | { kind: "result"; problem: ProblemCatalogueEntry }
+    | { kind: "ai"; label: string };
 
   const menuItems: MenuItem[] = [
-    ...results.map((r) => ({ kind: "result" as const, result: r })),
-    ...(hasQuery ? [{ kind: "custom" as const, label: "Describir mi problema" }] : []),
+    ...results.map((p) => ({ kind: "result" as const, problem: p })),
+    ...(hasQuery
+      ? [{ kind: "ai" as const, label: "Analizar con IA" }]
+      : []),
   ];
 
   const totalItems = menuItems.length;
 
   const handleSelect = useCallback(
     (item: MenuItem) => {
-      if (item.kind === "result") {
-        if (item.result.problem.available) {
-          setIsOpen(false);
-          window.location.href = `/case/new?problem=${item.result.problem.slug}`;
-        } else {
-          // Próximamente — show inline notice, keep dropdown open briefly
-          setPendingNotice(item.result.problem);
-          setIsOpen(false);
-        }
-      } else {
-        setIsOpen(false);
-        window.location.href = `/problema-libre?q=${encodeURIComponent(query)}`;
-      }
+      setIsOpen(false);
+      setIsLoading(true);
+
+      const message =
+        item.kind === "result"
+          ? `${item.problem.title} — ${query}`
+          : query;
+
+      fetch("/api/intake/interpret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Interpretation failed");
+          return res.json();
+        })
+        .then((data) => {
+          if (data.caseId && data.interpretation) {
+            sessionStorage.setItem(
+              `intake-${data.caseId}`,
+              JSON.stringify({
+                interpretation: data.interpretation,
+                routing: data.routing,
+                budget: data.budget,
+              }),
+            );
+            window.location.href = `/case/${data.caseId}/intake`;
+          } else {
+            window.location.href = `/resolver?q=${encodeURIComponent(query)}`;
+          }
+        })
+        .catch(() => {
+          window.location.href = `/resolver?q=${encodeURIComponent(query)}`;
+        });
     },
     [query],
   );
@@ -198,8 +105,7 @@ export function SearchBar({ size = "default", autoFocus = false }: SearchBarProp
           if (activeIndex >= 0 && activeIndex < totalItems) {
             handleSelect(menuItems[activeIndex]!);
           } else if (hasQuery) {
-            // Default: go to free-form
-            window.location.href = `/problema-libre?q=${encodeURIComponent(query)}`;
+            handleSelect({ kind: "ai", label: "Analizar con IA" });
           }
           break;
         case "Escape":
@@ -231,22 +137,22 @@ export function SearchBar({ size = "default", autoFocus = false }: SearchBarProp
   const isLarge = size === "large";
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full z-50">
       {/* Input container */}
       <div
         className={`relative flex items-center transition-all duration-200 ${
           isOpen
-            ? "ring-2 ring-white/20 shadow-xl shadow-black/20"
-            : "shadow-lg shadow-black/15 hover:shadow-xl hover:shadow-black/20"
-        } rounded-2xl bg-white border border-white/20`}
+            ? "ring-2 ring-[var(--color-accent)]/20 shadow-[var(--shadow-elevated)]"
+            : "shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]"
+        } rounded-lg bg-[var(--surface-paper)] border border-[var(--border-light)]`}
       >
         {/* Search icon */}
-        <div className="pl-5 pr-2 flex-shrink-0">
+        <div className="pl-4 pr-2 flex-shrink-0">
           <svg
-            className={`w-5 h-5 transition-colors ${isOpen ? "text-slate-800" : "text-slate-400"}`}
+            className={`w-4 h-4 transition-colors ${isOpen ? "text-[var(--color-accent)]" : "text-[var(--color-ink-faint)]"}`}
             fill="none"
             viewBox="0 0 24 24"
-            strokeWidth={2}
+            strokeWidth={1.5}
             stroke="currentColor"
           >
             <path
@@ -270,94 +176,41 @@ export function SearchBar({ size = "default", autoFocus = false }: SearchBarProp
           onKeyDown={handleKeyDown}
           placeholder={
             isLarge
-              ? "Describe lo que te ha pasado..."
-              : "Buscar un problema o describe lo que te ha pasado"
+              ? "Describe tu problema de consumo..."
+              : "Describe tu problema..."
           }
-          className={`w-full bg-transparent border-none outline-none font-sans text-slate-900 placeholder:text-slate-400 ${
-            isLarge ? "py-5 pr-5 pl-1 text-lg" : "py-4 pr-4 pl-1 text-base"
+          className={`w-full bg-transparent border-none outline-none font-[var(--font-body)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] ${
+            isLarge ? "py-4 pr-4 pl-2 text-[15px]" : "py-3.5 pr-4 pl-2 text-sm"
           }`}
           role="combobox"
           aria-expanded={isOpen && totalItems > 0}
           aria-controls="search-results"
-          aria-activedescendant={activeIndex >= 0 ? `search-item-${activeIndex}` : undefined}
+          aria-activedescendant={
+            activeIndex >= 0 ? `search-item-${activeIndex}` : undefined
+          }
           aria-autocomplete="list"
           aria-label="Buscar problema de consumo"
           autoFocus={autoFocus}
         />
 
-        {/* Submit arrow — visible when there's a query */}
+        {/* Submit button */}
         {hasQuery && (
           <button
-            onClick={() => {
-              window.location.href = `/problema-libre?q=${encodeURIComponent(query)}`;
-            }}
-            className="mr-3 p-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors flex-shrink-0"
-            aria-label="Continuar"
+            onClick={() =>
+              handleSelect({ kind: "ai", label: "Analizar con IA" })
+            }
+            disabled={isLoading}
+            className="mr-3 px-4 py-2 bg-[var(--color-ink)] text-white text-xs font-medium rounded hover:bg-[var(--color-ink-soft)] transition-colors flex-shrink-0 disabled:opacity-50"
+            aria-label="Analizar con IA"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-              />
-            </svg>
+            {isLoading ? (
+              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              "Analizar"
+            )}
           </button>
         )}
       </div>
-
-      {/* Próximamente notice — inline feedback */}
-      {pendingNotice && (
-        <div className="mt-3 animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-black/10 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
-                <span className="text-amber-600 text-sm font-bold">!</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900">{pendingNotice.title}</p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Este tipo de problema todavía no tiene un flujo disponible.
-                </p>
-              </div>
-              <button
-                onClick={() => setPendingNotice(null)}
-                className="flex-shrink-0 p-1 rounded-md hover:bg-slate-100 transition-colors"
-                aria-label="Cerrar"
-              >
-                <svg
-                  className="w-4 h-4 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Link
-                href={`/problema-libre?q=${encodeURIComponent(pendingNotice.title)}`}
-                className="cr-btn-primary text-xs py-2 px-3"
-              >
-                Describir mi problema
-              </Link>
-              <button
-                onClick={() => setPendingNotice(null)}
-                className="cr-btn-ghost text-xs py-2 px-3"
-              >
-                Volver a buscar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Results panel */}
       {isOpen && totalItems > 0 && (
@@ -366,121 +219,69 @@ export function SearchBar({ size = "default", autoFocus = false }: SearchBarProp
           id="search-results"
           role="listbox"
           aria-label="Resultados de búsqueda"
-          className="absolute z-50 left-0 right-0 mt-3 bg-white rounded-2xl border border-slate-200 shadow-xl shadow-black/10 overflow-hidden animate-scale-in"
+          className="absolute z-[100] left-0 right-0 mt-2 bg-white border border-[var(--border-light)] shadow-[var(--shadow-elevated)] overflow-hidden anim-scale-in"
         >
-          {/* Category filter hint */}
-          <div className="px-5 pt-4 pb-2">
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-              Coincidencias
+          {/* Header */}
+          <div className="px-4 pt-3 pb-2 border-b border-[var(--border-light)]">
+            <p className="text-[10px] font-medium text-[var(--color-ink-faint)] uppercase tracking-widest">
+              {results.length > 0 ? "Problemas encontrados" : "Opciones"}
             </p>
           </div>
 
           {/* Results */}
-          <div className="px-2 pb-1">
+          <div className="py-1">
             {menuItems.map((item, index) => (
               <button
-                key={item.kind === "result" ? item.result.problem.slug : "custom"}
+                key={
+                  item.kind === "result" ? item.problem.slug : "ai-option"
+                }
                 id={`search-item-${index}`}
                 role="option"
                 aria-selected={activeIndex === index}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setActiveIndex(index)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors ${
-                  activeIndex === index ? "bg-slate-100" : "hover:bg-slate-50"
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                  activeIndex === index ? "bg-[var(--surface-warm)]" : "hover:bg-[var(--surface-warm)]"
                 }`}
               >
                 {item.kind === "result" ? (
                   <>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {item.result.problem.title}
+                      <p className="text-sm font-medium text-[var(--color-ink)] truncate">
+                        {item.problem.title}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {item.result.problem.category}
+                      <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">
+                        {item.problem.category}
                       </p>
                     </div>
-                    {item.result.problem.available ? (
-                      <span className="cr-badge bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
-                        Disponible
-                      </span>
-                    ) : (
-                      <span className="cr-badge bg-slate-100 text-slate-500 flex-shrink-0">
-                        Próximamente
-                      </span>
-                    )}
+                    <span className="text-[10px] font-medium text-[var(--color-accent)] bg-[var(--color-accent-soft)] px-2 py-0.5 rounded flex-shrink-0">
+                      Resolver
+                    </span>
                   </>
                 ) : (
                   <>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                      <svg
-                        className="w-4 h-4 text-slate-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 4.5v15m7.5-7.5h-15"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">{item.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Describe tu caso con tus propias palabras
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--color-ink)]">
+                        Analizar con IA
+                      </p>
+                      <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">
+                        Describe tu caso y lo analizaremos
                       </p>
                     </div>
+                    <span className="text-[10px] font-medium text-[var(--color-ink-muted)] bg-[var(--surface-warm)] px-2 py-0.5 rounded flex-shrink-0">
+                      Nuevo
+                    </span>
                   </>
                 )}
               </button>
             ))}
           </div>
 
-          {/* Categories hint */}
-          {CATEGORIES.length > 0 && (
-            <>
-              <div className="mx-5 cr-divider" />
-              <div className="px-5 py-3">
-                <p className="text-xs text-slate-400 mb-2">Categorías</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {CATEGORIES.map((cat) => (
-                    <span key={cat} className="cr-tag text-xs">
-                      {cat}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* No results — show custom entry */}
-      {isOpen && hasQuery && results.length === 0 && (
-        <div
-          ref={panelRef}
-          className="absolute z-50 left-0 right-0 mt-3 bg-white rounded-2xl border border-slate-200 shadow-xl shadow-black/10 overflow-hidden animate-scale-in"
-        >
-          <div className="px-5 py-6 text-center">
-            <p className="text-sm text-slate-500 mb-3">No encontramos un módulo exacto para eso.</p>
-            <Link
-              href={`/problema-libre?q=${encodeURIComponent(query)}`}
-              onClick={() => setIsOpen(false)}
-              className="cr-btn-primary inline-flex"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              Describir mi problema
-            </Link>
+          {/* Hint */}
+          <div className="px-4 py-2.5 border-t border-[var(--border-light)] bg-[var(--surface-warm)]/50">
+            <p className="text-[11px] text-[var(--color-ink-faint)]">
+              Presiona Enter para analizar con IA
+            </p>
           </div>
         </div>
       )}
