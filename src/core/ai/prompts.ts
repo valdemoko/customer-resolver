@@ -133,22 +133,86 @@ IMPORTANT CONSTRAINTS:
 7. NEVER state that the user has a legal right to anything.
 8. NEVER state that a company is breaking the law.
 
-OUTPUT RULES:
-- candidateModules: list modules that MIGHT apply, ranked by relevance
-- Each candidate needs: problemKey, signals (why it might match), matched/missing required facts
-- factCandidates: extract possible facts from the user's text
-  - sourceText: EXACT verbatim quote from the user (not a paraphrase)
-  - aiInterpretation: what you think the text means
-  - certainty: EXPLICIT (stated directly), INFERRED (implied), AMBIGUOUS (uncertain)
-  - All candidates are UNCONFIRMED regardless of certainty
-- missingInformation: what key facts are missing
-- ambiguities: what is unclear
-- contradictions: conflicting statements within the input
-- entities: companies, products, dates, amounts mentioned
-- jurisdictionHints: ONLY from explicit geographic mentions, NOT from language
+You MUST output a single JSON object with EXACTLY this structure (no extra fields, no missing fields):
 
-OUTPUT SCHEMA: strict JSON matching the provided schema.
-No prose. No explanation outside the JSON.
+{
+  "summary": "string (1-3 sentences describing the problem)",
+  "candidateModules": [
+    {
+      "problemKey": "string (e.g. 'cancellation-charge', 'no-delivery-refund', 'warranty-rejection', 'flight-cancel')",
+      "signals": ["string array of reasons why this module might match"],
+      "matchedRequiredFacts": ["string array of fact keys already present in user text"],
+      "missingRequiredFacts": ["string array of fact keys still needed"],
+      "confidence": "HIGH" | "MEDIUM" | "LOW"
+    }
+  ],
+  "factCandidates": [
+    {
+      "candidateId": "string (unique id like 'fc-1', 'fc-2')",
+      "factKey": "string (fact key like 'company_name', 'purchase_date', 'amount', 'product_description')",
+      "proposedValue": { "type": "string" | "number" | "boolean" | "date", "value": <the value> },
+      "sourceText": "string (EXACT verbatim quote from user input)",
+      "aiInterpretation": "string (what you think this text means)",
+      "certainty": "EXPLICIT" | "INFERRED" | "AMBIGUOUS",
+      "problemKey": "string (which module this fact belongs to)"
+    }
+  ],
+  "missingInformation": [
+    {
+      "factKey": "string",
+      "questionHint": "string (a question to ask the user)",
+      "priority": "HIGH" | "MEDIUM" | "LOW",
+      "requiredByRules": ["string array of rule references"]
+    }
+  ],
+  "ambiguities": [
+    {
+      "description": "string",
+      "affectedFacts": ["string array of fact keys"],
+      "resolutionHint": "string"
+    }
+  ],
+  "contradictions": [
+    {
+      "factKeyA": "string",
+      "valueA": "string",
+      "sourceA": "string",
+      "factKeyB": "string",
+      "valueB": "string",
+      "sourceB": "string",
+      "description": "string"
+    }
+  ],
+  "entities": [
+    {
+      "type": "COMPANY" | "PRODUCT" | "PERSON" | "LOCATION" | "DATE_EXPRESSION" | "MONETARY_AMOUNT",
+      "rawText": "string",
+      "normalizedValue": "string or null",
+      "confidence": "EXPLICIT" | "INFERRED" | "AMBIGUOUS"
+    }
+  ],
+  "jurisdictionHints": [
+    {
+      "jurisdiction": "string (country code like 'ES', 'FR')",
+      "confidence": "HIGH" | "MEDIUM" | "LOW",
+      "signals": ["string array"]
+    }
+  ],
+  "classificationConfidence": "HIGH" | "MEDIUM" | "LOW"
+}
+
+RULES:
+- candidateModules: list modules that MIGHT apply, ranked by relevance. Use keys: cancellation-charge, no-delivery-refund, warranty-rejection, flight-cancel.
+- factCandidates: extract possible facts from the user text. Each MUST have a unique candidateId.
+- sourceText in factCandidates: EXACT verbatim quote from user input, not a paraphrase.
+- All fact candidates are UNCONFIRMED regardless of certainty.
+- missingInformation: what key facts are still needed to evaluate the case.
+- jurisdictionHints: ONLY from explicit geographic mentions, NOT from language.
+
+Output ONLY the JSON object. No prose, no explanation, no markdown.
+
+EXAMPLE OUTPUT for a user saying "Me han cobrado 50 euros por cancelar mi teléfono y no estoy de acuerdo":
+{"summary":"El usuario indica que le han cobrado 50 euros por la cancelación de un servicio de telefonía y no está de acuerdo con el cargo.","candidateModules":[{"problemKey":"cancellation-charge","signals":["cargo post-cancelación","telefonía","desacuerdo con el cobro"],"matchedRequiredFacts":["service_type"],"missingRequiredFacts":["cancelation_date","charge_amount","company_name"],"confidence":"HIGH"}],"factCandidates":[{"candidateId":"fc-1","factKey":"service_type","proposedValue":{"type":"string","value":"telefonía"},"sourceText":"cancelar mi teléfono","aiInterpretation":"El servicio es de telefonía","certainty":"EXPLICIT","problemKey":"cancellation-charge"},{"candidateId":"fc-2","factKey":"charge_amount","proposedValue":{"type":"number","value":50},"sourceText":"cobrado 50 euros","aiInterpretation":"El cargo es de 50 euros","certainty":"EXPLICIT","problemKey":"cancellation-charge"}],"missingInformation":[{"factKey":"cancelation_date","questionHint":"¿Cuándo solicitaste la cancelación del servicio?","priority":"HIGH","requiredByRules":["cancellation-charge"]}],"ambiguities":[],"contradictions":[],"entities":[{"type":"MONETARY_AMOUNT","rawText":"50 euros","normalizedValue":"50 EUR","confidence":"EXPLICIT"}],"jurisdictionHints":[],"classificationConfidence":"MEDIUM"}
 `.trim();
 
 export const BUILT_IN_PROMPTS: ReadonlyArray<Omit<PromptDefinition, "contentHash">> = [

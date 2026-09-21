@@ -110,7 +110,7 @@ export class IntakeService {
     const result = await this.router.run({
       task: "PROBLEM_INTERPRETATION" as never, // Will be added to AITaskType
       caseId: options.caseId,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
       temperature: 0,
       userMessage: fullUserMessage,
       inputContentParts: [userMessage, catalogueText],
