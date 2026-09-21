@@ -28,6 +28,7 @@ export const GROQ_MODELS: readonly AIModelDescriptor[] = [
       "AMBIGUITY_INTERPRETATION",
       "EXPLANATION",
       "DRAFTING",
+      "PROBLEM_INTERPRETATION",
     ],
     priority: 1, // cheapest/fastest — first choice for extraction tasks
   },
@@ -46,6 +47,7 @@ export const GROQ_MODELS: readonly AIModelDescriptor[] = [
       "AMBIGUITY_INTERPRETATION",
       "EXPLANATION",
       "DRAFTING",
+      "PROBLEM_INTERPRETATION",
     ],
     priority: 2,
   },

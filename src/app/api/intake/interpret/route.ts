@@ -186,6 +186,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log the real error for debugging (never expose to client)
+    console.error("[interpret] Unhandled error:", {
+      code: error instanceof Error ? error.constructor.name : typeof error,
+      message: errorMsg,
+      stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+    });
+
     return NextResponse.json(
       { error: { code: "INTERPRETATION_FAILED", message: "Could not interpret your message" } },
       { status: 500 },
