@@ -111,7 +111,12 @@ export async function POST(request: Request) {
         caseId = created.id;
         // Transfer budget tracking from temp key to real caseId
         releaseBudget(budgetKey);
-      } catch {
+      } catch (caseErr) {
+        console.error("[interpret] Case creation failed:", JSON.stringify({
+          message: caseErr instanceof Error ? caseErr.message : String(caseErr),
+          name: caseErr instanceof Error ? caseErr.name : typeof caseErr,
+          stack: caseErr instanceof Error ? caseErr.stack?.slice(0, 300) : undefined,
+        }));
         releaseBudget(budgetKey);
         return NextResponse.json(
           { error: { code: "CASE_CREATE_FAILED", message: "Could not create case" } },
