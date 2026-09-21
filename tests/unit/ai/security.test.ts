@@ -170,14 +170,14 @@ describe("structured output validation (spec §6)", () => {
 
 describe("cost estimation (spec §14)", () => {
   it("computes cost from the versioned pricing table", () => {
-    const cost = estimateCost("llama-3.1-8b-instant", { inputTokens: 1000, outputTokens: 1000 });
-    const pricing = MODEL_PRICING["llama-3.1-8b-instant"];
+    const cost = estimateCost("openai/gpt-oss-20b", { inputTokens: 1000, outputTokens: 1000 });
+    const pricing = MODEL_PRICING["openai/gpt-oss-20b"];
     expect(cost).toBeCloseTo(pricing!.inputPer1k + pricing!.outputPer1k, 10);
   });
 
   it("returns null for models without pricing — never invents prices", () => {
     expect(estimateCost("unknown-model", { inputTokens: 1, outputTokens: 1 })).toBeNull();
-    expect(estimateCost("llama-3.1-8b-instant", null)).toBeNull();
+    expect(estimateCost("openai/gpt-oss-20b", null)).toBeNull();
   });
 });
 
@@ -188,7 +188,7 @@ describe("input hash (spec §12)", () => {
       promptId: "document-fact-extraction",
       promptVersion: 1,
       outputSchemaVersion: "document-fact-extraction@1",
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       contentParts: ["document text"],
     };
     expect(computeInputHash(base)).toBe(computeInputHash({ ...base }));

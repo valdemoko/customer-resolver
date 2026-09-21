@@ -14,11 +14,11 @@ import { HttpAIProvider } from "./http-ai-provider";
 export const GROQ_MODELS: readonly AIModelDescriptor[] = [
   {
     providerId: aiProviderId("groq"),
-    modelId: aiModelId("llama-3.1-8b-instant"),
+    modelId: aiModelId("openai/gpt-oss-20b"),
     capabilities: {
       structuredOutput: true,
-      maxInputTokens: 128_000,
-      maxOutputTokens: 8_192,
+      maxInputTokens: 131_000,
+      maxOutputTokens: 65_536,
       vision: false,
     },
     taskTypes: [
@@ -34,11 +34,11 @@ export const GROQ_MODELS: readonly AIModelDescriptor[] = [
   },
   {
     providerId: aiProviderId("groq"),
-    modelId: aiModelId("llama-3.3-70b-versatile"),
+    modelId: aiModelId("openai/gpt-oss-120b"),
     capabilities: {
       structuredOutput: true,
-      maxInputTokens: 128_000,
-      maxOutputTokens: 32_768,
+      maxInputTokens: 131_000,
+      maxOutputTokens: 65_536,
       vision: false,
     },
     taskTypes: [

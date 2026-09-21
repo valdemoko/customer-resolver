@@ -23,15 +23,15 @@ export interface ModelPricing {
 export const PRICING_VERSION = "2026-09";
 
 export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = {
-  "llama-3.1-8b-instant": {
-    inputPer1k: 0.00005,
-    outputPer1k: 0.00008,
+  "openai/gpt-oss-20b": {
+    inputPer1k: 0.000075,
+    outputPer1k: 0.0003,
     currency: "USD",
     pricingVersion: PRICING_VERSION,
   },
-  "llama-3.3-70b-versatile": {
-    inputPer1k: 0.00059,
-    outputPer1k: 0.00079,
+  "openai/gpt-oss-120b": {
+    inputPer1k: 0.00015,
+    outputPer1k: 0.0006,
     currency: "USD",
     pricingVersion: PRICING_VERSION,
   },
