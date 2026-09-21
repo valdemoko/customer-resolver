@@ -189,6 +189,13 @@ export function ResolverClient() {
   const [submitting, setSubmitting] = useState(false);
   const answerRef = useRef<HTMLInputElement>(null);
 
+  // Pre-fill from ?q= URL param (e.g. from problem detail page)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) setInput(q);
+  }, []);
+
   // ── Phase 1: Submit problem description ────────────────────────
 
   const handleIntake = useCallback(async () => {
@@ -342,11 +349,35 @@ export function ResolverClient() {
 
   // ── Phase 4b: Upload evidence ──────────────────────────────────
 
-  const handleUploadEvidence = useCallback(async (files: File[]) => {
-    if (!state.caseId || files.length === 0) return;
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // For now, just proceed to analysis
-    // TODO: Connect to Evidence Engine upload endpoint
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setSelectedFiles((prev) => [...prev, ...files]);
+  }, []);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleUploadEvidence = useCallback(async (files: File[]) => {
+    if (!state.caseId) return;
+
+    // Upload files if any
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        await fetch(`/api/cases/${state.caseId}/documents`, {
+          method: "POST",
+          body: formData,
+        });
+      } catch {
+        // Continue even if upload fails — analysis can proceed without documents
+      }
+    }
+
     setState((prev) => ({ ...prev, phase: "analyzing" }));
   }, [state.caseId]);
 
@@ -711,17 +742,52 @@ export function ResolverClient() {
             ayudar a verificar los datos.
           </p>
 
-          <div className="p-8 bg-[var(--surface-paper)] border border-dashed border-[var(--border-default)] text-center mb-6">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.txt,.jpg,.jpeg,.png"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          {/* Drop area */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full p-8 bg-[var(--surface-paper)] border border-dashed border-[var(--border-default)] text-center mb-4 hover:border-[var(--color-accent)]/30 transition-colors cursor-pointer"
+          >
             <svg className="w-8 h-8 text-[var(--color-ink-faint)] mx-auto mb-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
             </svg>
-            <p className="text-sm text-[var(--color-ink-muted)] mb-1">Arrastra archivos o haz clic para seleccionar</p>
+            <p className="text-sm text-[var(--color-ink-muted)] mb-1">Haz clic para seleccionar archivos</p>
             <p className="text-xs text-[var(--color-ink-faint)]">PDF, TXT, JPG, PNG</p>
-          </div>
+          </button>
+
+          {/* Selected files list */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2 mb-6">
+              {selectedFiles.map((file, i) => (
+                <div key={`${file.name}-${i}`} className="flex items-center gap-3 p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                  <svg className="w-4 h-4 text-[var(--color-ink-faint)] flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                  <span className="text-sm text-[var(--color-ink)] flex-1 truncate">{file.name}</span>
+                  <span className="text-xs text-[var(--color-ink-faint)]">{(file.size / 1024).toFixed(0)} KB</span>
+                  <button onClick={() => handleRemoveFile(i)} className="text-[var(--color-ink-faint)] hover:text-[var(--color-contradicted)] transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-3">
-            <button onClick={() => handleUploadEvidence([])} className="btn-primary">
-              Analizar mi caso
+            <button onClick={() => handleUploadEvidence(selectedFiles)} className="btn-primary">
+              {selectedFiles.length > 0 ? `Analizar con ${selectedFiles.length} documento${selectedFiles.length > 1 ? "s" : ""}` : "Analizar mi caso"}
             </button>
             <button onClick={handleSkipEvidence} className="btn-secondary">
               Sin documentos

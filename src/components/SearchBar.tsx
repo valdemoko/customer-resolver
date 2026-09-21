@@ -20,10 +20,11 @@ import {
 interface SearchBarProps {
   size?: "default" | "large";
   autoFocus?: boolean;
+  initialQuery?: string;
 }
 
-export function SearchBar({ size = "default", autoFocus = false }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+export function SearchBar({ size = "default", autoFocus = false, initialQuery }: SearchBarProps) {
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
