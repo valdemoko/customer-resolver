@@ -31,6 +31,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "^0.35.4",
+    "ws": "^8.21.3",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -40,6 +41,7 @@
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
+    "@types/ws": "^8.18.1",
     "autoprefixer": "^10.6.1",
     "drizzle-kit": "^0.28.1",
     "eslint": "^9.36.0",
