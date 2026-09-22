@@ -32,8 +32,12 @@ const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
     z.object({ kind: z.literal("FACT_LESS_THAN"), key: z.string(), than: z.number() }),
     z.object({ kind: z.literal("FACT_GREATER_OR_EQUAL"), key: z.string(), than: z.number() }),
     z.object({ kind: z.literal("FACT_LESS_OR_EQUAL"), key: z.string(), than: z.number() }),
-    z.object({ kind: z.literal("DATE_BEFORE"), key: z.string(), before: z.string() }),
-    z.object({ kind: z.literal("DATE_AFTER"), key: z.string(), after: z.string() }),
+    // `before`/`after` are OPTIONAL: omitted means "relative to the evaluation
+    // date" (the evaluator falls back to the current date). Requiring them here
+    // made every rule that asks "is this deadline still in the future?"
+    // unpublishable, which silently disabled the whole analysis.
+    z.object({ kind: z.literal("DATE_BEFORE"), key: z.string(), before: z.string().optional() }),
+    z.object({ kind: z.literal("DATE_AFTER"), key: z.string(), after: z.string().optional() }),
     z.object({
       kind: z.literal("DATE_WITHIN_DAYS"),
       key: z.string(),

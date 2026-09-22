@@ -98,12 +98,29 @@ export async function POST(request: Request) {
     const routing = services.intakeService.routeInterpretation(interpretation);
 
     // 6. Create case AFTER AI success (spec §8.1: no orphan cases on failure)
+    //
+    // The routed module IS persisted here: the questionnaire, the rule engine and
+    // the result all resolve through the case's problem slug + jurisdiction. A
+    // case created as "unknown" can never ask its questions nor be analysed, so
+    // the routing decision must not stay in memory only.
+    // A module is usable when routing produced a candidate AND its jurisdiction
+    // is supported: only then can questions be asked and rules be evaluated.
+    const routedKey = routing.moduleCandidate?.problemKey;
+    const moduleIsUsable =
+      routing.status !== "UNSUPPORTED" &&
+      routing.status !== "UNSUPPORTED_JURISDICTION" &&
+      !!routedKey &&
+      services.registry.has(routedKey);
+    const routedModule = routedKey && moduleIsUsable ? services.registry.get(routedKey) : null;
+    const caseProblemSlug = routedModule ? routedModule.key : "unknown";
+    const caseJurisdiction = routedModule ? (routedModule.jurisdictions[0] ?? "UNKNOWN") : "UNKNOWN";
+
     let caseId = providedCaseId;
     if (!caseId) {
       try {
         const created = await services.caseService.createCase({
-          problemSlug: "unknown",
-          jurisdiction: "UNKNOWN",
+          problemSlug: caseProblemSlug,
+          jurisdiction: caseJurisdiction,
           locale: "es-ES",
           currency: "EUR",
           ownerId: "anonymous",
@@ -125,16 +142,17 @@ export async function POST(request: Request) {
       }
     }
 
-    // 7. Select first question if routed
+    // 7. Select the first question whenever a module is usable.
+    //    Questions are how the required facts get collected, so they must be
+    //    offered as soon as the module is known — not only on a perfect route.
     let nextQuestion = null;
-    if (routing.status === "ROUTED" && routing.moduleCandidate) {
-      const problemModule = services.registry.get(routing.moduleCandidate.problemKey);
+    if (routedModule) {
       const loaded = await services.caseService.loadCase(caseId);
       const confirmedFacts = loaded.facts
         .filter((f) => f.status === "CONFIRMED")
         .map((f) => ({ key: f.key, status: f.status }));
       nextQuestion = services.intakeService.selectNextQuestion(
-        problemModule,
+        routedModule,
         confirmedFacts,
         new Map(),
       );
@@ -154,10 +172,8 @@ export async function POST(request: Request) {
       },
       routing: {
         status: routing.status,
-        moduleKey: routing.moduleCandidate?.problemKey,
-        moduleTitle: routing.moduleCandidate
-          ? services.registry.get(routing.moduleCandidate.problemKey).title
-          : undefined,
+        moduleKey: routedModule?.key,
+        moduleTitle: routedModule?.title,
         userExplanation: routing.userExplanation,
       },
       nextQuestion,

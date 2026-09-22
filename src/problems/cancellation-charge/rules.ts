@@ -115,6 +115,11 @@ export interface CancellationChargeRules {
   readonly penaltyAfterLegalDesistimiento: Rule;
 }
 
+/** Verified official sources backing this module's rules (published to the database). */
+export function buildSources(): readonly Source[] {
+  return [...verifiedSources().values()];
+}
+
 export function buildRules(): CancellationChargeRules {
   const sources = verifiedSources();
   const leyId = sources.get(ley112022.id)!.id;

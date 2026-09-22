@@ -18,6 +18,7 @@ import { DocumentGenerationService } from "@core/document-generation/service";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
+import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules";
 import { DocumentRepository } from "@server/db/repositories/document-repository";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
@@ -59,7 +60,7 @@ function compositionRoot() {
     registry,
   });
 
-  return { repo, caseService, analysisService, registry, docRepo };
+  return { repo, caseService, analysisService, registry, rulesRepo, docRepo };
 }
 
 const PRIVATE_CACHE_HEADERS = {
@@ -185,6 +186,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       { status: 503 },
     );
   }
+
+  // Rules live in the database: publish the module rule sets before generating.
+  await ensureRuleSetsPublishedSafe(services.registry, services.rulesRepo);
 
   try {
     // 1. Load case

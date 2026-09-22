@@ -171,7 +171,9 @@ export const rules = pgTable(
 export const sources = pgTable(
   "sources",
   {
-    id: uuid("id").primaryKey(),
+    // Source ids are DOMAIN identifiers ("src-es-trlgdcu-art-117"), not UUIDs:
+    // rules reference them by these stable ids. Widened to text in 0011.
+    id: text("id").primaryKey(),
     externalId: text("external_id").notNull().unique(),
     title: text("title").notNull(),
     publisher: text("publisher").notNull(),
@@ -184,7 +186,7 @@ export const sources = pgTable(
     versionIdentifier: text("version_identifier").notNull(),
     status: text("status").notNull(),
     verification: jsonb("verification"),
-    supersededById: uuid("superseded_by_id"),
+    supersededById: text("superseded_by_id"),
     relevantSection: text("relevant_section"),
   },
   (t) => [index("sources_status_idx").on(t.status)],
@@ -197,7 +199,7 @@ export const ruleSources = pgTable(
     ruleId: uuid("rule_id")
       .notNull()
       .references(() => rules.id, { onDelete: "cascade" }),
-    sourceId: uuid("source_id")
+    sourceId: text("source_id")
       .notNull()
       .references(() => sources.id),
     ruleKey: text("rule_key").notNull(),

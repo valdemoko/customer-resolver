@@ -293,6 +293,20 @@ function rulesetHash(rules: readonly Rule[]): string {
  * This is a generic mechanism: any module can define derived facts in its
  * fact catalogue, and this function computes them before rule evaluation.
  */
+/**
+ * Read a stored fact's PRIMITIVE value.
+ *
+ * Facts are persisted as structured values ({ type: "date", value: "2026-05-01" }).
+ * The derived-fact logic used to read `fact.value` directly, so every
+ * `typeof === "string"` / `=== true` / `=== "number"` check was false and NO
+ * derived fact was ever produced (responsibility deadlines, notice days, flight
+ * distance…). Every rule depending on them then reported INSUFFICIENT_DATA.
+ */
+function primitiveFactValue(fact: { value: unknown } | undefined): unknown {
+  if (!fact) return undefined;
+  return extractPrimitive(fact.value as { type: string; value: unknown });
+}
+
 function computeDerivedFacts(
   facts: readonly { key: string; value: unknown; status: string }[],
   _module: ProblemModuleDefinition,
@@ -302,21 +316,21 @@ function computeDerivedFacts(
 
   // no-delivery-refund: compute delivery.applicable_deadline
   if (_module.key === "no-delivery-refund" && !factMap.has("delivery.applicable_deadline")) {
-    const promisedDate = factMap.get("delivery.promised_date");
-    const purchaseDate = factMap.get("purchase.date");
+    const promisedDate = primitiveFactValue(factMap.get("delivery.promised_date"));
+    const purchaseDate = primitiveFactValue(factMap.get("purchase.date"));
 
-    if (promisedDate && typeof promisedDate.value === "string") {
+    if (typeof promisedDate === "string") {
       // Agreed date exists → applicable_deadline = promised_date
       derived.push({
         key: "delivery.applicable_deadline",
-        value: promisedDate.value,
+        value: promisedDate,
         status: "CONFIRMED",
         provenance: "DERIVED",
       });
-    } else if (purchaseDate && typeof purchaseDate.value === "string") {
+    } else if (typeof purchaseDate === "string") {
       // No agreed date → applicable_deadline = purchase.date + 30 days
       // Art. 66 bis.1 TRLGDCU: "plazo máximo de treinta días naturales"
-      const purchase = new Date(purchaseDate.value);
+      const purchase = new Date(purchaseDate);
       purchase.setDate(purchase.getDate() + 30);
       const deadline = purchase.toISOString().slice(0, 10);
       derived.push({
@@ -330,10 +344,10 @@ function computeDerivedFacts(
 
   // warranty-rejection: compute compliance deadlines
   if (_module.key === "warranty-rejection" && !factMap.has("compliance.responsibility_deadline")) {
-    const deliveryDate = factMap.get("purchase.delivery_date");
+    const deliveryDate = primitiveFactValue(factMap.get("purchase.delivery_date"));
 
-    if (deliveryDate && typeof deliveryDate.value === "string") {
-      const dv = deliveryDate.value;
+    if (typeof deliveryDate === "string") {
+      const dv = deliveryDate;
 
       // Art. 120.1 TRLGDCU: 3-year responsibility period for goods.
       // For used goods, parties may agree to a shorter period (min 1 year).
@@ -361,15 +375,10 @@ function computeDerivedFacts(
 
     // Art. 122.3 TRLGDCU: 1-year post-repair presumption.
     // Only computed when repair.completed = true.
-    const repairCompleted = factMap.get("repair.completed");
-    const repairDeliveryDate = factMap.get("repair.delivery_date");
-    if (
-      repairCompleted &&
-      repairCompleted.value === true &&
-      repairDeliveryDate &&
-      typeof repairDeliveryDate.value === "string"
-    ) {
-      const afterRepairDeadline = isoDateAddMonths(repairDeliveryDate.value as never, 12);
+    const repairCompleted = primitiveFactValue(factMap.get("repair.completed"));
+    const repairDeliveryDate = primitiveFactValue(factMap.get("repair.delivery_date"));
+    if (repairCompleted === true && typeof repairDeliveryDate === "string") {
+      const afterRepairDeadline = isoDateAddMonths(repairDeliveryDate as never, 12);
       derived.push({
         key: "compliance.after_repair_deadline",
         value: afterRepairDeadline,
@@ -381,21 +390,16 @@ function computeDerivedFacts(
 
   // flight-cancel: compute cancellation.notice_days and flight.distance_km
   if (_module.key === "flight-cancel") {
-    const scheduledDate = factMap.get("flight.scheduled_date");
-    const cancellationDate = factMap.get("cancellation.date");
+    const scheduledDate = primitiveFactValue(factMap.get("flight.scheduled_date"));
+    const cancellationDate = primitiveFactValue(factMap.get("cancellation.date"));
 
     // Compute notice_days: days between cancellation and scheduled departure
     if (
-      scheduledDate &&
-      typeof scheduledDate.value === "string" &&
-      cancellationDate &&
-      typeof cancellationDate.value === "string" &&
+      typeof scheduledDate === "string" &&
+      typeof cancellationDate === "string" &&
       !factMap.has("cancellation.notice_days")
     ) {
-      const noticeDays = isoDateDaysBetween(
-        cancellationDate.value as never,
-        scheduledDate.value as never,
-      );
+      const noticeDays = isoDateDaysBetween(cancellationDate as never, scheduledDate as never);
       // NOTE: noticeDays can be negative when cancellation is communicated
       // after the scheduled departure date. We preserve the real value
       // because the rules correctly handle negative notice periods.
@@ -408,17 +412,15 @@ function computeDerivedFacts(
     }
 
     // Compute flight.distance_km from IATA codes
-    const depAirport = factMap.get("flight.departure_airport");
-    const arrAirport = factMap.get("flight.arrival_airport");
+    const depAirport = primitiveFactValue(factMap.get("flight.departure_airport"));
+    const arrAirport = primitiveFactValue(factMap.get("flight.arrival_airport"));
     if (
-      depAirport &&
-      typeof depAirport.value === "string" &&
-      arrAirport &&
-      typeof arrAirport.value === "string" &&
+      typeof depAirport === "string" &&
+      typeof arrAirport === "string" &&
       !factMap.has("flight.distance_km")
     ) {
-      const dep = AIRPORT_COORDS[depAirport.value.toUpperCase()];
-      const arr = AIRPORT_COORDS[arrAirport.value.toUpperCase()];
+      const dep = AIRPORT_COORDS[depAirport.toUpperCase()];
+      const arr = AIRPORT_COORDS[arrAirport.toUpperCase()];
       if (dep && arr) {
         const distanceKm = haversineDistance(dep.lat, dep.lon, arr.lat, arr.lon);
         derived.push({
@@ -458,16 +460,15 @@ function computeDerivedFacts(
         //             (2) arrival delay within Art. 7(2) threshold,
         //             (3) airline NOT exempt under Art. 5(1)(c)
         if (!factMap.has("passenger.compensation_reduction_eligible")) {
-          const reRoutingAccepted = factMap.get("airline.re_routing.accepted");
-          const altTransportCompliant = factMap.get("airline.alternative_transport_compliant");
-          const altDelayHours = factMap.get("airline.alternative_arrival_delay_hours");
+          const reRoutingAccepted = primitiveFactValue(factMap.get("airline.re_routing.accepted"));
+          const altTransportCompliant = primitiveFactValue(
+            factMap.get("airline.alternative_transport_compliant"),
+          );
+          const altDelayHours = primitiveFactValue(
+            factMap.get("airline.alternative_arrival_delay_hours"),
+          );
 
-          if (
-            reRoutingAccepted &&
-            reRoutingAccepted.value === true &&
-            altDelayHours &&
-            typeof altDelayHours.value === "number"
-          ) {
+          if (reRoutingAccepted === true && typeof altDelayHours === "number") {
             // Determine Art. 7(2) threshold based on distance tier
             let thresholdHours: number;
             if (distanceKm <= 1500) {
@@ -478,10 +479,10 @@ function computeDerivedFacts(
               thresholdHours = 4; // Art. 7(2)(c)
             }
 
-            const withinThreshold = (altDelayHours.value as number) < thresholdHours;
+            const withinThreshold = altDelayHours < thresholdHours;
 
             // Art. 7(2) applies ONLY when Art. 5(1)(c) exemption does NOT apply
-            const isExempt = altTransportCompliant && altTransportCompliant.value === true;
+            const isExempt = altTransportCompliant === true;
 
             const reductionEligible = withinThreshold && !isExempt;
 

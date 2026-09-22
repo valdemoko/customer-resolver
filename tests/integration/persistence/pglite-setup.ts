@@ -26,6 +26,9 @@ const MIGRATION_FILES = [
   "0004_document_intelligence.sql",
   "0005_fix_processing_run_constraint.sql",
   "0006_ai_orchestration.sql",
+  // 0007-0010 create tables unrelated to the slices exercised here; 0011 widens
+  // sources.id to text and MUST be applied or rule publication cannot work.
+  "0011_source_ids_text.sql",
 ];
 const MIGRATION_SQL = MIGRATION_FILES.map((file) =>
   readFileSync(join(migrationsDir, file), "utf8"),

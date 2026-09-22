@@ -50,6 +50,11 @@ interface Question {
   reason: string;
   priority: string;
   remainingCount: number;
+  /** Declared answer type from the problem module (drives the input control). */
+  questionType?: "string" | "number" | "boolean" | "date" | "money" | "enum";
+  options?: string[];
+  required?: boolean;
+  totalApplicable?: number;
 }
 
 interface Interpretation {
@@ -135,6 +140,8 @@ interface AppState {
   guidanceDisclaimer: string | null;
   guidanceLoading: boolean;
   guidanceError: string | null;
+  /** Highest question count seen in this session — used for honest progress. */
+  questionTotal: number | null;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -160,22 +167,51 @@ function getStatusDisplay(status: string): { label: string; color: string } {
    HELPER — Build value input from answer
    ══════════════════════════════════════════════════════════════════════ */
 
-function buildValueInput(factKey: string, answer: string): { type: string; value: unknown } {
-  if (factKey.includes("date") || factKey.includes("delivery")) {
-    return { type: "date", value: answer };
+/**
+ * Build the fact value from the question's DECLARED type.
+ *
+ * The rule engine compares real booleans, numbers and dates: sending "sí" as a
+ * string for a boolean fact would silently block every rule that depends on it.
+ * Returns null when the answer does not fit the expected type.
+ */
+function buildTypedValue(
+  question: Question,
+  rawAnswer: string,
+): { type: string; value: unknown; options?: string[] } | null {
+  const raw = rawAnswer.trim();
+  if (!raw) return null;
+
+  switch (question.questionType) {
+    case "boolean": {
+      const lower = raw.toLowerCase();
+      if (["sí", "si", "sí.", "yes", "true"].includes(lower)) {
+        return { type: "boolean", value: true };
+      }
+      if (["no", "false", "nunca"].includes(lower)) {
+        return { type: "boolean", value: false };
+      }
+      return null;
+    }
+    case "number": {
+      const value = Number(raw.replace(",", "."));
+      return Number.isFinite(value) ? { type: "number", value } : null;
+    }
+    case "money": {
+      const value = Number(raw.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+      if (!Number.isFinite(value)) return null;
+      return { type: "money", value: { amountMinor: Math.round(value * 100), currency: "EUR" } };
+    }
+    case "date":
+      // The date input already produces YYYY-MM-DD (calendar date, no time).
+      return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? { type: "date", value: raw } : null;
+    case "enum": {
+      const options = question.options ?? [];
+      const match = options.find((o) => o.toLowerCase() === raw.toLowerCase());
+      return { type: "enum", value: match ?? raw, options: options.length > 0 ? options : [raw] };
+    }
+    default:
+      return { type: "string", value: raw };
   }
-  if (factKey.includes("amount") || factKey.includes("price")) {
-    const num = parseFloat(answer.replace(/[€$,]/g, ""));
-    return { type: "number", value: isNaN(num) ? 0 : num };
-  }
-  if (factKey.includes("is_used") || factKey.includes("has_") || factKey.includes("completed")) {
-    const lower = answer.toLowerCase().trim();
-    return {
-      type: "boolean",
-      value: lower === "sí" || lower === "si" || lower === "yes" || lower === "true",
-    };
-  }
-  return { type: "string", value: answer };
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -198,6 +234,7 @@ const INITIAL_STATE: AppState = {
   guidanceDisclaimer: null,
   guidanceLoading: false,
   guidanceError: null,
+  questionTotal: null,
 };
 
 export function ResolverClient() {
@@ -282,6 +319,7 @@ export function ResolverClient() {
         interpretation: data.interpretation,
         routing: data.routing,
         nextQuestion: data.nextQuestion,
+        questionTotal: data.nextQuestion?.totalApplicable ?? 0,
         budget: data.budget,
         guidance: null,
         guidanceDisclaimer: null,
@@ -317,12 +355,22 @@ export function ResolverClient() {
 
   // ── Phase 3: Confirm answer ────────────────────────────────────
 
-  const handleConfirmAnswer = useCallback(async () => {
-    if (!state.caseId || !state.nextQuestion || !answer.trim()) return;
+  const handleConfirmAnswer = useCallback(async (rawOverride?: string) => {
+    const raw = (rawOverride ?? answer).trim();
+    if (!state.caseId || !state.nextQuestion || !raw) return;
+
+    const typedValue = buildTypedValue(state.nextQuestion, raw);
+    if (!typedValue) {
+      setState((prev) => ({
+        ...prev,
+        error: "La respuesta no encaja con el tipo de dato esperado.",
+      }));
+      return;
+    }
 
     setSubmitting(true);
     try {
-      const value = buildValueInput(state.nextQuestion.factKey, answer.trim());
+      const value = typedValue;
       const res = await fetch("/api/intake/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -359,6 +407,10 @@ export function ResolverClient() {
           phase: intakeData.allRequiredConfirmed ? "evidence" : "questioning",
           nextQuestion: intakeData.nextQuestion,
           allRequiredConfirmed: intakeData.allRequiredConfirmed,
+          questionTotal: Math.max(
+            prev.questionTotal ?? 0,
+            intakeData.nextQuestion?.totalApplicable ?? 0,
+          ),
           error: null,
         }));
       }
@@ -399,6 +451,10 @@ export function ResolverClient() {
           phase: intakeData.allRequiredConfirmed ? "evidence" : "questioning",
           nextQuestion: intakeData.nextQuestion,
           allRequiredConfirmed: intakeData.allRequiredConfirmed,
+          questionTotal: Math.max(
+            prev.questionTotal ?? 0,
+            intakeData.nextQuestion?.totalApplicable ?? 0,
+          ),
           error: null,
         }));
       }
@@ -856,23 +912,41 @@ export function ResolverClient() {
   // ── QUESTIONING ────────────────────────────────────────────────
 
   if (state.phase === "questioning") {
+    const currentQuestion = state.nextQuestion;
+    const questionControl = currentQuestion?.questionType ?? "string";
+    const totalQuestions = Math.max(
+      state.questionTotal ?? 0,
+      currentQuestion?.totalApplicable ?? 0,
+      1,
+    );
+    const remainingQuestions = currentQuestion?.totalApplicable ?? 0;
+    const answeredQuestions = Math.max(0, totalQuestions - remainingQuestions);
+    const questionProgressPercent = state.allRequiredConfirmed
+      ? 100
+      : Math.min(95, Math.round(((answeredQuestions + 1) / totalQuestions) * 100));
+    const questionProgressLabel = currentQuestion
+      ? `Pregunta ${answeredQuestions + 1} de ${totalQuestions}${
+          currentQuestion.required ? " · obligatoria" : ""
+        }`
+      : null;
+
     return (
       <div className="min-h-[80vh] bg-[var(--surface-page)]">
         <div className="max-w-[640px] mx-auto px-5 md:px-8 py-12 md:py-16">
-          {/* Progress */}
+          {/* Progress — real position, not a decorative bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <p className="label">Confirmando datos</p>
-              {state.nextQuestion && state.nextQuestion.remainingCount > 0 && (
+              {questionProgressLabel && (
                 <span className="text-xs text-[var(--color-ink-faint)]">
-                  {state.nextQuestion.remainingCount} restante{state.nextQuestion.remainingCount !== 1 ? "s" : ""}
+                  {questionProgressLabel}
                 </span>
               )}
             </div>
             <div className="h-1 bg-[var(--surface-warm)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[var(--color-accent)] transition-all duration-500"
-                style={{ width: `${state.allRequiredConfirmed ? 100 : 70}%` }}
+                style={{ width: `${questionProgressPercent}%` }}
               />
             </div>
           </div>
@@ -885,45 +959,126 @@ export function ResolverClient() {
                   {state.nextQuestion.questionText}
                 </p>
 
-                <input
-                  ref={answerRef}
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && answer.trim()) {
-                      handleConfirmAnswer();
-                    }
-                  }}
-                  placeholder="Escribe tu respuesta..."
-                  className="input-base"
-                  disabled={submitting}
-                />
+                {questionControl === "boolean" && (
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleConfirmAnswer("sí")}
+                      disabled={submitting}
+                      className="btn-primary flex-1"
+                    >
+                      Sí
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleConfirmAnswer("no")}
+                      disabled={submitting}
+                      className="btn-secondary flex-1"
+                    >
+                      No
+                    </button>
+                  </div>
+                )}
+
+                {questionControl === "enum" && (
+                  <div className="flex flex-wrap gap-3">
+                    {(state.nextQuestion.options ?? []).map((option: string) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => void handleConfirmAnswer(option)}
+                        disabled={submitting}
+                        className="btn-secondary"
+                      >
+                        {option.replace(/_/g, " ")}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {(questionControl === "string" ||
+                  questionControl === "number" ||
+                  questionControl === "money" ||
+                  questionControl === "date") && (
+                  <>
+                    <input
+                      ref={answerRef}
+                      type={
+                        questionControl === "date"
+                          ? "date"
+                          : questionControl === "number" || questionControl === "money"
+                            ? "number"
+                            : "text"
+                      }
+                      inputMode={
+                        questionControl === "money" || questionControl === "number"
+                          ? "decimal"
+                          : undefined
+                      }
+                      step={questionControl === "money" ? "0.01" : undefined}
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && answer.trim()) {
+                          void handleConfirmAnswer();
+                        }
+                      }}
+                      placeholder={
+                        questionControl === "date"
+                          ? ""
+                          : questionControl === "money"
+                            ? "Importe en euros, por ejemplo 249,90"
+                            : questionControl === "number"
+                              ? "Escribe un número"
+                              : "Escribe tu respuesta..."
+                      }
+                      className="input-base"
+                      disabled={submitting}
+                    />
+
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        type="button"
+                        onClick={() => void handleConfirmAnswer()}
+                        disabled={!answer.trim() || submitting}
+                        className="btn-primary"
+                      >
+                        {submitting ? "Confirmando..." : "Confirmar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSkipQuestion}
+                        disabled={submitting}
+                        className="btn-ghost"
+                      >
+                        No sé / Omitir
+                      </button>
+                    </div>
+                  </>
+                )}
 
                 {state.error && (
                   <p className="text-sm text-[var(--color-contradicted)] mt-3">{state.error}</p>
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleConfirmAnswer}
-                  disabled={!answer.trim() || submitting}
-                  className="btn-primary"
-                >
-                  {submitting ? "Confirmando..." : "Confirmar"}
-                </button>
-                <button
-                  onClick={handleSkipQuestion}
-                  disabled={submitting}
-                  className="btn-ghost"
-                >
-                  No sé / Omitir
-                </button>
-              </div>
+              {questionControl !== "string" &&
+                questionControl !== "number" &&
+                questionControl !== "money" &&
+                questionControl !== "date" && (
+                  <button
+                    type="button"
+                    onClick={handleSkipQuestion}
+                    disabled={submitting}
+                    className="btn-ghost"
+                  >
+                    No sé / Omitir
+                  </button>
+                )}
 
               <p className="text-xs text-[var(--color-ink-faint)] mt-6">
-                Tu respuesta se almacena únicamente para este caso.
+                Tu respuesta se almacena únicamente para este caso. Los datos que confirmes son los
+                que se usan para analizar tu situación.
               </p>
             </div>
           ) : (

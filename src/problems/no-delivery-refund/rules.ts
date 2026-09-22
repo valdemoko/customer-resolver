@@ -247,6 +247,11 @@ export interface NoDeliveryRefundRules {
   readonly refundObligationAfterResolution: Rule;
 }
 
+/** Verified official sources backing this module's rules (published to the database). */
+export function buildSources(): readonly Source[] {
+  return [...verifiedSources().values()];
+}
+
 export function buildRules(): NoDeliveryRefundRules {
   const sources = verifiedSources();
   const trlgdcu66bisId = sources.get(trlgdcu66bis.id)!.id;

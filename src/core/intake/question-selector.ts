@@ -80,12 +80,24 @@ export function selectNextQuestion(
   const next = applicable[0]!;
   const remainingCount = applicable.length - 1;
 
+  // The declared answer type travels with the question so the client can render
+  // the right control and send a real boolean/number/date — never a string that
+  // merely looks like one (the rule engine compares typed values only).
+  const catalogueEntry = module.factCatalogue.find((f) => f.key === next.factKey);
+  const declaredType = next.type ?? catalogueEntry?.type ?? "string";
+  const declaredOptions =
+    next.options ?? (catalogueEntry?.options as readonly string[] | undefined) ?? [];
+
   return {
     factKey: next.factKey as FactKey,
     questionText: next.text,
     reason: next.required ? "Required fact missing" : "Optional fact available for collection",
     priority: questionPriority(next),
     remainingCount,
+    questionType: declaredType,
+    options: declaredOptions,
+    required: next.required,
+    totalApplicable: applicable.length,
   };
 }
 

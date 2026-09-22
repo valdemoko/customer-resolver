@@ -15,6 +15,7 @@ import { ExportService } from "@core/export/service";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
+import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { cancellationChargeModule } from "@problems/cancellation-charge";
@@ -54,7 +55,7 @@ function compositionRoot() {
     registry,
   });
 
-  return { repo, caseService, analysisService, registry };
+  return { repo, caseService, analysisService, registry, rulesRepo };
 }
 
 const PRIVATE_CACHE_HEADERS = {
@@ -84,6 +85,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       { status: 503 },
     );
   }
+
+  // Rules live in the database: publish the module rule sets before analysing.
+  await ensureRuleSetsPublishedSafe(services.registry, services.rulesRepo);
 
   try {
     // Run analysis

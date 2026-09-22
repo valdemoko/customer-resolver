@@ -224,6 +224,19 @@ export interface QuestionSelection {
   readonly priority: "REQUIRED" | "HIGH" | "MEDIUM" | "LOW";
   /** Remaining questions after this one. */
   readonly remainingCount: number;
+  /**
+   * Declared answer type from the module (`string` | `number` | `boolean` |
+   * `date` | `money` | `enum`). The client renders the matching control and
+   * sends a value of this type — the rule engine can only compare real
+   * booleans/numbers/dates, never strings that merely look like them.
+   */
+  readonly questionType: "string" | "number" | "boolean" | "date" | "money" | "enum";
+  /** Allowed values for `enum` questions (empty otherwise). */
+  readonly options: readonly string[];
+  /** Whether the fact is required for the analysis to conclude. */
+  readonly required: boolean;
+  /** How many questions are still applicable, including this one. */
+  readonly totalApplicable: number;
 }
 
 // ── Confirmation result ──────────────────────────────────────────────

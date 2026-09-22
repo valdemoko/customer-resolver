@@ -271,6 +271,17 @@ export interface WarrantyRejectionRules {
   readonly sellerDeclaresWontRepair: Rule;
 }
 
+/**
+ * Verified official sources backing this module's rules.
+ *
+ * Exported so the server layer can publish the source set into the database:
+ * a claim may only cite a source whose identity, version and human verification
+ * metadata actually exist in the `sources` table.
+ */
+export function buildSources(): readonly Source[] {
+  return [...verifiedSources().values()];
+}
+
 export function buildRules(): WarrantyRejectionRules {
   const sources = verifiedSources();
   const src120 = sources.get(trlgdcu120.id)!.id;

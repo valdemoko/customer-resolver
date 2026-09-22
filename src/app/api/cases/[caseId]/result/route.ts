@@ -12,6 +12,8 @@ import { buildResult } from "@core/result/engine";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
+import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules";
+import { loadCitedSources } from "@server/rules/load-cited-sources";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { cancellationChargeModule } from "@problems/cancellation-charge";
@@ -51,7 +53,7 @@ function compositionRoot() {
     registry,
   });
 
-  return { repo, caseService, analysisService, registry };
+  return { repo, caseService, analysisService, registry, rulesRepo };
 }
 
 const PRIVATE_CACHE_HEADERS = {
@@ -79,6 +81,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
     );
   }
 
+  // Rules live in the database: publish the module rule sets before analysing.
+  // Idempotent, cached per instance, and never fatal (failure is logged).
+  await ensureRuleSetsPublishedSafe(services.registry, services.rulesRepo);
+
   try {
     // Run analysis to get evaluations
     const analysis = await services.analysisService.runProblemAnalysis(caseId);
@@ -92,6 +98,20 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
       );
     }
 
+    // Official sources cited by the evaluated rules (never invented references).
+    const sources = await loadCitedSources(services.rulesRepo, analysis.evaluations);
+
+    // Module questions, so missing information is described in user language.
+    const problemModule = services.registry.has(analysis.problemKey)
+      ? services.registry.get(analysis.problemKey)
+      : null;
+    const questions = (problemModule?.intake ?? []).map((q) => ({
+      id: q.id,
+      text: q.text,
+      factKey: q.factKey as string,
+      required: q.required,
+    }));
+
     // Build result
     const result = buildResult({
       caseId,
@@ -100,8 +120,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
       engineVersion: analysis.engineVersion,
       facts: loaded.facts,
       evaluations: analysis.evaluations,
-      sources: [], // TODO: load sources from rules
-      questions: [],
+      sources,
+      questions,
       intakeComplete: analysis.intakeComplete,
     });
 

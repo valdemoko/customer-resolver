@@ -189,6 +189,11 @@ export interface FlightCancelRules {
   readonly compensation50PercentReduction: Rule;
 }
 
+/** Verified official sources backing this module's rules (published to the database). */
+export function buildSources(): readonly Source[] {
+  return [...verifiedSources().values()];
+}
+
 export function buildRules(): FlightCancelRules {
   const sources = verifiedSources();
   const eu261Id = sources.get(eu261.id)!.id;

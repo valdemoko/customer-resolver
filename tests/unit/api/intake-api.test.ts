@@ -116,6 +116,7 @@ const mockRegistry = {
   get: vi.fn().mockReturnValue({
     key: "cancellation-charge",
     title: "Cancelación y cargos",
+    jurisdictions: ["ES"],
     factCatalogue: [
       { key: "cancellation.date", required: true },
       { key: "charge.amount", required: true },
