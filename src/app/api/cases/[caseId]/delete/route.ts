@@ -95,10 +95,7 @@ export async function DELETE(
       .limit(1);
 
     if (!existingCase) {
-      return NextResponse.json(
-        { error: "Case not found" },
-        { status: 404, headers: CORS_HEADERS },
-      );
+      return NextResponse.json({ error: "Case not found" }, { status: 404, headers: CORS_HEADERS });
     }
 
     // Load facts first (needed for evidence links deletion)
@@ -133,74 +130,51 @@ export async function DELETE(
       .where(eq(researchSessions.caseId, caseId));
 
     for (const session of researchSessionIds) {
-      await db.delete(researchConflicts).where(
-        eq(researchConflicts.researchId, session.id),
-      );
-      await db.delete(researchSources).where(
-        eq(researchSources.researchId, session.id),
-      );
-      await db.delete(researchFindings).where(
-        eq(researchFindings.researchId, session.id),
-      );
+      await db.delete(researchConflicts).where(eq(researchConflicts.researchId, session.id));
+      await db.delete(researchSources).where(eq(researchSources.researchId, session.id));
+      await db.delete(researchFindings).where(eq(researchFindings.researchId, session.id));
     }
-    await db.delete(researchSessions).where(
-      eq(researchSessions.caseId, caseId),
-    );
+    await db.delete(researchSessions).where(eq(researchSessions.caseId, caseId));
 
     // 2. Communications
-    await db.delete(caseCommunications).where(
-      eq(caseCommunications.caseId, caseId),
-    );
+    await db.delete(caseCommunications).where(eq(caseCommunications.caseId, caseId));
 
     // 3. Documents
-    await db.delete(generatedDocuments).where(
-      eq(generatedDocuments.caseId, caseId),
-    );
+    await db.delete(generatedDocuments).where(eq(generatedDocuments.caseId, caseId));
 
     // 4. Rule evaluations
-    await db.delete(ruleEvaluations).where(
-      eq(ruleEvaluations.caseId, caseId),
-    );
+    await db.delete(ruleEvaluations).where(eq(ruleEvaluations.caseId, caseId));
 
     // 5. Case events (timeline)
-    await db.delete(caseEvents).where(
-      eq(caseEvents.caseId, caseId),
-    );
+    await db.delete(caseEvents).where(eq(caseEvents.caseId, caseId));
 
     // 6. Case snapshots
-    await db.delete(caseSnapshots).where(
-      eq(caseSnapshots.caseId, caseId),
-    );
+    await db.delete(caseSnapshots).where(eq(caseSnapshots.caseId, caseId));
 
     // 7. Evidence links (via fact IDs)
     if (caseFactIds.length > 0) {
-      await db
-        .delete(evidenceFactLinks)
-        .where(
-          sql`${evidenceFactLinks.factId} IN ${caseFactIds}`,
-        );
+      await db.delete(evidenceFactLinks).where(sql`${evidenceFactLinks.factId} IN ${caseFactIds}`);
     }
 
     // 8. Contradictions
-    await db.delete(caseContradictions).where(
-      eq(caseContradictions.caseId, caseId),
-    );
+    await db.delete(caseContradictions).where(eq(caseContradictions.caseId, caseId));
 
     // 9. Facts
-    await db.delete(caseFacts).where(
-      eq(caseFacts.caseId, caseId),
-    );
+    await db.delete(caseFacts).where(eq(caseFacts.caseId, caseId));
 
     // 10. Case itself
-    await db.delete(cases).where(
-      eq(cases.id, caseId),
-    );
+    await db.delete(cases).where(eq(cases.id, caseId));
 
     // 11. Clean up R2 objects (best-effort, after DB deletion)
     if (storageKeys.length > 0) {
       try {
         const env = getServerEnv();
-        if (env.R2_ACCOUNT_ID && env.R2_BUCKET_DOCUMENTS && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
+        if (
+          env.R2_ACCOUNT_ID &&
+          env.R2_BUCKET_DOCUMENTS &&
+          env.R2_ACCESS_KEY_ID &&
+          env.R2_SECRET_ACCESS_KEY
+        ) {
           const { R2ObjectStorage } = await import("@server/adapters/storage/r2-object-storage");
           const storage = new R2ObjectStorage({
             accountId: env.R2_ACCOUNT_ID,

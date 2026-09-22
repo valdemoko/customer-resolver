@@ -31,8 +31,8 @@ export default function TermsPage() {
             Aceptación
           </h2>
           <p>
-            Al utilizar Resolveo aceptas estos términos. Si no estás de acuerdo, no
-            utilices el servicio.
+            Al utilizar Resolveo aceptas estos términos. Si no estás de acuerdo, no utilices el
+            servicio.
           </p>
         </section>
 
@@ -44,8 +44,8 @@ export default function TermsPage() {
             Naturaleza del servicio
           </h2>
           <p className="mb-3">
-            Resolveo proporciona información estructurada sobre problemas de consumo
-            basándose en normativa vigente. Esta información:
+            Resolveo proporciona información estructurada sobre problemas de consumo basándose en
+            normativa vigente. Esta información:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>No constituye asesoría legal.</li>
@@ -79,8 +79,8 @@ export default function TermsPage() {
             Propiedad intelectual
           </h2>
           <p>
-            El código, diseño y contenido de Resolveo son propiedad de sus autores. No se
-            autoriza su reproducción sin permiso.
+            El código, diseño y contenido de Resolveo son propiedad de sus autores. No se autoriza
+            su reproducción sin permiso.
           </p>
         </section>
       </div>

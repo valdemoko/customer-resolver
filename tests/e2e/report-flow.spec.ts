@@ -189,7 +189,8 @@ const answers = [
 ];
 
 const actionPlan = {
-  nextStep: "Faltan 2 datos para poder concluir. Empieza por: ¿Aceptaste el vuelo alternativo? (y 1 más)",
+  nextStep:
+    "Faltan 2 datos para poder concluir. Empieza por: ¿Aceptaste el vuelo alternativo? (y 1 más)",
   actions: [
     {
       id: "a1",
@@ -216,9 +217,7 @@ interface StubState {
 }
 
 async function installBackend(page: Page, state: StubState): Promise<void> {
-  await page.route("**/api/intake/interpret", (route) =>
-    route.fulfill({ json: interpretPayload }),
-  );
+  await page.route("**/api/intake/interpret", (route) => route.fulfill({ json: interpretPayload }));
   await page.route("**/api/intake/guidance", (route) => route.fulfill({ json: {} }));
   await page.route("**/api/intake/confirm", (route) =>
     route.fulfill({ json: { success: true, decision: "confirmed", contradictionDetected: false } }),
@@ -313,7 +312,9 @@ test("el informe se organiza por secciones, deja completar los datos y ofrece el
   await expect(page.getByText("¿Qué aerolínea era?")).toHaveCount(0);
 
   // What a conclusion is based on, and what each source backs.
-  await expect(page.getByText("En qué se basa: ¿Cuándo te comunicaron la cancelación?")).toBeVisible();
+  await expect(
+    page.getByText("En qué se basa: ¿Cuándo te comunicaron la cancelación?"),
+  ).toBeVisible();
   await expect(page.getByText("Cuantía de la compensación por distancia")).toBeVisible();
 
   const body = await page.locator("body").innerText();

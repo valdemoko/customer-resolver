@@ -11,10 +11,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function ProblemaLibreLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function ProblemaLibreLayout({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }

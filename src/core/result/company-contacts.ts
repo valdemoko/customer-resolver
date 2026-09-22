@@ -84,7 +84,8 @@ export const COMPANY_CONTACTS: readonly CompanyContactRecord[] = [
         note: "Desde su propio centro de ayuda puedes consultar el estado de un caso abierto o poner una queja.",
       },
     ],
-    sourceUrl: "https://help.vueling.com/hc/es/articles/19916107516177-Contacto-Nuestros-tel%C3%A9fonos",
+    sourceUrl:
+      "https://help.vueling.com/hc/es/articles/19916107516177-Contacto-Nuestros-tel%C3%A9fonos",
     verifiedAt: VERIFIED_AT,
     note: "Vueling gestiona compensaciones, reembolsos y quejas desde su centro de ayuda, no solo por teléfono.",
   },
@@ -98,7 +99,8 @@ export const COMPANY_CONTACTS: readonly CompanyContactRecord[] = [
         kind: "phone",
         label: "Reservas y consultas generales",
         value: "+34 872 580 512",
-        hours: "De lunes a viernes de 9:00 a 18:00; sábados y domingos de 10:00 a 17:00 (CET). Se cobra como llamada local.",
+        hours:
+          "De lunes a viernes de 9:00 a 18:00; sábados y domingos de 10:00 a 17:00 (CET). Se cobra como llamada local.",
       },
       {
         kind: "phone",
@@ -113,7 +115,8 @@ export const COMPANY_CONTACTS: readonly CompanyContactRecord[] = [
         note: "Es el canal que la aerolínea indica para reclamaciones escritas y deja constancia con referencia.",
       },
     ],
-    sourceUrl: "https://help.ryanair.com/hc/es-es/articles/12893510195345-Ll%C3%A1manos-Espa%C3%B1a",
+    sourceUrl:
+      "https://help.ryanair.com/hc/es-es/articles/12893510195345-Ll%C3%A1manos-Espa%C3%B1a",
     verifiedAt: VERIFIED_AT,
     note: "Esos teléfonos son para reservas y consultas generales: para una reclamación escrita, la propia aerolínea remite a su formulario oficial.",
   },
@@ -249,18 +252,20 @@ const LEGAL_FORM_TOKENS = new Set([
  * without legal forms or punctuation.
  */
 export function normalizeCompanyName(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .split(" ")
-    // Single letters come from dotted legal forms ("S.A." → "s", "a"): they
-    // carry no identity, so dropping them keeps the same matcher working for
-    // "Vueling Airlines, S.A." and "Vueling".
-    .filter((token) => token.length > 1 && !LEGAL_FORM_TOKENS.has(token))
-    .join(" ")
-    .trim();
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      // Single letters come from dotted legal forms ("S.A." → "s", "a"): they
+      // carry no identity, so dropping them keeps the same matcher working for
+      // "Vueling Airlines, S.A." and "Vueling".
+      .filter((token) => token.length > 1 && !LEGAL_FORM_TOKENS.has(token))
+      .join(" ")
+      .trim()
+  );
 }
 
 function mentions(haystack: string, needle: string): boolean {

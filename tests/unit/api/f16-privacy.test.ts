@@ -144,11 +144,7 @@ describe("F16.1 — Export Schema Correctness", () => {
   });
 
   it("Export metadata includes required fields", () => {
-    const requiredMetadataFields = [
-      "exportedAt",
-      "formatVersion",
-      "caseId",
-    ];
+    const requiredMetadataFields = ["exportedAt", "formatVersion", "caseId"];
 
     for (const field of requiredMetadataFields) {
       expect(field).toBeDefined();

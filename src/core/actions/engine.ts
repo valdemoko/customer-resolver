@@ -287,10 +287,7 @@ export function deriveActions(result: Result): ActionPlan {
     genericCollect
       ? actions.filter(
           (a) =>
-            !(
-              a.type === "COLLECT_INFORMATION" &&
-              a.title === "Proporcionar información faltante"
-            ),
+            !(a.type === "COLLECT_INFORMATION" && a.title === "Proporcionar información faltante"),
         )
       : actions,
   );

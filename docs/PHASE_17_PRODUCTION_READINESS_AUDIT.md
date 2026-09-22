@@ -20,30 +20,30 @@ Resolveo has been audited for production readiness. The system is **APPROVED** f
 
 ## 1. Architecture Audited
 
-| Phase | Component | Status |
-|-------|-----------|--------|
-| F0 | Scaffold / CI | ✅ Complete |
-| F1 | Core Domain | ✅ Complete |
-| F2 | Evidence Engine | ✅ Complete |
-| F3 | Rule Engine + Sources | ✅ Complete |
-| F4 | cancellation-charge | ✅ Complete |
-| F5 | Document Intelligence | ✅ Complete |
-| F6 | AI Orchestration | ✅ Complete |
-| F7 | Result + Action Engine | ✅ Complete |
-| F8.1 | no-delivery-refund | ✅ Complete |
-| F8.2 | warranty-rejection | ✅ Complete |
-| F8.3 | Universal Problem Intake | ✅ Complete |
-| F8.4 | flight-cancel | ✅ Complete |
-| F9 | SEO + Public Surface | ✅ Complete |
-| F10 | Production Hardening | ✅ Complete |
-| F11 | Production Persistence | ✅ Complete |
-| F12 | Document Generation | ✅ Complete |
-| F13 | Case Management | ✅ Complete |
-| F14 | Research Resolver | ✅ Complete |
-| F15 | Internationalization | ✅ Complete |
-| F16 | Product & Business Model | ✅ Complete |
-| F16.1 | Privacy & Data Audit | ✅ Complete |
-| F17 | Production Readiness | ✅ This audit |
+| Phase | Component                | Status        |
+| ----- | ------------------------ | ------------- |
+| F0    | Scaffold / CI            | ✅ Complete   |
+| F1    | Core Domain              | ✅ Complete   |
+| F2    | Evidence Engine          | ✅ Complete   |
+| F3    | Rule Engine + Sources    | ✅ Complete   |
+| F4    | cancellation-charge      | ✅ Complete   |
+| F5    | Document Intelligence    | ✅ Complete   |
+| F6    | AI Orchestration         | ✅ Complete   |
+| F7    | Result + Action Engine   | ✅ Complete   |
+| F8.1  | no-delivery-refund       | ✅ Complete   |
+| F8.2  | warranty-rejection       | ✅ Complete   |
+| F8.3  | Universal Problem Intake | ✅ Complete   |
+| F8.4  | flight-cancel            | ✅ Complete   |
+| F9    | SEO + Public Surface     | ✅ Complete   |
+| F10   | Production Hardening     | ✅ Complete   |
+| F11   | Production Persistence   | ✅ Complete   |
+| F12   | Document Generation      | ✅ Complete   |
+| F13   | Case Management          | ✅ Complete   |
+| F14   | Research Resolver        | ✅ Complete   |
+| F15   | Internationalization     | ✅ Complete   |
+| F16   | Product & Business Model | ✅ Complete   |
+| F16.1 | Privacy & Data Audit     | ✅ Complete   |
+| F17   | Production Readiness     | ✅ This audit |
 
 ---
 
@@ -51,17 +51,17 @@ Resolveo has been audited for production readiness. The system is **APPROVED** f
 
 ### Environment Variables
 
-| Variable | Required | Server-Only | Validated | Purpose |
-|----------|----------|-------------|-----------|---------|
-| DATABASE_URL | Yes (prod) | Yes | Yes (Zod) | PostgreSQL connection |
-| R2_ACCOUNT_ID | No | Yes | Yes | Cloudflare R2 |
-| R2_BUCKET_DOCUMENTS | No | Yes | Yes | R2 bucket |
-| R2_ACCESS_KEY_ID | No | Yes | Yes | R2 credentials |
-| R2_SECRET_ACCESS_KEY | No | Yes | Yes | R2 credentials |
-| GROQ_API_KEY | No | Yes | Yes | AI provider |
-| OPENAI_API_KEY | No | Yes | Yes | AI fallback |
-| GEMINI_API_KEY | No | Yes | Yes | AI fallback |
-| NEXT_PUBLIC_SITE_URL | Yes | No | Yes | Public URL |
+| Variable             | Required   | Server-Only | Validated | Purpose               |
+| -------------------- | ---------- | ----------- | --------- | --------------------- |
+| DATABASE_URL         | Yes (prod) | Yes         | Yes (Zod) | PostgreSQL connection |
+| R2_ACCOUNT_ID        | No         | Yes         | Yes       | Cloudflare R2         |
+| R2_BUCKET_DOCUMENTS  | No         | Yes         | Yes       | R2 bucket             |
+| R2_ACCESS_KEY_ID     | No         | Yes         | Yes       | R2 credentials        |
+| R2_SECRET_ACCESS_KEY | No         | Yes         | Yes       | R2 credentials        |
+| GROQ_API_KEY         | No         | Yes         | Yes       | AI provider           |
+| OPENAI_API_KEY       | No         | Yes         | Yes       | AI fallback           |
+| GEMINI_API_KEY       | No         | Yes         | Yes       | AI fallback           |
+| NEXT_PUBLIC_SITE_URL | Yes        | No          | Yes       | Public URL            |
 
 ### Secrets Handling
 
@@ -171,6 +171,7 @@ Unsupported problem → Research Resolver → Search provider → Source validat
 ### Known Hardcoding
 
 **MEDIUM-001**: `src/app/api/problems/[problemKey]/cases/route.ts` line 82
+
 - Hardcoded `jurisdiction: "ES"` in demo API
 - **Impact**: This endpoint is legacy/demo only
 - **Main flow**: Uses `/api/intake/interpret` which correctly handles jurisdiction
@@ -195,6 +196,7 @@ Unsupported problem → Research Resolver → Search provider → Source validat
 ### Known Limitations
 
 **MEDIUM-002**: No user authentication
+
 - CaseId is sole credential (by design for V1)
 - UUID entropy (128-bit) makes enumeration infeasible
 - Documented in F10/F11 reports
@@ -217,21 +219,21 @@ Unsupported problem → Research Resolver → Search provider → Source validat
 
 ### Routes Verified
 
-| Route | Method | Purpose | Security |
-|-------|--------|---------|----------|
-| `/api/intake/interpret` | POST | Problem interpretation | Budget, validation |
-| `/api/intake/confirm` | POST | Fact confirmation | Validation |
-| `/api/cases/[caseId]` | GET | Case summary | CaseId validation |
-| `/api/cases/[caseId]/result` | GET | Case result | CaseId validation |
-| `/api/cases/[caseId]/actions` | GET | Action plan | CaseId validation |
-| `/api/cases/[caseId]/timeline` | GET | Timeline events | CaseId validation |
-| `/api/cases/[caseId]/communications` | GET/POST | Communications | CaseId validation |
-| `/api/cases/[caseId]/reanalyze` | POST | Reanalysis | CaseId validation |
-| `/api/cases/[caseId]/transition` | POST | State transitions | CaseId validation |
-| `/api/cases/[caseId]/export` | GET | TXT export | CaseId validation |
-| `/api/cases/[caseId]/data` | GET | JSON export | CaseId validation |
-| `/api/cases/[caseId]/delete` | DELETE | Case deletion | CaseId validation |
-| `/api/cases/[caseId]/research` | GET/POST | Research | CaseId validation |
+| Route                                | Method   | Purpose                | Security           |
+| ------------------------------------ | -------- | ---------------------- | ------------------ |
+| `/api/intake/interpret`              | POST     | Problem interpretation | Budget, validation |
+| `/api/intake/confirm`                | POST     | Fact confirmation      | Validation         |
+| `/api/cases/[caseId]`                | GET      | Case summary           | CaseId validation  |
+| `/api/cases/[caseId]/result`         | GET      | Case result            | CaseId validation  |
+| `/api/cases/[caseId]/actions`        | GET      | Action plan            | CaseId validation  |
+| `/api/cases/[caseId]/timeline`       | GET      | Timeline events        | CaseId validation  |
+| `/api/cases/[caseId]/communications` | GET/POST | Communications         | CaseId validation  |
+| `/api/cases/[caseId]/reanalyze`      | POST     | Reanalysis             | CaseId validation  |
+| `/api/cases/[caseId]/transition`     | POST     | State transitions      | CaseId validation  |
+| `/api/cases/[caseId]/export`         | GET      | TXT export             | CaseId validation  |
+| `/api/cases/[caseId]/data`           | GET      | JSON export            | CaseId validation  |
+| `/api/cases/[caseId]/delete`         | DELETE   | Case deletion          | CaseId validation  |
+| `/api/cases/[caseId]/research`       | GET/POST | Research               | CaseId validation  |
 
 ### Validation
 
@@ -306,14 +308,14 @@ Unsupported problem → Research Resolver → Search provider → Source validat
 
 ## 15. External Dependencies
 
-| Dependency | Failure Mode | Behavior |
-|------------|--------------|----------|
-| PostgreSQL | Unavailable | Safe error (503) |
-| R2 | Unavailable | Best-effort, logged |
-| AI Provider | Timeout | Bounded retry/fallback |
-| AI Provider | 429 | Bounded retry/fallback |
-| Search Provider | Unavailable | Research remains unresolved |
-| Source Website | Unavailable | Finding marked uncertain |
+| Dependency      | Failure Mode | Behavior                    |
+| --------------- | ------------ | --------------------------- |
+| PostgreSQL      | Unavailable  | Safe error (503)            |
+| R2              | Unavailable  | Best-effort, logged         |
+| AI Provider     | Timeout      | Bounded retry/fallback      |
+| AI Provider     | 429          | Bounded retry/fallback      |
+| Search Provider | Unavailable  | Research remains unresolved |
+| Source Website  | Unavailable  | Finding marked uncertain    |
 
 ---
 
@@ -481,17 +483,19 @@ APPROVED
 **Next Step**: Controlled real-world validation with synthetic/voluntary user cases.
 
 Resolveo is ready for:
+
 - Limited production exposure
 - Real user testing
 - Performance monitoring
 - Cost observation
 
 NOT ready for:
+
 - Large-scale production deployment (await real user validation)
 - Monetization (await product-market fit validation)
 
 ---
 
-*Audit completed: 2026-09-21*
-*F17 Status: APPROVED*
-*Test count: 995*
+_Audit completed: 2026-09-21_
+_F17 Status: APPROVED_
+_Test count: 995_

@@ -7,6 +7,7 @@ F16 audited Resolveo from a product and business perspective to determine commer
 **Key Finding: Resolveo should launch as a FREE product.** Monetization is NOT YET JUSTIFIED.
 
 Rationale:
+
 1. Core value proposition must remain free (trust, mission, acquisition)
 2. Consumer problems are infrequent (1-2 per year) — subscriptions don't fit
 3. Users don't know value until after analysis — pay-per-case creates friction
@@ -21,14 +22,14 @@ Rationale:
 
 Resolveo helps consumers understand their legal position and take action:
 
-| Capability | Description |
-|------------|-------------|
-| Problem Understanding | User describes problem in natural language |
-| Fact Extraction | System identifies key facts from description + documents |
-| Rule Analysis | Deterministic engine evaluates against verified legal sources |
-| Result Production | Structured analysis with traceable claims |
-| Document Generation | Formal complaints/reclamations ready to send |
-| Case Management | Timeline, communications, reanalysis |
+| Capability            | Description                                                   |
+| --------------------- | ------------------------------------------------------------- |
+| Problem Understanding | User describes problem in natural language                    |
+| Fact Extraction       | System identifies key facts from description + documents      |
+| Rule Analysis         | Deterministic engine evaluates against verified legal sources |
+| Result Production     | Structured analysis with traceable claims                     |
+| Document Generation   | Formal complaints/reclamations ready to send                  |
+| Case Management       | Timeline, communications, reanalysis                          |
 
 ### What Makes It Different
 
@@ -40,17 +41,17 @@ Resolveo helps consumers understand their legal position and take action:
 
 ### Current Capabilities (Implemented)
 
-| Feature | Status |
-|---------|--------|
-| Universal Problem Intake | ✅ F8.3 |
+| Feature                      | Status       |
+| ---------------------------- | ------------ |
+| Universal Problem Intake     | ✅ F8.3      |
 | 4 Deterministic Modules (ES) | ✅ F8.1-F8.4 |
-| Research Resolver | ✅ F14 |
-| Document Generation | ✅ F12 |
-| Case Management | ✅ F13 |
-| Multi-Jurisdiction | ✅ F15 |
-| Privacy Controls | ✅ F16 (new) |
-| Case Deletion | ✅ F16 (new) |
-| Data Export | ✅ F16 (new) |
+| Research Resolver            | ✅ F14       |
+| Document Generation          | ✅ F12       |
+| Case Management              | ✅ F13       |
+| Multi-Jurisdiction           | ✅ F15       |
+| Privacy Controls             | ✅ F16 (new) |
+| Case Deletion                | ✅ F16 (new) |
+| Data Export                  | ✅ F16 (new) |
 
 ---
 
@@ -113,22 +114,22 @@ Case stored (anonymous)
 
 ### Variable Costs (Per Case)
 
-| Component | Provider | Cost |
-|-----------|----------|------|
-| AI Interpretation | Groq | ~$0.001 |
-| AI Fact Extraction | Groq | ~$0.001 |
-| AI Document Draft | Groq | ~$0.002 |
-| Research (if needed) | Groq + Web | ~$0.01 |
-| **Total AI/case** | | **~$0.005-0.015** |
+| Component            | Provider   | Cost              |
+| -------------------- | ---------- | ----------------- |
+| AI Interpretation    | Groq       | ~$0.001           |
+| AI Fact Extraction   | Groq       | ~$0.001           |
+| AI Document Draft    | Groq       | ~$0.002           |
+| Research (if needed) | Groq + Web | ~$0.01            |
+| **Total AI/case**    |            | **~$0.005-0.015** |
 
 ### Fixed Costs (Monthly)
 
-| Component | Provider | Cost |
-|-----------|----------|------|
-| Database | Neon | $0-25 |
-| Storage | R2 | $0-5 |
-| Hosting | Vercel | $0-20 |
-| **Total fixed** | | **$0-50** |
+| Component       | Provider | Cost      |
+| --------------- | -------- | --------- |
+| Database        | Neon     | $0-25     |
+| Storage         | R2       | $0-5      |
+| Hosting         | Vercel   | $0-20     |
+| **Total fixed** |          | **$0-50** |
 
 ### Cost Per User
 
@@ -143,21 +144,22 @@ Case stored (anonymous)
 
 ### Models Evaluated
 
-| Model | Verdict | Rationale |
-|-------|---------|-----------|
-| **A: Free** | ✅ RECOMMENDED | Maximizes adoption, builds trust, simple |
-| B: Freemium | ⏸️ DEFER | Validate free first, then evaluate |
-| C: Pay-per-case | ❌ NOT RECOMMENDED | Friction at worst moment, trust issues |
-| D: Subscription | ❌ NOT RECOMMENDED | Infrequent use doesn't justify monthly |
-| E: Credits | ❌ NOT RECOMMENDED | Complex, confusing |
-| F: B2B | ⏸️ POSSIBLE FUTURE | Separate product essentially |
-| G: Hybrid | ⏸️ POSSIBLE V2 | After validating free tier |
+| Model           | Verdict            | Rationale                                |
+| --------------- | ------------------ | ---------------------------------------- |
+| **A: Free**     | ✅ RECOMMENDED     | Maximizes adoption, builds trust, simple |
+| B: Freemium     | ⏸️ DEFER           | Validate free first, then evaluate       |
+| C: Pay-per-case | ❌ NOT RECOMMENDED | Friction at worst moment, trust issues   |
+| D: Subscription | ❌ NOT RECOMMENDED | Infrequent use doesn't justify monthly   |
+| E: Credits      | ❌ NOT RECOMMENDED | Complex, confusing                       |
+| F: B2B          | ⏸️ POSSIBLE FUTURE | Separate product essentially             |
+| G: Hybrid       | ⏸️ POSSIBLE V2     | After validating free tier               |
 
 ### Decision: Free V1
 
 **Resolveo launches FREE.**
 
 Why:
+
 1. **Trust** — Paywalling basic understanding erodes trust
 2. **Mission** — Consumer rights info should be accessible
 3. **Acquisition** — Free drives word-of-mouth
@@ -169,6 +171,7 @@ Why:
 ## 6. What Remains Free (Forever)
 
 Core value proposition:
+
 - Problem understanding
 - Fact extraction
 - Rule analysis
@@ -186,30 +189,33 @@ Core value proposition:
 
 ## 7. What Could Become Paid (V2, If Justified)
 
-| Feature | Rationale | Est. Price |
-|---------|-----------|------------|
-| PDF/DOCX export | Professional formatting | €1-3/doc |
-| Extended research | Deep source analysis | €2-5/research |
-| Case history | Persistent storage | €1-2/month |
-| Multiple cases | Power users | €5-10/month |
-| Priority support | Faster response | €10-20/month |
+| Feature           | Rationale               | Est. Price    |
+| ----------------- | ----------------------- | ------------- |
+| PDF/DOCX export   | Professional formatting | €1-3/doc      |
+| Extended research | Deep source analysis    | €2-5/research |
+| Case history      | Persistent storage      | €1-2/month    |
+| Multiple cases    | Power users             | €5-10/month   |
+| Priority support  | Faster response         | €10-20/month  |
 
 ---
 
 ## 8. Authentication
 
 ### Current State
+
 - No authentication
 - CaseId only credential
 - Cases anonymous
 
 ### When Needed
+
 - Case recovery
 - Multiple devices
 - Paid features
 - Case history
 
 ### Recommendation: DEFER until needed
+
 - Magic links (no passwords)
 - Simple implementation
 
@@ -224,11 +230,12 @@ interface Entitlement {
   feature: string;
   limit?: number;
   used: number;
-  status: "ACTIVE" | "LIMIT_REACHED" | "EXPIRED"
+  status: "ACTIVE" | "LIMIT_REACHED" | "EXPIRED";
 }
 ```
 
 ### Key Principle
+
 **Entitlements control access, NOT legal correctness.**
 
 Free and paid users get same legal analysis.
@@ -239,12 +246,13 @@ Free and paid users get same legal analysis.
 
 ### New Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
+| Endpoint                     | Method | Purpose                         |
+| ---------------------------- | ------ | ------------------------------- |
 | `/api/cases/[caseId]/delete` | DELETE | GDPR Art. 17 - Right to erasure |
-| `/api/cases/[caseId]/data` | GET | GDPR Art. 20 - Data portability |
+| `/api/cases/[caseId]/data`   | GET    | GDPR Art. 20 - Data portability |
 
 ### UI Updates
+
 - Case page now shows "Export data (JSON)" button
 - Case page now shows "Delete case" button with confirmation
 
@@ -297,6 +305,7 @@ Build:      PASS
 ### F17: User Experience & Polish
 
 Focus areas:
+
 1. PDF export
 2. Mobile optimization
 3. Onboarding improvements
@@ -327,6 +336,7 @@ APPROVED
 ### Key Decision
 
 **Resolveo is a FREE product.** Monetization deferred until:
+
 - 1000+ cases created
 - Clear usage patterns emerge
 - Users request paid features
@@ -334,6 +344,6 @@ APPROVED
 
 ---
 
-*Report generated: 2026-09-21*
-*F16 Status: APPROVED*
-*Decision: Free V1, defer commercial architecture*
+_Report generated: 2026-09-21_
+_F16 Status: APPROVED_
+_Decision: Free V1, defer commercial architecture_

@@ -370,11 +370,24 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
                 className="hidden"
                 onChange={(e) => {
                   const files = Array.from(e.target.files ?? []);
-                  setState((prev) => ({ ...prev, evidenceFiles: [...prev.evidenceFiles, ...files] }));
+                  setState((prev) => ({
+                    ...prev,
+                    evidenceFiles: [...prev.evidenceFiles, ...files],
+                  }));
                 }}
               />
-              <svg className="w-8 h-8 text-slate-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+              <svg
+                className="w-8 h-8 text-slate-400 mx-auto mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
+                />
               </svg>
               <p className="text-sm text-slate-500">Arrastra o haz clic para adjuntar</p>
               <p className="text-xs text-slate-400 mt-1">PDF, TXT, JPG, PNG</p>
@@ -432,24 +445,40 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
     return (
       <div className="mx-auto max-w-2xl px-5 md:px-8 py-10 md:py-16">
         <Link href="/" className="cr-btn-ghost text-sm mb-6 -ml-2 inline-flex">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+            />
           </svg>
           Volver
         </Link>
 
         <div className="animate-fade-in">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+          <h1
+            className="text-2xl md:text-3xl font-bold text-slate-900 mb-2"
+            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+          >
             Hemos entendido lo siguiente
           </h1>
           <p className="text-slate-500 mb-8 leading-relaxed">
-            Revisa la información detectada. Podemos hacer preguntas adicionales para completar los datos.
+            Revisa la información detectada. Podemos hacer preguntas adicionales para completar los
+            datos.
           </p>
 
           {/* Problem detected */}
           {routing?.moduleTitle && (
             <div className="cr-surface p-5 mb-5">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Problema detectado</p>
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                Problema detectado
+              </p>
               <p className="text-base font-semibold text-slate-900">{routing.moduleTitle}</p>
               {routing.userExplanation && (
                 <p className="text-sm text-slate-500 mt-1">{routing.userExplanation}</p>
@@ -460,7 +489,9 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
           {/* Summary */}
           {interp.summary && (
             <div className="cr-surface p-5 mb-5">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Resumen</p>
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                Resumen
+              </p>
               <p className="text-sm text-slate-600 leading-relaxed">{interp.summary}</p>
             </div>
           )}
@@ -468,7 +499,9 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
           {/* Fact candidates */}
           {interp.factCandidates.length > 0 && (
             <div className="cr-surface p-5 mb-5">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Datos detectados</p>
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+                Datos detectados
+              </p>
               <div className="space-y-2">
                 {interp.factCandidates.map((fact) => (
                   <div key={fact.candidateId} className="flex items-center gap-3 text-sm">
@@ -485,7 +518,9 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
           {/* Missing information */}
           {interp.missingInformation.length > 0 && (
             <div className="cr-surface p-5 mb-5">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Necesitamos confirmar</p>
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+                Necesitamos confirmar
+              </p>
               <div className="space-y-2">
                 {interp.missingInformation.map((info) => (
                   <div key={info.factKey} className="flex items-start gap-3 text-sm">
@@ -513,14 +548,25 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
               className="cr-btn-primary"
             >
               Completar datos
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
               </svg>
             </button>
           </div>
 
           <p className="mt-6 text-xs text-slate-400">
-            La información detectada es orientativa. Necesitamos confirmarla antes de analizar tu caso.
+            La información detectada es orientativa. Necesitamos confirmarla antes de analizar tu
+            caso.
           </p>
         </div>
       </div>

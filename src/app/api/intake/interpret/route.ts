@@ -115,7 +115,9 @@ export async function POST(request: Request) {
       services.registry.has(routedKey);
     const routedModule = routedKey && moduleIsUsable ? services.registry.get(routedKey) : null;
     const caseProblemSlug = routedModule ? routedModule.key : "unknown";
-    const caseJurisdiction = routedModule ? (routedModule.jurisdictions[0] ?? "UNKNOWN") : "UNKNOWN";
+    const caseJurisdiction = routedModule
+      ? (routedModule.jurisdictions[0] ?? "UNKNOWN")
+      : "UNKNOWN";
 
     let caseId = providedCaseId;
     if (!caseId) {
@@ -131,11 +133,14 @@ export async function POST(request: Request) {
         // Transfer budget tracking from temp key to real caseId
         releaseBudget(budgetKey);
       } catch (caseErr) {
-        console.error("[interpret] Case creation failed:", JSON.stringify({
-          message: caseErr instanceof Error ? caseErr.message : String(caseErr),
-          name: caseErr instanceof Error ? caseErr.name : typeof caseErr,
-          stack: caseErr instanceof Error ? caseErr.stack?.slice(0, 300) : undefined,
-        }));
+        console.error(
+          "[interpret] Case creation failed:",
+          JSON.stringify({
+            message: caseErr instanceof Error ? caseErr.message : String(caseErr),
+            name: caseErr instanceof Error ? caseErr.name : typeof caseErr,
+            stack: caseErr instanceof Error ? caseErr.stack?.slice(0, 300) : undefined,
+          }),
+        );
         releaseBudget(budgetKey);
         return NextResponse.json(
           { error: { code: "CASE_CREATE_FAILED", message: "Could not create case" } },
@@ -194,14 +199,36 @@ export async function POST(request: Request) {
     const errorMsg = error instanceof Error ? error.message : "Unexpected error";
 
     // Log ALL errors for debugging (never expose internals to client)
-    console.error("[interpret] Error:", JSON.stringify({
-      name: error instanceof Error ? error.name : typeof error,
-      message: errorMsg,
-      detail: error instanceof Error && "detail" in error ? String((error as Record<string, unknown>).detail) : undefined,
-      code: error instanceof Error && "aiCode" in error ? String((error as Record<string, unknown>).aiCode) : undefined,
-      causeMessage: error instanceof Error && error.cause instanceof Error ? error.cause.message : undefined,
-      causeDetail: error instanceof Error && error.cause && typeof error.cause === "object" && "detail" in error.cause ? String((error.cause as Record<string, unknown>).detail) : undefined,
-    }, null, 0));
+    console.error(
+      "[interpret] Error:",
+      JSON.stringify(
+        {
+          name: error instanceof Error ? error.name : typeof error,
+          message: errorMsg,
+          detail:
+            error instanceof Error && "detail" in error
+              ? String((error as Record<string, unknown>).detail)
+              : undefined,
+          code:
+            error instanceof Error && "aiCode" in error
+              ? String((error as Record<string, unknown>).aiCode)
+              : undefined,
+          causeMessage:
+            error instanceof Error && error.cause instanceof Error
+              ? error.cause.message
+              : undefined,
+          causeDetail:
+            error instanceof Error &&
+            error.cause &&
+            typeof error.cause === "object" &&
+            "detail" in error.cause
+              ? String((error.cause as Record<string, unknown>).detail)
+              : undefined,
+        },
+        null,
+        0,
+      ),
+    );
 
     // Map known error types
     if (errorMsg.includes("budget exceeded")) {

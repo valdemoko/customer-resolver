@@ -17,18 +17,19 @@
 
 ## Alternatives Considered
 
-| Candidate | Why Rejected |
-|---|---|
-| `wrong-charge` | Too similar to `cancellation-charge` (billing dispute pattern) |
+| Candidate          | Why Rejected                                                                 |
+| ------------------ | ---------------------------------------------------------------------------- |
+| `wrong-charge`     | Too similar to `cancellation-charge` (billing dispute pattern)               |
 | `deposit-withheld` | Insufficient case law for deterministic rules; landlord disputes vary wildly |
-| `auto-renewal` | Overlaps with `cancellation-charge` for contract termination |
-| `delayed-delivery` | Overlaps significantly with `no-delivery-refund` |
+| `auto-renewal`     | Overlaps with `cancellation-charge` for contract termination                 |
+| `delayed-delivery` | Overlaps significantly with `no-delivery-refund`                             |
 
 ## Consumer Problem
 
 > "Me han cancelado un vuelo. ¿Tengo derecho a compensación?"
 
 The passenger's flight was cancelled by the airline. They need to know:
+
 - What compensation they may be entitled to
 - Whether the airline fulfilled its obligations
 - What additional costs they can claim
@@ -42,61 +43,61 @@ The passenger's flight was cancelled by the airline. They need to know:
 
 ## Official Sources
 
-| Source | Article | Status | Verification |
-|---|---|---|---|
-| Reglamento (CE) 261/2004 | Art. 5 (cancellation rights) | PUBLISHED | EUR-Lex 2026-09-20 |
-| Reglamento (CE) 261/2004 | Art. 7 (compensation amounts) | PUBLISHED | EUR-Lex 2026-09-20 |
-| Reglamento (CE) 261/2004 | Art. 8 (reimbursement/rerouting) | PUBLISHED | EUR-Lex 2026-09-20 |
-| Reglamento (CE) 261/2004 | Art. 9 (assistance) | PUBLISHED | EUR-Lex 2026-09-20 |
+| Source                   | Article                                | Status    | Verification       |
+| ------------------------ | -------------------------------------- | --------- | ------------------ |
+| Reglamento (CE) 261/2004 | Art. 5 (cancellation rights)           | PUBLISHED | EUR-Lex 2026-09-20 |
+| Reglamento (CE) 261/2004 | Art. 7 (compensation amounts)          | PUBLISHED | EUR-Lex 2026-09-20 |
+| Reglamento (CE) 261/2004 | Art. 8 (reimbursement/rerouting)       | PUBLISHED | EUR-Lex 2026-09-20 |
+| Reglamento (CE) 261/2004 | Art. 9 (assistance)                    | PUBLISHED | EUR-Lex 2026-09-20 |
 | Reglamento (CE) 261/2004 | Art. 5.3 (extraordinary circumstances) | PUBLISHED | EUR-Lex 2026-09-20 |
 
 ## Required Facts
 
-| Fact Key | Type | Description |
-|---|---|---|
-| `flight.departure_airport` | string | IATA code of departure airport |
-| `flight.arrival_airport` | string | IATA code of arrival airport |
-| `flight.scheduled_date` | date | Scheduled flight date |
-| `cancellation.date` | date | Date airline communicated cancellation |
-| `airline.reimbursement_offered` | boolean | Did airline offer ticket refund? |
-| `airline.re_routing_offered` | boolean | Did airline offer alternative transport? |
-| `airline.assistance_offered` | boolean | Did airline offer assistance? |
+| Fact Key                        | Type    | Description                              |
+| ------------------------------- | ------- | ---------------------------------------- |
+| `flight.departure_airport`      | string  | IATA code of departure airport           |
+| `flight.arrival_airport`        | string  | IATA code of arrival airport             |
+| `flight.scheduled_date`         | date    | Scheduled flight date                    |
+| `cancellation.date`             | date    | Date airline communicated cancellation   |
+| `airline.reimbursement_offered` | boolean | Did airline offer ticket refund?         |
+| `airline.re_routing_offered`    | boolean | Did airline offer alternative transport? |
+| `airline.assistance_offered`    | boolean | Did airline offer assistance?            |
 
 ## Optional Facts
 
-| Fact Key | Type | Description |
-|---|---|---|
-| `cancellation.notice_days` | number | Days of notice (derived) |
-| `passenger.claimed_compensation` | boolean | Has passenger claimed? |
-| `passenger.compensation_received` | boolean | Has passenger received payment? |
-| `passenger.reimbursed` | boolean | Has passenger received refund? |
-| `airline.re_routing.accepted` | boolean | Did passenger accept rerouting? |
-| `airline.re_routing.departure_delay_hours` | number | Delay of alternative flight |
-| `airline.cancellation_reason` | string | Airline's stated reason |
-| `airline.reason_is_extraordinary` | boolean | Airline claims extraordinary circumstances |
-| `passenger.additional_costs` | money | Additional costs from cancellation |
-| `flight.booking_date` | date | When booking was made |
-| `flight.number` | string | Flight number |
-| `airline.name` | string | Airline name |
+| Fact Key                                   | Type    | Description                                |
+| ------------------------------------------ | ------- | ------------------------------------------ |
+| `cancellation.notice_days`                 | number  | Days of notice (derived)                   |
+| `passenger.claimed_compensation`           | boolean | Has passenger claimed?                     |
+| `passenger.compensation_received`          | boolean | Has passenger received payment?            |
+| `passenger.reimbursed`                     | boolean | Has passenger received refund?             |
+| `airline.re_routing.accepted`              | boolean | Did passenger accept rerouting?            |
+| `airline.re_routing.departure_delay_hours` | number  | Delay of alternative flight                |
+| `airline.cancellation_reason`              | string  | Airline's stated reason                    |
+| `airline.reason_is_extraordinary`          | boolean | Airline claims extraordinary circumstances |
+| `passenger.additional_costs`               | money   | Additional costs from cancellation         |
+| `flight.booking_date`                      | date    | When booking was made                      |
+| `flight.number`                            | string  | Flight number                              |
+| `airline.name`                             | string  | Airline name                               |
 
 ## Derived Facts
 
-| Fact Key | Computation | Source |
-|---|---|---|
-| `cancellation.notice_days` | `scheduled_date - cancellation.date` | Art. 5.1(c) EU261 |
-| `flight.distance_km` | Haversine distance from IATA coordinates | Art. 7 EU261 |
-| `flight.compensation_tier` | 250/400/600 based on distance | Art. 7.1 EU261 |
+| Fact Key                   | Computation                              | Source            |
+| -------------------------- | ---------------------------------------- | ----------------- |
+| `cancellation.notice_days` | `scheduled_date - cancellation.date`     | Art. 5.1(c) EU261 |
+| `flight.distance_km`       | Haversine distance from IATA coordinates | Art. 7 EU261      |
+| `flight.compensation_tier` | 250/400/600 based on distance            | Art. 7.1 EU261    |
 
 ## Rules
 
-| # | Rule Key | Legal Basis | What It Establishes |
-|---|---|---|---|
-| 1 | `flight-was-cancelled` | Art. 5.1 | Flight was cancelled by airline |
-| 2 | `compensation-due-insufficient-notice` | Art. 5.1.c | Notice < 14 days before departure |
-| 3 | `compensation-due-no-extraordinary` | Art. 5.3 | No extraordinary circumstances claimed |
-| 4 | `reimbursement-entitlement` | Art. 8.1(a) | Right to ticket reimbursement exists |
-| 5 | `assistance-obligation` | Art. 9.1 | Airline failed to offer assistance |
-| 6 | `additional-costs-claim` | Art. 8.1(c) | Passenger incurred additional costs |
+| #   | Rule Key                               | Legal Basis | What It Establishes                    |
+| --- | -------------------------------------- | ----------- | -------------------------------------- |
+| 1   | `flight-was-cancelled`                 | Art. 5.1    | Flight was cancelled by airline        |
+| 2   | `compensation-due-insufficient-notice` | Art. 5.1.c  | Notice < 14 days before departure      |
+| 3   | `compensation-due-no-extraordinary`    | Art. 5.3    | No extraordinary circumstances claimed |
+| 4   | `reimbursement-entitlement`            | Art. 8.1(a) | Right to ticket reimbursement exists   |
+| 5   | `assistance-obligation`                | Art. 9.1    | Airline failed to offer assistance     |
+| 6   | `additional-costs-claim`               | Art. 8.1(c) | Passenger incurred additional costs    |
 
 ### Anti-Hallucination Compliance
 
@@ -109,23 +110,25 @@ The passenger's flight was cancelled by the airline. They need to know:
 ## Contradictions
 
 The module handles contradictions through the existing F1 contradiction engine:
+
 - Contradicted cancellation date → `CONTRADICTED` status
 - Contradicted notice_days → `CONTRADICTED` status
 - No `latest wins` policy — contradictions persist until resolved
 
 ## Claim Statuses Used
 
-| Status | When |
-|---|---|
-| `SUPPORTED` | Rule conditions met with confirmed facts |
-| `NOT_APPLICABLE` | Rule conditions not met (e.g., notice ≥ 14 days) |
-| `INSUFFICIENT_DATA` | Required facts missing |
-| `CONTRADICTED` | Contradicted facts block evaluation |
-| `POTENTIALLY_APPLICABLE` | Some conditions met, some facts unconfirmed |
+| Status                   | When                                             |
+| ------------------------ | ------------------------------------------------ |
+| `SUPPORTED`              | Rule conditions met with confirmed facts         |
+| `NOT_APPLICABLE`         | Rule conditions not met (e.g., notice ≥ 14 days) |
+| `INSUFFICIENT_DATA`      | Required facts missing                           |
+| `CONTRADICTED`           | Contradicted facts block evaluation              |
+| `POTENTIALLY_APPLICABLE` | Some conditions met, some facts unconfirmed      |
 
 ## Actions
 
 The module connects to existing Action Engine types:
+
 - `COLLECT_INFORMATION` — when required facts are missing
 - `PRESERVE_EVIDENCE` — booking confirmation, cancellation email
 - `CONTACT_MERCHANT` — formal claim to airline
@@ -136,6 +139,7 @@ The module connects to existing Action Engine types:
 ## Universal Intake Compatibility
 
 The module provides:
+
 - `problemKey`: `flight-cancel`
 - `title`: "Vuelo cancelado"
 - `description`: for AI routing
@@ -145,6 +149,7 @@ The module provides:
 ## Tests
 
 **46 tests** covering:
+
 - Module definition (5 tests)
 - Fact catalogue integrity (5 tests)
 - Rule building (6 tests)
@@ -171,35 +176,35 @@ The module provides:
 
 ### New Files
 
-| File | Purpose |
-|---|---|
-| `src/problems/flight-cancel/definition.ts` | Module definition v2 with 7 required + 15 optional + 3 derived facts |
-| `src/problems/flight-cancel/rules.ts` | 8 rules with EU261/2004 source verification (v2 — audit corrected) |
-| `src/problems/flight-cancel/index.ts` | Public surface |
-| `tests/unit/problems/flight-cancel.test.ts` | 85 adversarial tests (v2 — expanded after audit) |
-| `docs/PHASE_8_4_FLIGHT_CANCEL_IMPLEMENTATION_REPORT.md` | This report |
+| File                                                    | Purpose                                                              |
+| ------------------------------------------------------- | -------------------------------------------------------------------- |
+| `src/problems/flight-cancel/definition.ts`              | Module definition v2 with 7 required + 15 optional + 3 derived facts |
+| `src/problems/flight-cancel/rules.ts`                   | 8 rules with EU261/2004 source verification (v2 — audit corrected)   |
+| `src/problems/flight-cancel/index.ts`                   | Public surface                                                       |
+| `tests/unit/problems/flight-cancel.test.ts`             | 85 adversarial tests (v2 — expanded after audit)                     |
+| `docs/PHASE_8_4_FLIGHT_CANCEL_IMPLEMENTATION_REPORT.md` | This report                                                          |
 
 ### Modified Files
 
-| File | Change | Impact |
-|---|---|---|
-| `src/core/problems/analysis-service.ts` | Added `flight-cancel` derived facts (notice_days, distance_km, compensation_tier) with airport coordinates + Haversine | Notice_days: removed Math.max(0) clamp |
-| `src/core/result/engine.ts` | Added 8 assertion templates for flight-cancel rules | Updated for v2 rules |
-| `src/core/rules/evaluator.ts` | Fixed ANY/NOT semantics in `missingAndContradicted` | Missing facts in ANY/NOT no longer falsely reported |
+| File                                    | Change                                                                                                                 | Impact                                              |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `src/core/problems/analysis-service.ts` | Added `flight-cancel` derived facts (notice_days, distance_km, compensation_tier) with airport coordinates + Haversine | Notice_days: removed Math.max(0) clamp              |
+| `src/core/result/engine.ts`             | Added 8 assertion templates for flight-cancel rules                                                                    | Updated for v2 rules                                |
+| `src/core/rules/evaluator.ts`           | Fixed ANY/NOT semantics in `missingAndContradicted`                                                                    | Missing facts in ANY/NOT no longer falsely reported |
 
 ### NOT Modified (documented for integrator)
 
 The following files need `flight-cancel` registration for full integration. These were NOT modified per the F8.4 isolation rule:
 
-| File | Change Needed |
-|---|---|
-| `src/server/intake/composition.ts` | Add `import { flightCancelModule } from "@problems/flight-cancel"` + `registry.register(flightCancelModule)` |
-| `src/app/page.tsx` | Add to `AVAILABLE_PROBLEMS` array |
-| `src/components/SearchBar.tsx` | Add to `PROBLEMS` array with keywords |
-| `src/app/api/problems/[problemKey]/cases/route.ts` | Add import + register |
-| `src/app/api/cases/[caseId]/result/route.ts` | Add import + register |
-| `src/app/api/cases/[caseId]/export/route.ts` | Add import + register |
-| `src/app/api/cases/[caseId]/actions/route.ts` | Add import + register |
+| File                                               | Change Needed                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/server/intake/composition.ts`                 | Add `import { flightCancelModule } from "@problems/flight-cancel"` + `registry.register(flightCancelModule)` |
+| `src/app/page.tsx`                                 | Add to `AVAILABLE_PROBLEMS` array                                                                            |
+| `src/components/SearchBar.tsx`                     | Add to `PROBLEMS` array with keywords                                                                        |
+| `src/app/api/problems/[problemKey]/cases/route.ts` | Add import + register                                                                                        |
+| `src/app/api/cases/[caseId]/result/route.ts`       | Add import + register                                                                                        |
+| `src/app/api/cases/[caseId]/export/route.ts`       | Add import + register                                                                                        |
+| `src/app/api/cases/[caseId]/actions/route.ts`      | Add import + register                                                                                        |
 
 ## Validation
 

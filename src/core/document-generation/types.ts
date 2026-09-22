@@ -38,12 +38,7 @@ export type DocumentType =
  * FINAL requires user review/acceptance.
  */
 export type DocumentStatus =
-  | "DRAFT"
-  | "VALIDATED"
-  | "USER_EDITED"
-  | "FINAL"
-  | "EXPORTED"
-  | "REVOKED";
+  "DRAFT" | "VALIDATED" | "USER_EDITED" | "FINAL" | "EXPORTED" | "REVOKED";
 
 // ── Document Format ─────────────────────────────────────────────────
 

@@ -197,7 +197,8 @@ export interface CaseEvent {
 // ── Communications ────────────────────────────────────────────────
 
 export type CommunicationDirection = "SENT" | "RECEIVED" | "PHONE_CALL" | "IN_PERSON" | "OTHER";
-export type CommunicationChannel = "EMAIL" | "LETTER" | "PHONE" | "ONLINE_FORM" | "IN_PERSON" | "OTHER";
+export type CommunicationChannel =
+  "EMAIL" | "LETTER" | "PHONE" | "ONLINE_FORM" | "IN_PERSON" | "OTHER";
 
 export interface CaseCommunication {
   readonly id: string;

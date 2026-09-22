@@ -100,11 +100,7 @@ export async function POST(
         problemKey,
       }),
     );
-    return errorResponse(
-      "CASE_CREATE_FAILED",
-      sanitizeErrorMessage(error),
-      500,
-    );
+    return errorResponse("CASE_CREATE_FAILED", sanitizeErrorMessage(error), 500);
   }
 
   // First question in the same round trip: no waterfall, no intermediate screen.

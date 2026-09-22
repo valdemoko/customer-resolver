@@ -97,7 +97,9 @@ const MODULE_CHANNELS: Readonly<Record<string, readonly ConsumerChannel[]>> = {
  * Unknown module (or `unknown`): the general list still applies — a consumer
  * problem always has a competent body, even when our rules cannot analyse it.
  */
-export function channelsForProblem(problemKey: string | null | undefined): readonly ConsumerChannel[] {
-  const extra = problemKey ? MODULE_CHANNELS[problemKey] ?? [] : [];
+export function channelsForProblem(
+  problemKey: string | null | undefined,
+): readonly ConsumerChannel[] {
+  const extra = problemKey ? (MODULE_CHANNELS[problemKey] ?? []) : [];
   return [...extra, ...GENERAL_CHANNELS];
 }

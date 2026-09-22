@@ -70,11 +70,7 @@ export class ResearchEngine {
     const legalDomain = this.identifyLegalDomain(problemDescription);
 
     // Generate research questions
-    const questions = this.generateResearchQuestions(
-      problemDescription,
-      legalDomain,
-      jurisdiction,
-    );
+    const questions = this.generateResearchQuestions(problemDescription, legalDomain, jurisdiction);
 
     // Identify missing facts
     const missingFacts = this.identifyMissingFacts(facts, legalDomain);
@@ -119,20 +115,15 @@ export class ResearchEngine {
   /**
    * Validate a source and update its validation status.
    */
-  validateSource(
-    source: ResearchSource,
-    jurisdiction: string,
-  ): ResearchSource {
+  validateSource(source: ResearchSource, jurisdiction: string): ResearchSource {
     const validation = validateSource(source, jurisdiction);
 
     return {
       ...source,
       validationStatus: validation.isValid ? "VALIDATED" : "REJECTED",
       authority: validation.authority,
-      validationNotes: [
-        ...validation.validationNotes,
-        ...validation.warnings,
-      ].join("; ") || undefined,
+      validationNotes:
+        [...validation.validationNotes, ...validation.warnings].join("; ") || undefined,
     };
   }
 
@@ -230,7 +221,11 @@ export class ResearchEngine {
     if (desc.includes("contrato") || desc.includes("servicio") || desc.includes("suscripción")) {
       return "SERVICE_CONSUMER";
     }
-    if (desc.includes("telecomunicaciones") || desc.includes("internet") || desc.includes("móvil")) {
+    if (
+      desc.includes("telecomunicaciones") ||
+      desc.includes("internet") ||
+      desc.includes("móvil")
+    ) {
       return "TELECOM_CONSUMER";
     }
 
@@ -326,19 +321,13 @@ export class ResearchEngine {
     legalDomain: string,
     _jurisdiction: string,
   ): readonly SourceType[] {
-    const categories: SourceType[] = [
-      "LEGISLATION",
-      "REGULATION",
-    ];
+    const categories: SourceType[] = ["LEGISLATION", "REGULATION"];
 
     if (legalDomain === "AVIATION_CONSUMER") {
       categories.push("REGULATION"); // EU regulations
     }
 
-    categories.push(
-      "ADMINISTRATIVE_GUIDANCE",
-      "INSTITUTIONAL_REPORT",
-    );
+    categories.push("ADMINISTRATIVE_GUIDANCE", "INSTITUTIONAL_REPORT");
 
     return categories;
   }
@@ -471,9 +460,7 @@ export class ResearchEngine {
     }
 
     if (conflicts.length > 0) {
-      disclaimers.push(
-        `Se identificaron ${conflicts.length} conflicto(s) entre fuentes.`,
-      );
+      disclaimers.push(`Se identificaron ${conflicts.length} conflicto(s) entre fuentes.`);
     }
 
     return disclaimers;

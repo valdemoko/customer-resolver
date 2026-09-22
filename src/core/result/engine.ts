@@ -406,9 +406,7 @@ function buildMissingInformation(
         questionId: question?.factKey === key ? undefined : question?.factKey,
         ...(answerFactKey !== undefined ? { answerFactKey } : {}),
         ...(askable && question?.type !== undefined ? { answerType: question.type } : {}),
-        ...(askable && question?.options !== undefined
-          ? { answerOptions: question.options }
-          : {}),
+        ...(askable && question?.options !== undefined ? { answerOptions: question.options } : {}),
         description,
         kind: askable ? "question" : "review",
         impact:

@@ -139,88 +139,77 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "seller.rejection_reason",
       type: "string",
-      description:
-        "Motivo declarado por el vendedor para el rechazo (texto libre).",
+      description: "Motivo declarado por el vendedor para el rechazo (texto libre).",
       questionId: "q-rejection-reason",
       required: false,
     },
     {
       key: "seller.rejection_date",
       type: "date",
-      description:
-        "Fecha en que el vendedor comunicó el rechazo.",
+      description: "Fecha en que el vendedor comunicó el rechazo.",
       questionId: "q-rejection-date",
       required: false,
     },
     {
       key: "seller.refused_repair",
       type: "boolean",
-      description:
-        "¿El vendedor se ha negado explícitamente a reparar?",
+      description: "¿El vendedor se ha negado explícitamente a reparar?",
       questionId: "q-refused-repair",
       required: false,
     },
     {
       key: "seller.refused_replacement",
       type: "boolean",
-      description:
-        "¿El vendedor se ha negado explícitamente a sustituir el producto?",
+      description: "¿El vendedor se ha negado explícitamente a sustituir el producto?",
       questionId: "q-refused-replacement",
       required: false,
     },
     {
       key: "seller.offered_repair",
       type: "boolean",
-      description:
-        "¿El vendedor ha ofrecido reparación como medida correctora?",
+      description: "¿El vendedor ha ofrecido reparación como medida correctora?",
       questionId: "q-offered-repair",
       required: false,
     },
     {
       key: "seller.offered_replacement",
       type: "boolean",
-      description:
-        "¿El vendedor ha ofrecido sustitución como medida correctora?",
+      description: "¿El vendedor ha ofrecido sustitución como medida correctora?",
       questionId: "q-offered-replacement",
       required: false,
     },
     {
       key: "seller.claimed_misuse",
       type: "boolean",
-      description:
-        "¿El vendedor ha alegado uso indebido del producto como causa?",
+      description: "¿El vendedor ha alegado uso indebido del producto como causa?",
       questionId: "q-claimed-misuse",
       required: false,
     },
     {
       key: "seller.claimed_external_damage",
       type: "boolean",
-      description:
-        "¿El vendedor ha alegado daño externo (no defecto de fabricación)?",
+      description: "¿El vendedor ha alegado daño externo (no defecto de fabricación)?",
       questionId: "q-claimed-external",
       required: false,
     },
     {
       key: "seller.claimed_warranty_expired",
       type: "boolean",
-      description:
-        "¿El vendedor ha alegado que el plazo de garantía ha expirado?",
+      description: "¿El vendedor ha alegado que el plazo de garantía ha expirado?",
       questionId: "q-claimed-expired",
       required: false,
     },
     {
       key: "seller.claimed_wear_and_tear",
       type: "boolean",
-      description:
-        "¿El vendedor ha alegado desgaste normal por uso?",
+      description: "¿El vendedor ha alegado desgaste normal por uso?",
       questionId: "q-claimed-wear",
       required: false,
     },
     {
       key: "seller.technical_report_available",
       type: "boolean",
-      description:
-        "¿El vendedor dispone de un informe técnico que respalda el rechazo?",
+      description: "¿El vendedor dispone de un informe técnico que respalda el rechazo?",
       questionId: "q-technical-report",
       required: false,
     },
@@ -228,8 +217,7 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
       key: "seller.declared_wont_repair",
       type: "boolean",
       description:
-        "¿El vendedor ha declarado que no va a reparar el producto? " +
-        "Art. 119.f TRLGDCU.",
+        "¿El vendedor ha declarado que no va a reparar el producto? " + "Art. 119.f TRLGDCU.",
       questionId: "q-declared-wont-repair",
       required: false,
     },
@@ -238,16 +226,14 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "repair.requested",
       type: "boolean",
-      description:
-        "¿El consumidor ha solicitado reparación al vendedor?",
+      description: "¿El consumidor ha solicitado reparación al vendedor?",
       questionId: "q-repair-requested",
       required: false,
     },
     {
       key: "repair.completed",
       type: "boolean",
-      description:
-        "¿El vendedor ha completado una reparación?",
+      description: "¿El vendedor ha completado una reparación?",
       questionId: "q-repair-completed",
       required: false,
     },
@@ -263,8 +249,7 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "repair.failed",
       type: "boolean",
-      description:
-        "¿La reparación falló (el producto no fue restaurado a conformidad)?",
+      description: "¿La reparación falló (el producto no fue restaurado a conformidad)?",
       questionId: "q-repair-failed",
       required: false,
     },
@@ -280,16 +265,14 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "repair.defect_different",
       type: "boolean",
-      description:
-        "¿Apareció un defecto DIFERENTE después de la reparación?",
+      description: "¿Apareció un defecto DIFERENTE después de la reparación?",
       questionId: "q-different-defect",
       required: false,
     },
     {
       key: "repair.within_reasonable_time",
       type: "boolean",
-      description:
-        "¿La reparación se completó en un plazo razonable? Art. 118.4.b.",
+      description: "¿La reparación se completó en un plazo razonable? Art. 118.4.b.",
       questionId: "q-repair-reasonable-time",
       required: false,
     },
@@ -298,16 +281,14 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "replacement.completed",
       type: "boolean",
-      description:
-        "¿El vendedor ha completado una sustitución del producto?",
+      description: "¿El vendedor ha completado una sustitución del producto?",
       questionId: "q-replacement-completed",
       required: false,
     },
     {
       key: "replacement.delivery_date",
       type: "date",
-      description:
-        "Fecha en que el producto sustituido fue entregado.",
+      description: "Fecha en que el producto sustituido fue entregado.",
       questionId: "q-replacement-date",
       required: false,
     },
@@ -316,32 +297,28 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "commercial_warranty.exists",
       type: "boolean",
-      description:
-        "¿Existe un documento de garantía comercial separada?",
+      description: "¿Existe un documento de garantía comercial separada?",
       questionId: "q-commercial-warranty",
       required: false,
     },
     {
       key: "commercial_warranty.guarantor",
       type: "string",
-      description:
-        "¿Quién es el garante de la garantía comercial (fabricante, vendedor, tercero)?",
+      description: "¿Quién es el garante de la garantía comercial (fabricante, vendedor, tercero)?",
       questionId: "q-guarantor",
       required: false,
     },
     {
       key: "commercial_warranty.period_months",
       type: "number",
-      description:
-        "Duración de la garantía comercial en meses.",
+      description: "Duración de la garantía comercial en meses.",
       questionId: "q-warranty-period",
       required: false,
     },
     {
       key: "commercial_warranty.expired",
       type: "boolean",
-      description:
-        "¿Ha expirado el plazo de la garantía comercial?",
+      description: "¿Ha expirado el plazo de la garantía comercial?",
       questionId: "q-warranty-expired",
       required: false,
     },
@@ -350,8 +327,7 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "consumer.notified_seller",
       type: "boolean",
-      description:
-        "¿El consumidor ha notificado formalmente al vendedor la falta de conformidad?",
+      description: "¿El consumidor ha notificado formalmente al vendedor la falta de conformidad?",
       questionId: "q-notified-seller",
       required: false,
     },
@@ -367,8 +343,7 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
     {
       key: "consumer.resolution_declared",
       type: "boolean",
-      description:
-        "¿El consumidor ha declarado la resolución del contrato al vendedor?",
+      description: "¿El consumidor ha declarado la resolución del contrato al vendedor?",
       questionId: "q-resolution-declared",
       required: false,
     },

@@ -106,7 +106,10 @@ export function TraceDemo({ trace, scenario, outcome, variant = "full" }: TraceD
             </p>
             <ul className="space-y-2">
               {rule.sources.map((source) => (
-                <li key={source.id} className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                <li
+                  key={source.id}
+                  className="text-xs text-[var(--color-ink-muted)] leading-relaxed"
+                >
                   <span className="text-[var(--color-ink-soft)] font-medium">{source.title}</span>
                   <span className="block text-[var(--color-ink-faint)]">
                     {source.externalId} · {source.versionIdentifier} · consultada el{" "}

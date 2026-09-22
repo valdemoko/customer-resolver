@@ -311,9 +311,7 @@ describe("Security: no private data leakage", () => {
   it("problem catalogue contains no case IDs", () => {
     for (const p of PROBLEM_CATALOGUE) {
       // Slugs should not contain UUID-like patterns
-      expect(p.slug).not.toMatch(
-        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
-      );
+      expect(p.slug).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     }
   });
 

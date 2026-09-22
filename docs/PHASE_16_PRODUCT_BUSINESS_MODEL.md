@@ -33,17 +33,17 @@ Resolveo helps users resolve consumer disputes by:
 
 ### Current Capabilities
 
-| Capability | Status |
-|------------|--------|
-| Universal Problem Intake | ✅ Implemented |
-| 4 Deterministic Modules | ✅ ES: cancellation-charge, no-delivery-refund, warranty-rejection, flight-cancel |
-| Research Resolver | ✅ Implemented (F14) |
-| Document Generation | ✅ Implemented (F12) |
-| Case Management | ✅ Implemented (F13) |
-| Multi-Jurisdiction | ✅ Implemented (F15) — 9 jurisdictions configured |
-| Authentication | ❌ Not implemented |
-| Billing | ❌ Not implemented |
-| User Accounts | ❌ Not implemented |
+| Capability               | Status                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| Universal Problem Intake | ✅ Implemented                                                                    |
+| 4 Deterministic Modules  | ✅ ES: cancellation-charge, no-delivery-refund, warranty-rejection, flight-cancel |
+| Research Resolver        | ✅ Implemented (F14)                                                              |
+| Document Generation      | ✅ Implemented (F12)                                                              |
+| Case Management          | ✅ Implemented (F13)                                                              |
+| Multi-Jurisdiction       | ✅ Implemented (F15) — 9 jurisdictions configured                                 |
+| Authentication           | ❌ Not implemented                                                                |
+| Billing                  | ❌ Not implemented                                                                |
+| User Accounts            | ❌ Not implemented                                                                |
 
 ---
 
@@ -108,22 +108,22 @@ Case stored (anonymous)
 
 ### Variable Costs (Per Case)
 
-| Component | Provider | Estimated Cost |
-|-----------|----------|----------------|
-| AI Interpretation | Groq (llama-3.1-8b-instant) | ~$0.001 per case |
-| AI Fact Extraction | Groq | ~$0.001 per case |
-| AI Document Draft | Groq | ~$0.002 per case |
-| Research (if needed) | Groq + Web Search | ~$0.01 per case |
-| **Total AI per case** | | **~$0.005-0.015** |
+| Component             | Provider                    | Estimated Cost    |
+| --------------------- | --------------------------- | ----------------- |
+| AI Interpretation     | Groq (llama-3.1-8b-instant) | ~$0.001 per case  |
+| AI Fact Extraction    | Groq                        | ~$0.001 per case  |
+| AI Document Draft     | Groq                        | ~$0.002 per case  |
+| Research (if needed)  | Groq + Web Search           | ~$0.01 per case   |
+| **Total AI per case** |                             | **~$0.005-0.015** |
 
 ### Fixed Costs (Monthly)
 
-| Component | Provider | Estimated Cost |
-|-----------|----------|----------------|
-| Database | Neon (PostgreSQL) | $0-25 |
-| Object Storage | Cloudflare R2 | $0-5 |
-| Hosting | Vercel/other | $0-20 |
-| **Total fixed** | | **$0-50** |
+| Component       | Provider          | Estimated Cost |
+| --------------- | ----------------- | -------------- |
+| Database        | Neon (PostgreSQL) | $0-25          |
+| Object Storage  | Cloudflare R2     | $0-5           |
+| Hosting         | Vercel/other      | $0-20          |
+| **Total fixed** |                   | **$0-50**      |
 
 ### Cost Per User
 
@@ -139,6 +139,7 @@ Case stored (anonymous)
 ### Model A: Free Product
 
 **Pros:**
+
 - Maximizes adoption and usage
 - Builds trust (no paywall for basic understanding)
 - Simple to implement
@@ -146,6 +147,7 @@ Case stored (anonymous)
 - Aligns with public interest mission
 
 **Cons:**
+
 - No revenue
 - Must fund hosting/AI costs
 - May attract abuse
@@ -155,6 +157,7 @@ Case stored (anonymous)
 ### Model B: Freemium
 
 **Potential paid features:**
+
 - PDF/DOCX export
 - Multiple cases
 - Historical case storage
@@ -162,11 +165,13 @@ Case stored (anonymous)
 - Priority support
 
 **Pros:**
+
 - Revenue from power users
 - Free tier validates product
 - Clear value upgrade path
 
 **Cons:**
+
 - May fragment user experience
 - Requires authentication
 - Requires billing infrastructure
@@ -177,10 +182,12 @@ Case stored (anonymous)
 ### Model C: Pay-per-Case
 
 **Pros:**
+
 - Clear value exchange
 - Only pay when you use it
 
 **Cons:**
+
 - Users don't know value until after analysis
 - Creates friction at worst moment
 - May prevent users from seeking help
@@ -191,10 +198,12 @@ Case stored (anonymous)
 ### Model D: Subscription
 
 **Pros:**
+
 - Predictable revenue
 - Encourages retention
 
 **Cons:**
+
 - Consumer problems are infrequent (1-2 per year)
 - Users won't pay monthly for occasional use
 - Overkill for most consumers
@@ -204,10 +213,12 @@ Case stored (anonymous)
 ### Model E: Credits/Usage
 
 **Pros:**
+
 - Flexible
 - Pay for what you use
 
 **Cons:**
+
 - Complex to implement
 - Users don't understand credits
 - Creates artificial friction
@@ -217,16 +228,19 @@ Case stored (anonymous)
 ### Model F: B2B/Professional
 
 **Potential:**
+
 - Consumer advocacy organizations
 - Small businesses handling complaints
 - Legal clinics
 
 **Pros:**
+
 - Higher willingness to pay
 - Institutional budgets
 - Can fund consumer tier
 
 **Cons:**
+
 - Requires different UX
 - Different value proposition
 - Separate product essentially
@@ -236,15 +250,18 @@ Case stored (anonymous)
 ### Model G: Hybrid
 
 **Potential:**
+
 - Free basic analysis
 - Paid document generation
 - Paid research
 
 **Pros:**
+
 - Revenue from value-added services
 - Free tier builds trust
 
 **Cons:**
+
 - Requires clear value differentiation
 - May confuse users
 
@@ -271,6 +288,7 @@ Case stored (anonymous)
 ### Phase 3: Commercial Architecture (If justified)
 
 Based on Phase 2 data, implement:
+
 - Authentication (for case recovery)
 - Entitlements (generic, not hardcoded)
 - Billing (if pay-per-case or freemium selected)
@@ -280,6 +298,7 @@ Based on Phase 2 data, implement:
 ## 7. What Remains Free (Forever)
 
 Core value proposition must remain free:
+
 - Problem understanding
 - Fact extraction
 - Rule analysis
@@ -297,13 +316,13 @@ Core value proposition must remain free:
 
 ## 8. What Could Become Paid (V2, If Justified)
 
-| Feature | Rationale | WTP |
-|---------|-----------|-----|
-| PDF/DOCX export | Professional formatting | €1-3 per document |
-| Extended research | Deep source analysis | €2-5 per research |
-| Case history | Persistent storage | €1-2/month |
-| Multiple active cases | Power users | €5-10/month |
-| Priority support | Faster response | €10-20/month |
+| Feature               | Rationale               | WTP               |
+| --------------------- | ----------------------- | ----------------- |
+| PDF/DOCX export       | Professional formatting | €1-3 per document |
+| Extended research     | Deep source analysis    | €2-5 per research |
+| Case history          | Persistent storage      | €1-2/month        |
+| Multiple active cases | Power users             | €5-10/month       |
+| Priority support      | Faster response         | €10-20/month      |
 
 WTP = Willingness to Pay (estimated)
 
@@ -327,6 +346,7 @@ WTP = Willingness to Pay (estimated)
 ### Recommendation
 
 **Defer authentication until:**
+
 1. Users request it (feedback signal)
 2. Paid features are implemented
 3. Case recovery becomes critical
@@ -345,10 +365,10 @@ WTP = Willingness to Pay (estimated)
 
 ```typescript
 interface Entitlement {
-  feature: string;      // "CASE_ANALYSIS", "RESEARCH", "DOCUMENT_GENERATION"
-  limit?: number;       // Max usage (null = unlimited)
-  used: number;         // Current usage
-  status: "ACTIVE" | "LIMIT_REACHED" | "EXPIRED"
+  feature: string; // "CASE_ANALYSIS", "RESEARCH", "DOCUMENT_GENERATION"
+  limit?: number; // Max usage (null = unlimited)
+  used: number; // Current usage
+  status: "ACTIVE" | "LIMIT_REACHED" | "EXPIRED";
 }
 ```
 
@@ -360,7 +380,7 @@ interface UsageRecord {
   feature: string;
   timestamp: Date;
   caseId?: string;
-  cost?: number;        // AI cost incurred
+  cost?: number; // AI cost incurred
 }
 ```
 
@@ -404,15 +424,15 @@ A free user and a paid user get the same legal analysis. Paid features are conve
 
 ```typescript
 // Product analytics (privacy-preserving)
-case_created          // New case started
-case_completed        // Case reached result
-document_generated    // Document created
-research_used         // Research resolver invoked
+case_created; // New case started
+case_completed; // Case reached result
+document_generated; // Document created
+research_used; // Research resolver invoked
 
 // Not tracked (privacy)
-case_content          // What user wrote
-evidence_content      // What user uploaded
-legal_analysis        // What rules applied
+case_content; // What user wrote
+evidence_content; // What user uploaded
+legal_analysis; // What rules applied
 ```
 
 ### Implementation
@@ -504,6 +524,7 @@ legal_analysis        // What rules applied
 **Resolveo should launch as a free product.**
 
 Rationale:
+
 1. Validates core value proposition
 2. Builds trust (no paywall for basic understanding)
 3. Simple to implement (no billing infrastructure)
@@ -513,6 +534,7 @@ Rationale:
 ### Secondary Decision: Defer Commercial Architecture
 
 **Commercial architecture (auth, billing, entitlements) should be deferred until:**
+
 1. 1000+ cases created
 2. Clear usage patterns emerge
 3. Users request paid features
@@ -521,6 +543,7 @@ Rationale:
 ### Tertiary Decision: Prepare for Future
 
 **When commercial architecture is needed:**
+
 1. Implement generic entitlement model (not hardcoded)
 2. Keep domain logic independent from billing
 3. Use magic link auth (no passwords)
@@ -554,6 +577,6 @@ Rationale:
 
 ---
 
-*Document created: 2026-09-21*
-*Decision: Free V1, defer commercial architecture*
-*Review date: After 1000 cases or 6 months, whichever comes first*
+_Document created: 2026-09-21_
+_Decision: Free V1, defer commercial architecture_
+_Review date: After 1000 cases or 6 months, whichever comes first_

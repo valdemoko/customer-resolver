@@ -91,7 +91,7 @@ describe("F15 — Jurisdiction Configuration", () => {
   it("returns jurisdictions by support level", () => {
     const deterministic = getJurisdictionsByLevel("DETERMINISTIC");
     expect(deterministic.length).toBeGreaterThanOrEqual(1);
-    expect(deterministic.some(j => j.code === "ES")).toBe(true);
+    expect(deterministic.some((j) => j.code === "ES")).toBe(true);
 
     const researchOnly = getJurisdictionsByLevel("RESEARCH_ONLY");
     expect(researchOnly.length).toBeGreaterThanOrEqual(1);

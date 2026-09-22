@@ -232,7 +232,12 @@ describe("Result Engine — buildResult", () => {
   it("names the company the claim is against, with its contacts when known", () => {
     const withCompany = buildResult({
       ...BASE_INPUT,
-      facts: [makeFact({ key: "seller.name" as Fact["key"], value: { type: "string", value: "Vueling" } })],
+      facts: [
+        makeFact({
+          key: "seller.name" as Fact["key"],
+          value: { type: "string", value: "Vueling" },
+        }),
+      ],
     });
     expect(withCompany.company?.name).toBe("Vueling");
     expect(withCompany.company?.known).toBe(true);

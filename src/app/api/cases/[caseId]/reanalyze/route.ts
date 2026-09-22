@@ -58,10 +58,7 @@ const PRIVATE_CACHE_HEADERS = {
   Pragma: "no-cache",
 } as const;
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ caseId: string }> },
-) {
+export async function POST(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
 
   if (!isValidCaseId(caseId)) {
@@ -94,9 +91,8 @@ export async function POST(
       );
     }
 
-    const previousSnapshotId = loaded.snapshots.length > 0
-      ? loaded.snapshots[loaded.snapshots.length - 1]!.id
-      : undefined;
+    const previousSnapshotId =
+      loaded.snapshots.length > 0 ? loaded.snapshots[loaded.snapshots.length - 1]!.id : undefined;
 
     // Run analysis to get evaluations
     const analysis = await services.analysisService.runProblemAnalysis(caseId);

@@ -128,10 +128,7 @@ export function getProblemTrace(problemKey: string, problemTitle: string): Probl
     return {
       key: rule.key,
       title: rule.title,
-      facts: keys.map(
-        (key) =>
-          factsByKey.get(key) ?? { key, label: key, derived: false },
-      ),
+      facts: keys.map((key) => factsByKey.get(key) ?? { key, label: key, derived: false }),
       sources: rule.sourceIds
         .map((id) => sourcesById.get(id))
         .filter((source): source is PublicSource => Boolean(source)),

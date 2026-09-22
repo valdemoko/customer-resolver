@@ -46,8 +46,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
     databaseStatus = "unavailable";
   }
 
-  const overallStatus =
-    databaseStatus === "unavailable" ? "unhealthy" : "healthy";
+  const overallStatus = databaseStatus === "unavailable" ? "unhealthy" : "healthy";
 
   const response: HealthStatus = {
     status: overallStatus,

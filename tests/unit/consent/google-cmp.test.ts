@@ -13,17 +13,15 @@ import { GoogleConsentCmp, isValidCmpSrc } from "@/components/GoogleConsentCmp";
 
 describe("GoogleConsentCmp", () => {
   it("accepts the URL shape Google generates", () => {
-    expect(
-      isValidCmpSrc("https://fundingchoicesmessages.google.com/i/123456789012345?ers=1"),
-    ).toBe(true);
+    expect(isValidCmpSrc("https://fundingchoicesmessages.google.com/i/123456789012345?ers=1")).toBe(
+      true,
+    );
     expect(isValidCmpSrc("https://www.google.com/something")).toBe(true);
   });
 
   it("refuses anything that is not https on Google", () => {
     expect(isValidCmpSrc("http://fundingchoicesmessages.google.com/i/1")).toBe(false);
-    expect(isValidCmpSrc("https://fundingchoicesmessages.google.com.evil.test/i/1")).toBe(
-      false,
-    );
+    expect(isValidCmpSrc("https://fundingchoicesmessages.google.com.evil.test/i/1")).toBe(false);
     expect(isValidCmpSrc("https://example.com/cmp.js")).toBe(false);
     expect(isValidCmpSrc("javascript:alert(1)")).toBe(false);
     expect(isValidCmpSrc("/i/placeholder")).toBe(false);
@@ -36,6 +34,8 @@ describe("GoogleConsentCmp", () => {
     expect(GoogleConsentCmp({ src: "   " })).toBeNull();
     // A malformed value is ignored rather than shipped to every visitor.
     expect(GoogleConsentCmp({ src: "https://example.com/cmp.js" })).toBeNull();
-    expect(GoogleConsentCmp({ src: "https://fundingchoicesmessages.google.com/i/x" })).not.toBeNull();
+    expect(
+      GoogleConsentCmp({ src: "https://fundingchoicesmessages.google.com/i/x" }),
+    ).not.toBeNull();
   });
 });

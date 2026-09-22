@@ -22,11 +22,11 @@ import { getDefaultCurrency } from "./config";
 // ── Jurisdiction Resolution Status ──────────────────────────────────
 
 export type JurisdictionResolutionStatus =
-  | "CONFIRMED"      // Jurisdiction explicitly confirmed by user
-  | "DETECTED"       // Jurisdiction inferred from context (needs confirmation)
-  | "AMBIGUOUS"      // Multiple possible jurisdictions
-  | "UNKNOWN"        // No jurisdiction information available
-  | "UNSUPPORTED";   // Jurisdiction exists but not supported
+  | "CONFIRMED" // Jurisdiction explicitly confirmed by user
+  | "DETECTED" // Jurisdiction inferred from context (needs confirmation)
+  | "AMBIGUOUS" // Multiple possible jurisdictions
+  | "UNKNOWN" // No jurisdiction information available
+  | "UNSUPPORTED"; // Jurisdiction exists but not supported
 
 // ── Jurisdiction Resolution Result ──────────────────────────────────
 
@@ -132,7 +132,10 @@ export class JurisdictionResolver {
   /**
    * Check if a jurisdiction is compatible with a problem module.
    */
-  isModuleCompatible(moduleKey: string, jurisdictionCode: string): {
+  isModuleCompatible(
+    moduleKey: string,
+    jurisdictionCode: string,
+  ): {
     compatible: boolean;
     supportLevel: JurisdictionSupportLevel;
     reason?: string;
@@ -238,10 +241,7 @@ export class JurisdictionResolver {
     };
   }
 
-  private resolveFromCountry(
-    country: string,
-    userLocale?: string,
-  ): JurisdictionResolution {
+  private resolveFromCountry(country: string, userLocale?: string): JurisdictionResolution {
     // Try to match country to jurisdiction code
     const countryToUpper = country.toUpperCase();
     const config = getJurisdictionConfig(countryToUpper);
@@ -273,10 +273,7 @@ export class JurisdictionResolver {
     };
   }
 
-  private resolveFromLanguage(
-    language: string,
-    userLocale?: string,
-  ): JurisdictionResolution {
+  private resolveFromLanguage(language: string, userLocale?: string): JurisdictionResolution {
     // Language alone is NOT sufficient for jurisdiction
     // This is a critical design decision
     const lang = language.toLowerCase();

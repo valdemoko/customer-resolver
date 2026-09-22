@@ -61,8 +61,7 @@ const VERIFIER = "human-reviewer-1";
 const trlgdcu117: Source = {
   id: "src-es-trlgdcu-art-117" as Source["id"],
   externalId: "BOE-A-2007-20555-art117",
-  title:
-    "Real Decreto Legislativo 1/2007, TRLGDCU (art. 117) — Responsabilidad del empresario",
+  title: "Real Decreto Legislativo 1/2007, TRLGDCU (art. 117) — Responsabilidad del empresario",
   publisher: "Agencia Estatal Boletín Oficial del Estado",
   url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-20555",
   jurisdiction: { country: "ES" },
@@ -87,8 +86,7 @@ const trlgdcu117: Source = {
 const trlgdcu118: Source = {
   id: "src-es-trlgdcu-art-118" as Source["id"],
   externalId: "BOE-A-2007-20555-art118",
-  title:
-    "Real Decreto Legislativo 1/2007, TRLGDCU (art. 118) — Puesta en conformidad",
+  title: "Real Decreto Legislativo 1/2007, TRLGDCU (art. 118) — Puesta en conformidad",
   publisher: "Agencia Estatal Boletín Oficial del Estado",
   url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-20555",
   jurisdiction: { country: "ES" },
@@ -116,8 +114,7 @@ const trlgdcu118: Source = {
 const trlgdcu119: Source = {
   id: "src-es-trlgdcu-art-119" as Source["id"],
   externalId: "BOE-A-2007-20555-art119",
-  title:
-    "Real Decreto Legislativo 1/2007, TRLGDCU (art. 119) — Reducción del precio y resolución",
+  title: "Real Decreto Legislativo 1/2007, TRLGDCU (art. 119) — Reducción del precio y resolución",
   publisher: "Agencia Estatal Boletín Oficial del Estado",
   url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-20555",
   jurisdiction: { country: "ES" },
@@ -146,8 +143,7 @@ const trlgdcu119: Source = {
 const trlgdcu120: Source = {
   id: "src-es-trlgdcu-art-120" as Source["id"],
   externalId: "BOE-A-2007-20555-art120",
-  title:
-    "Real Decreto Legislativo 1/2007, TRLGDCU (art. 120) — Plazos de responsabilidad",
+  title: "Real Decreto Legislativo 1/2007, TRLGDCU (art. 120) — Plazos de responsabilidad",
   publisher: "Agencia Estatal Boletín Oficial del Estado",
   url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-20555",
   jurisdiction: { country: "ES" },
@@ -173,8 +169,7 @@ const trlgdcu120: Source = {
 const trlgdcu121: Source = {
   id: "src-es-trlgdcu-art-121" as Source["id"],
   externalId: "BOE-A-2007-20555-art121",
-  title:
-    "Real Decreto Legislativo 1/2007, TRLGDCU (art. 121) — Carga de la prueba",
+  title: "Real Decreto Legislativo 1/2007, TRLGDCU (art. 121) — Carga de la prueba",
   publisher: "Agencia Estatal Boletín Oficial del Estado",
   url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-20555",
   jurisdiction: { country: "ES" },
@@ -199,8 +194,7 @@ const trlgdcu121: Source = {
 const trlgdcu122: Source = {
   id: "src-es-trlgdcu-art-122" as Source["id"],
   externalId: "BOE-A-2007-20555-art122",
-  title:
-    "Real Decreto Legislativo 1/2007, TRLGDCU (art. 122) — Suspensión de plazos",
+  title: "Real Decreto Legislativo 1/2007, TRLGDCU (art. 122) — Suspensión de plazos",
   publisher: "Agencia Estatal Boletín Oficial del Estado",
   url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-20555",
   jurisdiction: { country: "ES" },

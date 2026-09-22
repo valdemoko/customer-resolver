@@ -27,9 +27,7 @@ export default function PrivacyPage() {
         Política de Privacidad
       </h1>
 
-      <p className="text-sm text-slate-400 mb-8">
-        Última actualización: septiembre de 2026
-      </p>
+      <p className="text-sm text-slate-400 mb-8">Última actualización: septiembre de 2026</p>
 
       <div className="space-y-8 text-slate-600 leading-relaxed">
         {/* ── 1. Responsable ────────────────────────────────────── */}
@@ -42,22 +40,20 @@ export default function PrivacyPage() {
           </h2>
           <p className="mb-3">
             Resolveo es un proyecto independiente que mantiene el sitio{" "}
-            <span className="font-medium text-slate-800">resolveo.site</span>. La
-            persona responsable del tratamiento de los datos de este sitio es
-            quien lo mantiene y puede ser contactada en{" "}
+            <span className="font-medium text-slate-800">resolveo.site</span>. La persona
+            responsable del tratamiento de los datos de este sitio es quien lo mantiene y puede ser
+            contactada en{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}?subject=Privacidad`}
               className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
             >
               {CONTACT_EMAIL}
             </a>
-            , que es también el canal para ejercer los derechos descritos más
-            abajo.
+            , que es también el canal para ejercer los derechos descritos más abajo.
           </p>
           <p>
-            Resolveo no es un despacho jurídico, no presta servicios legales y
-            no dispone de cuentas de usuario: un caso se consulta con su
-            identificador único.
+            Resolveo no es un despacho jurídico, no presta servicios legales y no dispone de cuentas
+            de usuario: un caso se consulta con su identificador único.
           </p>
         </section>
 
@@ -70,29 +66,26 @@ export default function PrivacyPage() {
             Qué datos recopilamos
           </h2>
           <p className="mb-3">
-            Únicamente la información que proporcionas voluntariamente al crear
-            un caso:
+            Únicamente la información que proporcionas voluntariamente al crear un caso:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>
-              <strong>Datos del caso:</strong> fechas, importes, empresa
-              implicada, descripción del problema y las respuestas que das al
-              cuestionario.
+              <strong>Datos del caso:</strong> fechas, importes, empresa implicada, descripción del
+              problema y las respuestas que das al cuestionario.
             </li>
             <li>
-              <strong>Documentos:</strong> los archivos que subes como
-              evidencia y el texto que se extrae de ellos.
+              <strong>Documentos:</strong> los archivos que subes como evidencia y el texto que se
+              extrae de ellos.
             </li>
             <li>
-              <strong>Correo de contacto:</strong> si nos escribes, la dirección
-              desde la que lo haces y el contenido del mensaje.
+              <strong>Correo de contacto:</strong> si nos escribes, la dirección desde la que lo
+              haces y el contenido del mensaje.
             </li>
           </ul>
           <p className="mt-3">
-            No pedimos nombre, DNI, dirección postal ni datos de pago, y el
-            cuestionario no los solicita. Si en la descripción incluyes datos
-            personales por iniciativa propia, se tratarán con la misma finalidad
-            y las mismas garantías que el resto del caso.
+            No pedimos nombre, DNI, dirección postal ni datos de pago, y el cuestionario no los
+            solicita. Si en la descripción incluyes datos personales por iniciativa propia, se
+            tratarán con la misma finalidad y las mismas garantías que el resto del caso.
           </p>
         </section>
 
@@ -105,52 +98,52 @@ export default function PrivacyPage() {
             Qué proveedores técnicos intervienen
           </h2>
           <p className="mb-3">
-            Para que el servicio funcione, el contenido que envías pasa por
-            proveedores que actúan como encargados del tratamiento, cada uno con
-            una función concreta:
+            Para que el servicio funcione, el contenido que envías pasa por proveedores que actúan
+            como encargados del tratamiento, cada uno con una función concreta:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>
-              <strong>Alojamiento:</strong> el sitio y sus funciones se ejecutan
-              en infraestructura de Vercel, que puede procesar peticiones en
-              centros de datos de la Unión Europea y de Estados Unidos.
+              <strong>Alojamiento:</strong> el sitio y sus funciones se ejecutan en infraestructura
+              de Vercel, que puede procesar peticiones en centros de datos de la Unión Europea y de
+              Estados Unidos.
             </li>
             <li>
-              <strong>Base de datos:</strong> los casos se almacenan en una base
-              de datos PostgreSQL gestionada por Neon, alojada en la Unión
-              Europea (región de Fráncfort).
+              <strong>Base de datos:</strong> los casos se almacenan en una base de datos PostgreSQL
+              gestionada por Neon, alojada en la Unión Europea (región de Fráncfort).
             </li>
             <li>
-              <strong>Modelos de lenguaje:</strong> el texto de tu caso, tus
-              respuestas y el texto extraído de los documentos se envían a
-              proveedores de modelos de lenguaje (Groq y OpenAI) para
-              interpretar el problema y extraer los datos que faltan. No se
-              envían a esos proveedores tu dirección de correo ni tu
-              identificador de caso como tal.
+              <strong>Modelos de lenguaje:</strong> el texto de tu caso, tus respuestas y el texto
+              extraído de los documentos se envían a proveedores de modelos de lenguaje (Groq y
+              OpenAI) para interpretar el problema y extraer los datos que faltan. No se envían a
+              esos proveedores tu dirección de correo ni tu identificador de caso como tal.
             </li>
             <li>
-              <strong>Almacenamiento de archivos:</strong> si envías documentos,
-              el archivo original se guarda en almacenamiento de objetos de
-              Cloudflare (R2) cuando esa función está activa; el análisis del
-              texto se realiza igualmente aunque el guardado del binario no esté
-              disponible.
+              <strong>Almacenamiento de archivos:</strong> si envías documentos, el archivo original
+              se guarda en almacenamiento de objetos de Cloudflare (R2) cuando esa función está
+              activa; el análisis del texto se realiza igualmente aunque el guardado del binario no
+              esté disponible.
             </li>
             <li>
-              <strong>Analítica:</strong> Plausible Analytics (Estonia, Unión
-              Europea), con métricas agregadas y sin cookies.
+              <strong>Analítica:</strong> Plausible Analytics (Estonia, Unión Europea), con métricas
+              agregadas y sin cookies.
             </li>
             <li>
-              <strong>Correo:</strong> si escribes a la dirección de contacto, el
-              proveedor de correo utilizado para gestionarla.
+              <strong>Tipografías:</strong> las fuentes del sitio (Instrument Serif, Inter y
+              JetBrains Mono) se sirven desde los servidores de Google (fonts.googleapis.com y
+              fonts.gstatic.com), que reciben la dirección IP de tu navegador al cargar la página.
+              Estas peticiones no crean cookies ni identificadores persistentes.
+            </li>
+            <li>
+              <strong>Correo:</strong> si escribes a la dirección de contacto, el proveedor de
+              correo utilizado para gestionarla.
             </li>
           </ul>
           <p className="mt-3">
-            Tus datos no se venden ni se ceden con fines publicitarios. La
-            comunicación a estos proveedores se limita a lo necesario para
-            prestar el servicio y se ampara en los contratos de encargo
-            correspondientes. Cuando un proveedor está fuera del Espacio
-            Económico Europeo, la transferencia se realiza con las garantías
-            previstas en el RGPD (cláusulas contractuales tipo).
+            Tus datos no se venden ni se ceden con fines publicitarios. La comunicación a estos
+            proveedores se limita a lo necesario para prestar el servicio y se ampara en los
+            contratos de encargo correspondientes. Cuando un proveedor está fuera del Espacio
+            Económico Europeo, la transferencia se realiza con las garantías previstas en el RGPD
+            (cláusulas contractuales tipo).
           </p>
         </section>
 
@@ -163,13 +156,11 @@ export default function PrivacyPage() {
             Con qué base tratamos los datos
           </h2>
           <p>
-            La base jurídica es tu consentimiento, que otorgas al enviar la
-            información para que se analice tu caso (art. 6.1.a del RGPD).
-            Puedes retirarlo en cualquier momento solicitando la eliminación del
-            caso, sin que ello afecte a la licitud del tratamiento realizado
-            antes. Para las métricas de audiencia, la base es el interés
-            legítimo en conocer de forma agregada cómo se usa el sitio, sin
-            identificar a nadie.
+            La base jurídica es tu consentimiento, que otorgas al enviar la información para que se
+            analice tu caso (art. 6.1.a del RGPD). Puedes retirarlo en cualquier momento solicitando
+            la eliminación del caso, sin que ello afecte a la licitud del tratamiento realizado
+            antes. Para las métricas de audiencia, la base es el interés legítimo en conocer de
+            forma agregada cómo se usa el sitio, sin identificar a nadie.
           </p>
         </section>
 
@@ -182,13 +173,12 @@ export default function PrivacyPage() {
             Cómo se elabora el análisis
           </h2>
           <p>
-            El informe no se redacta a mano para cada persona: se compone a
-            partir de reglas vinculadas a normativa oficial y de la información
-            que facilitas, y utiliza modelos de lenguaje para interpretar tu
-            descripción y extraer datos de los documentos. Las conclusiones
-            indican qué artículo y qué datos las sustentan, y el sistema declara
-            expresamente los puntos que no puede determinar en lugar de
-            completarlos. No constituye asesoramiento jurídico individualizado.
+            El informe no se redacta a mano para cada persona: se compone a partir de reglas
+            vinculadas a normativa oficial y de la información que facilitas, y utiliza modelos de
+            lenguaje para interpretar tu descripción y extraer datos de los documentos. Las
+            conclusiones indican qué artículo y qué datos las sustentan, y el sistema declara
+            expresamente los puntos que no puede determinar en lugar de completarlos. No constituye
+            asesoramiento jurídico individualizado.
           </p>
         </section>
 
@@ -208,25 +198,21 @@ export default function PrivacyPage() {
             >
               Plausible Analytics
             </a>{" "}
-            para medir el tráfico de forma agregada y mejorar el servicio.
-            Plausible es un proveedor de analytics con sede en la Unión Europea
-            (Estonia).
+            para medir el tráfico de forma agregada y mejorar el servicio. Plausible es un proveedor
+            de analytics con sede en la Unión Europea (Estonia).
           </p>
           <p className="mb-3">
-            Plausible <strong>no utiliza cookies</strong> ni identificadores
-            persistentes. No genera perfiles de usuario ni permite el rastreo
-            entre sesiones o dispositivos. La dirección IP se utiliza únicamente
-            para determinar el país de procedencia y no se almacena.
+            Plausible <strong>no utiliza cookies</strong> ni identificadores persistentes. No genera
+            perfiles de usuario ni permite el rastreo entre sesiones o dispositivos. La dirección IP
+            se utiliza únicamente para determinar el país de procedencia y no se almacena.
           </p>
           <p className="mb-3">
-            La información procesada incluye: URL visitada, referente,
-            navegador, sistema operativo, tipo de dispositivo y país. Todos los
-            datos se procesan y almacenan en la UE.
+            La información procesada incluye: URL visitada, referente, navegador, sistema operativo,
+            tipo de dispositivo y país. Todos los datos se procesan y almacenan en la UE.
           </p>
           <p className="mb-3">
-            Dado que Plausible no utiliza cookies ni recopila datos personales,
-            su uso no requiere consentimiento previo bajo el RGPD ni la
-            Directiva ePrivacy.
+            Dado que Plausible no utiliza cookies ni recopila datos personales, su uso no requiere
+            consentimiento previo bajo el RGPD ni la Directiva ePrivacy.
           </p>
         </section>
 
@@ -239,9 +225,9 @@ export default function PrivacyPage() {
             Cookies
           </h2>
           <p>
-            Resolveo <strong>no utiliza cookies</strong>. Ni cookies propias ni
-            de terceros, ni almacenamiento del navegador: el estado de un caso se
-            guarda en el servidor. Para más detalles, consulta nuestra{" "}
+            Resolveo <strong>no utiliza cookies</strong>. Ni cookies propias ni de terceros, ni
+            almacenamiento del navegador: el estado de un caso se guarda en el servidor. Para más
+            detalles, consulta nuestra{" "}
             <a
               href="/cookies"
               className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
@@ -260,14 +246,21 @@ export default function PrivacyPage() {
           >
             Anuncios
           </h2>
+          <p className="mb-3">
+            Este dominio publica el archivo estándar{" "}
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">ads.txt</code> con el
+            identificador de publicador de Google AdSense. Ese archivo identifica el dominio ante
+            las plataformas de anuncios;{" "}
+            <strong>no significa que se estén mostrando anuncios</strong>: actualmente el sitio no
+            carga la etiqueta de Google AdSense ni muestra publicidad de ningún tipo, y no se
+            instalan cookies publicitarias.
+          </p>
           <p>
-            Actualmente el sitio no muestra anuncios ni utiliza Google AdSense.
-            No hay scripts de publicidad de terceros. Si en el futuro se activa
-            la monetización mediante anuncios, se utilizará el sistema de
-            consentimiento de Google (Privacy &amp; Messaging) para gestionar la
-            decisión del usuario conforme a la normativa europea, y esta política
-            se actualizará antes de activarla para identificar a los proveedores
-            y detallar qué datos pueden tratar.
+            Si en el futuro se activa la monetización mediante anuncios, antes de cargarlos se
+            habilitará el sistema de consentimiento de Google (Privacy &amp; Messaging, CMP
+            certificado) para gestionar la decisión del usuario conforme a la normativa europea, y
+            esta política se actualizará antes de activarlos para identificar a los proveedores
+            publicitarios y detallar qué datos pueden tratar.
           </p>
         </section>
 
@@ -280,10 +273,9 @@ export default function PrivacyPage() {
             Cuánto tiempo se conservan los datos
           </h2>
           <p className="mb-3">
-            Los datos del caso se conservan mientras sean necesarios para que
-            puedas consultar el informe y sus documentos asociados. No existe un
-            sistema de cuentas que los mantenga indefinidamente vinculados a ti:
-            el acceso requiere conocer el identificador del caso.
+            Los datos del caso se conservan mientras sean necesarios para que puedas consultar el
+            informe y sus documentos asociados. No existe un sistema de cuentas que los mantenga
+            indefinidamente vinculados a ti: el acceso requiere conocer el identificador del caso.
           </p>
           <p>
             Puedes solicitar la eliminación anticipada de un caso escribiendo a{" "}
@@ -293,9 +285,8 @@ export default function PrivacyPage() {
             >
               {CONTACT_EMAIL}
             </a>{" "}
-            e indicando su identificador. Si enviaste un correo al canal de
-            contacto, se conserva únicamente mientras sea necesario para
-            atenderlo.
+            e indicando su identificador. Si enviaste un correo al canal de contacto, se conserva
+            únicamente mientras sea necesario para atenderlo.
           </p>
         </section>
 
@@ -308,22 +299,20 @@ export default function PrivacyPage() {
             Tus derechos
           </h2>
           <p className="mb-3">
-            Puedes solicitar el acceso, la rectificación, la supresión, la
-            limitación del tratamiento, la portabilidad de tus datos y oponerte
-            al tratamiento escribiendo a{" "}
+            Puedes solicitar el acceso, la rectificación, la supresión, la limitación del
+            tratamiento, la portabilidad de tus datos y oponerte al tratamiento escribiendo a{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}?subject=Consulta de privacidad`}
               className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
             >
               {CONTACT_EMAIL}
             </a>
-            . Para localizar un caso necesitamos su identificador; no podemos
-            buscar por nombre porque no lo pedimos.
+            . Para localizar un caso necesitamos su identificador; no podemos buscar por nombre
+            porque no lo pedimos.
           </p>
           <p>
-            Si consideras que no hemos atendido correctamente tu solicitud,
-            puedes presentar una reclamación ante la Agencia Española de
-            Protección de Datos (
+            Si consideras que no hemos atendido correctamente tu solicitud, puedes presentar una
+            reclamación ante la Agencia Española de Protección de Datos (
             <a
               href="https://www.aepd.es"
               target="_blank"
@@ -345,9 +334,9 @@ export default function PrivacyPage() {
             Cambios en esta política
           </h2>
           <p>
-            Esta política puede actualizarse cuando cambien las herramientas
-            utilizadas o se modifiquen las prácticas de tratamiento de datos. La
-            fecha de última actualización indica cuándo se revisó por última vez.
+            Esta política puede actualizarse cuando cambien las herramientas utilizadas o se
+            modifiquen las prácticas de tratamiento de datos. La fecha de última actualización
+            indica cuándo se revisó por última vez.
           </p>
         </section>
       </div>

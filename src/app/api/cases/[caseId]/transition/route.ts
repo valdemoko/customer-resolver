@@ -10,10 +10,7 @@ import { createNeonDb } from "@/server/db/client";
 import { cases } from "@/server/db/schema";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { getServerEnv } from "@/lib/env";
-import {
-  transition,
-  InvalidCaseStateTransition,
-} from "@/core/case/state-machine";
+import { transition, InvalidCaseStateTransition } from "@/core/case/state-machine";
 import { createEvent } from "@/core/case/events";
 import { now as systemNow } from "@/core/shared/temporal";
 import { DrizzleCaseRepository } from "@/server/db/repositories/case-repository";
@@ -44,10 +41,7 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ caseId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   try {
     const { caseId } = await params;
 
@@ -69,15 +63,13 @@ export async function POST(
     }
 
     const env = getServerEnv();
-    const db = createNeonDb(env.DATABASE_URL!) as unknown as ConstructorParameters<typeof DrizzleCaseRepository>[0];
+    const db = createNeonDb(env.DATABASE_URL!) as unknown as ConstructorParameters<
+      typeof DrizzleCaseRepository
+    >[0];
     const repo = new DrizzleCaseRepository(db);
 
     // Load case
-    const [caseRow] = await db
-      .select()
-      .from(cases)
-      .where(eq(cases.id, caseId))
-      .limit(1);
+    const [caseRow] = await db.select().from(cases).where(eq(cases.id, caseId)).limit(1);
 
     if (!caseRow) {
       return NextResponse.json(

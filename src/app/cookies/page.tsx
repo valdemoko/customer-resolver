@@ -15,8 +15,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Cookies y almacenamiento",
-  description:
-    "Qué tecnologías de almacenamiento utiliza Resolveo y cómo puedes gestionarlas.",
+  description: "Qué tecnologías de almacenamiento utiliza Resolveo y cómo puedes gestionarlas.",
   alternates: { canonical: "/cookies" },
 };
 
@@ -30,9 +29,7 @@ export default function CookiesPage() {
         Cookies y almacenamiento
       </h1>
 
-      <p className="text-sm text-slate-400 mb-8">
-        Última actualización: septiembre de 2026
-      </p>
+      <p className="text-sm text-slate-400 mb-8">Última actualización: septiembre de 2026</p>
 
       <div className="space-y-8 text-slate-600 leading-relaxed">
         {/* ── Resumen ──────────────────────────────────────────── */}
@@ -44,9 +41,8 @@ export default function CookiesPage() {
             Resumen
           </h2>
           <p>
-            Resolveo <strong>no utiliza cookies</strong>. Ni cookies propias ni
-            de terceros. No instalamos cookies de análisis, publicidad ni redes
-            sociales.
+            Resolveo <strong>no utiliza cookies</strong>. Ni cookies propias ni de terceros. No
+            instalamos cookies de análisis, publicidad ni redes sociales.
           </p>
         </section>
 
@@ -66,24 +62,22 @@ export default function CookiesPage() {
             >
               Plausible Analytics
             </a>
-            , una herramienta de medición de tráfico web que opera{" "}
-            <strong>sin cookies</strong>.
+            , una herramienta de medición de tráfico web que opera <strong>sin cookies</strong>.
           </p>
           <p className="mb-3">
-            Plausible no utiliza cookies, localStorage ni ninguna tecnología de
-            almacenamiento del navegador. Genera un identificador temporal
-            diario a partir de la dirección IP y el navegador, que se elimina
-            cada 24 horas. No es posible vincular una visita con otra o con un
-            usuario concreto.
+            Plausible no utiliza cookies, localStorage ni ninguna tecnología de almacenamiento del
+            navegador. Genera un identificador temporal diario a partir de la dirección IP y el
+            navegador, que se elimina cada 24 horas. No es posible vincular una visita con otra o
+            con un usuario concreto.
           </p>
           <p className="mb-3">
-            Plausible procesa los siguientes datos de forma agregada: URL
-            visitada, referente, navegador, sistema operativo, tipo de
-            dispositivo y país de procedencia. La dirección IP no se almacena.
+            Plausible procesa los siguientes datos de forma agregada: URL visitada, referente,
+            navegador, sistema operativo, tipo de dispositivo y país de procedencia. La dirección IP
+            no se almacena.
           </p>
           <p>
-            Plausible tiene su sede en Estonia (Unión Europea) y todos los
-            datos se procesan y almacenan en servidores de la UE.
+            Plausible tiene su sede en Estonia (Unión Europea) y todos los datos se procesan y
+            almacenan en servidores de la UE.
           </p>
         </section>
 
@@ -94,14 +88,19 @@ export default function CookiesPage() {
             style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
           >
             Google y publicidad
-          </h2>
+          </h2>{" "}
+          <p className="mb-3">
+            Resolveo publica el archivo{" "}
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">ads.txt</code> con el
+            identificador de publicador de Google AdSense, que sirve para identificar el dominio
+            ante las plataformas de anuncios. Mientras tanto, el sitio no carga la etiqueta de
+            Google AdSense: no se utilizan cookies de publicidad ni scripts de Google para
+            publicidad.
+          </p>
           <p>
-            Actualmente Resolveo no muestra anuncios ni integra Google AdSense.
-            No se utilizan cookies de publicidad ni scripts de Google para
-            publicidad. Si en el futuro se activa la publicidad, se utilizará
-            el sistema de consentimiento de Google (CMP) y esta política se
-            actualizará para reflejar las cookies y tecnologías que los
-            proveedores publicitarios puedan utilizar.
+            Si en el futuro se activa la publicidad, se utilizará el sistema de consentimiento de
+            Google (CMP certificado) y esta política se actualizará para reflejar las cookies y
+            tecnologías que los proveedores publicitarios puedan utilizar.
           </p>
         </section>
 
@@ -115,29 +114,22 @@ export default function CookiesPage() {
           </h2>
           <p className="mb-4">
             Resolveo no utiliza cookies, ni{" "}
-            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
-              localStorage
-            </code>{" "}
-            ni{" "}
-            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
-              sessionStorage
-            </code>
-            {" "}
-            . El estado de un caso vive en el servidor, y la pantalla lo consulta
-            cada vez que lo necesita: no se guarda nada en tu navegador para
-            identificarte, medir audiencia ni mostrar publicidad.
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">localStorage</code> ni{" "}
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">sessionStorage</code> . El
+            estado de un caso vive en el servidor, y la pantalla lo consulta cada vez que lo
+            necesita: no se guarda nada en tu navegador para identificarte, medir audiencia ni
+            mostrar publicidad.
           </p>
 
           <p className="mb-4">
-            El único dato que permanece en tu navegador al usar Resolveo es el
-            identificador del caso, que aparece en la barra de direcciones de la
-            página de tu caso. Si guardas ese enlace, podrás volver a consultarlo;
-            si no, desaparece al cerrar la pestaña.
+            El único dato que permanece en tu navegador al usar Resolveo es el identificador del
+            caso, que aparece en la barra de direcciones de la página de tu caso. Si guardas ese
+            enlace, podrás volver a consultarlo; si no, desaparece al cerrar la pestaña.
           </p>
 
           <p className="mt-4">
-            Al no haber cookies, no existe un banner de cookies: no hay nada que
-            aceptar o rechazar por navegar.
+            Al no haber cookies, no existe un banner de cookies: no hay nada que aceptar o rechazar
+            por navegar.
           </p>
         </section>
       </div>

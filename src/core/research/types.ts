@@ -46,16 +46,16 @@ export type ResearchStatus =
  * Higher authority = more reliable for legal conclusions.
  */
 export type SourceAuthority =
-  | "OFFICIAL_LEGISLATION"      // Official legislation (BOE, EUR-Lex)
-  | "OFFICIAL_REGULATION"       // Official regulations
-  | "GOVERNMENT_MINISTRY"       // Official government ministries
-  | "OFFICIAL_REGULATOR"        // Official regulators/authorities
-  | "JUDICIAL_DATABASE"         // Official court decisions
-  | "ADMINISTRATIVE_GUIDANCE"   // Official administrative guidance
-  | "INSTITUTIONAL_SOURCE"      // Other authoritative institutional sources
-  | "PROFESSIONAL_SOURCE"       // Professional/academic sources
-  | "SECONDARY_SOURCE"          // Secondary sources (news, blogs)
-  | "UNVERIFIED";               // Unverified source
+  | "OFFICIAL_LEGISLATION" // Official legislation (BOE, EUR-Lex)
+  | "OFFICIAL_REGULATION" // Official regulations
+  | "GOVERNMENT_MINISTRY" // Official government ministries
+  | "OFFICIAL_REGULATOR" // Official regulators/authorities
+  | "JUDICIAL_DATABASE" // Official court decisions
+  | "ADMINISTRATIVE_GUIDANCE" // Official administrative guidance
+  | "INSTITUTIONAL_SOURCE" // Other authoritative institutional sources
+  | "PROFESSIONAL_SOURCE" // Professional/academic sources
+  | "SECONDARY_SOURCE" // Secondary sources (news, blogs)
+  | "UNVERIFIED"; // Unverified source
 
 // ── Source Type ─────────────────────────────────────────────────────
 

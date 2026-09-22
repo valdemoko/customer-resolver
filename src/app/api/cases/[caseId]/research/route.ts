@@ -8,7 +8,14 @@ import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createNeonDb } from "@/server/db/client";
-import { cases, researchSessions, researchFindings, researchSources, researchConflicts, caseEvents } from "@/server/db/schema";
+import {
+  cases,
+  researchSessions,
+  researchFindings,
+  researchSources,
+  researchConflicts,
+  caseEvents,
+} from "@/server/db/schema";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import { getServerEnv } from "@/lib/env";
 import { ResearchService } from "@/core/research/service";
@@ -35,10 +42,7 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ caseId: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   try {
     const { caseId } = await params;
 
@@ -100,20 +104,20 @@ export async function GET(
           researchVersion: session.researchVersion,
           createdAt: session.createdAt,
           completedAt: session.completedAt,
-          findings: findings.map(f => ({
+          findings: findings.map((f) => ({
             id: f.id,
             proposition: f.proposition,
             status: f.status,
             reasoningSummary: f.reasoningSummary,
           })),
-          sources: sources.map(s => ({
+          sources: sources.map((s) => ({
             id: s.id,
             title: s.title,
             url: s.url,
             authority: s.authority,
             validationStatus: s.validationStatus,
           })),
-          conflicts: conflicts.map(c => ({
+          conflicts: conflicts.map((c) => ({
             id: c.id,
             conflictType: c.conflictType,
             description: c.description,
@@ -144,10 +148,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ caseId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   try {
     const { caseId } = await params;
 
@@ -172,11 +173,7 @@ export async function POST(
     const db = createNeonDb(env.DATABASE_URL!);
 
     // Verify case exists
-    const [caseRow] = await db
-      .select()
-      .from(cases)
-      .where(eq(cases.id, caseId))
-      .limit(1);
+    const [caseRow] = await db.select().from(cases).where(eq(cases.id, caseId)).limit(1);
 
     if (!caseRow) {
       return NextResponse.json(
@@ -258,8 +255,8 @@ export async function POST(
     // Persist standalone sources
     for (const source of result.sources) {
       // Check if already persisted (from findings)
-      const alreadyPersisted = result.findings.some(f =>
-        f.supportingSources.some(s => s.sourceId === source.sourceId)
+      const alreadyPersisted = result.findings.some((f) =>
+        f.supportingSources.some((s) => s.sourceId === source.sourceId),
       );
       if (!alreadyPersisted) {
         await db.insert(researchSources).values({

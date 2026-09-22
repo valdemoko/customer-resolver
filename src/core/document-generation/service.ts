@@ -64,9 +64,7 @@ function convertDraftToDocument(
     factKeys: input.confirmedFacts
       .filter((f) => s.content.includes(f.factKey) || s.content.includes(f.text))
       .map((f) => f.factKey),
-    claimIds: input.supportedClaims
-      .filter((c) => s.content.includes(c.text))
-      .map((c) => c.claimId),
+    claimIds: input.supportedClaims.filter((c) => s.content.includes(c.text)).map((c) => c.claimId),
     sourceIds: input.applicableSources
       .filter((src) => s.content.includes(src.sourceTitle))
       .map((src) => src.sourceId),
@@ -184,7 +182,8 @@ export class DocumentGenerationService {
     readonly analysisSnapshotId?: string;
     readonly now?: () => string;
   }): Promise<GenerationResult> {
-    const { caseId, result, facts, sender, recipient, requestedAction, analysisSnapshotId } = params;
+    const { caseId, result, facts, sender, recipient, requestedAction, analysisSnapshotId } =
+      params;
     const now = params.now ?? (() => new Date().toISOString());
 
     // 1. Build structured input (only confirmed/supported data)
@@ -214,9 +213,7 @@ export class DocumentGenerationService {
           ],
           warnings: [],
         },
-        errors: [
-          "No hay suficientes datos confirmados para generar un documento formal",
-        ],
+        errors: ["No hay suficientes datos confirmados para generar un documento formal"],
       };
     }
 
@@ -290,26 +287,17 @@ export class DocumentGenerationService {
    * The prompt explicitly constrains what the AI can and cannot do.
    */
   private buildPrompt(input: DocumentGenerationInput): string {
-    const factsText = input.confirmedFacts
-      .map((f) => `- ${f.factKey}: ${f.text}`)
-      .join("\n");
+    const factsText = input.confirmedFacts.map((f) => `- ${f.factKey}: ${f.text}`).join("\n");
 
-    const claimsText = input.supportedClaims
-      .map((c) => `- [${c.claimId}] ${c.text}`)
-      .join("\n");
+    const claimsText = input.supportedClaims.map((c) => `- [${c.claimId}] ${c.text}`).join("\n");
 
     const sourcesText = input.applicableSources
-      .map(
-        (s) =>
-          `- ${s.sourceTitle}${s.articleRef ? ` (${s.articleRef})` : ""}: ${s.sourceUrl}`,
-      )
+      .map((s) => `- ${s.sourceTitle}${s.articleRef ? ` (${s.articleRef})` : ""}: ${s.sourceUrl}`)
       .join("\n");
 
-    const timelineText = input.timeline
-      .map((t) => `- ${t.date}: ${t.description}`)
-      .join("\n");
+    const timelineText = input.timeline.map((t) => `- ${t.date}: ${t.description}`).join("\n");
 
-  const senderInfo = [
+    const senderInfo = [
       input.sender.name && `Nombre: ${input.sender.name}`,
       input.sender.address && `Dirección: ${input.sender.address}`,
       input.sender.email && `Email: ${input.sender.email}`,

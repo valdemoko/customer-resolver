@@ -15,10 +15,7 @@
  *
  * The validator NEVER calls another AI. It is purely deterministic.
  */
-import type {
-  DocumentGenerationInput,
-  GeneratedDraft,
-} from "./types";
+import type { DocumentGenerationInput, GeneratedDraft } from "./types";
 
 // ── Validation Result ───────────────────────────────────────────────
 
@@ -216,9 +213,7 @@ function validateContradictionVisibility(
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  const hasContradictions = input.unresolvedItems.some(
-    (item) => item.type === "CONTRADICTION",
-  );
+  const hasContradictions = input.unresolvedItems.some((item) => item.type === "CONTRADICTION");
 
   if (hasContradictions) {
     const draftAcknowledgesContradictions = draft.unresolvedItems.some(
@@ -228,8 +223,7 @@ function validateContradictionVisibility(
     if (!draftAcknowledgesContradictions) {
       errors.push({
         code: "HIDDEN_CONTRADICTION",
-        message:
-          "Input contains contradictions but the draft does not acknowledge them",
+        message: "Input contains contradictions but the draft does not acknowledge them",
         severity: "BLOCKING",
       });
     }

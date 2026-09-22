@@ -12,7 +12,12 @@
  *
  * PURE: no I/O, no clock.
  */
-import { factDisplayLabel, formatFactValue, type AnswerLabels, type AnswerSourceFact } from "./answers";
+import {
+  factDisplayLabel,
+  formatFactValue,
+  type AnswerLabels,
+  type AnswerSourceFact,
+} from "./answers";
 
 export interface CaseHighlight {
   /** Human name of the fact (a question or the catalogue description). */

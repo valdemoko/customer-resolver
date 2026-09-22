@@ -61,7 +61,11 @@ describe("buildCaseHighlights", () => {
     const highlights = buildCaseHighlights(
       [
         ...FACTS,
-        { key: "internal.unknown", value: { type: "date", value: "2026-01-01" }, status: "CONFIRMED" },
+        {
+          key: "internal.unknown",
+          value: { type: "date", value: "2026-01-01" },
+          status: "CONFIRMED",
+        },
         {
           key: "charge.date",
           value: { type: "date", value: "2026-08-08" },

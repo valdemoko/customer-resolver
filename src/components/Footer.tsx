@@ -46,7 +46,6 @@ export function Footer() {
     <footer className="w-full border-t border-[var(--border-light)] bg-[var(--surface-warm)] text-sm mt-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-8">
-
           {/* ── Column 1: Brand ──────────────────────────────────── */}
           <div className="md:col-span-2">
             {/* Logo + name */}
@@ -67,15 +66,13 @@ export function Footer() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="font-semibold text-sm text-[var(--color-ink)]">
-                Resolveo
-              </span>
+              <span className="font-semibold text-sm text-[var(--color-ink)]">Resolveo</span>
             </div>
 
             {/* Description */}
             <p className="text-xs max-w-sm mb-4 leading-relaxed text-[var(--color-ink-muted)]">
-              Analiza tus problemas de consumo con normativa verificable.
-              Compras, garantías, servicios, vuelos y más — con fuentes oficiales y pasos concretos.
+              Analiza tus problemas de consumo con normativa verificable. Compras, garantías,
+              servicios, vuelos y más — con fuentes oficiales y pasos concretos.
             </p>
 
             {/* Copyright */}
@@ -143,7 +140,6 @@ export function Footer() {
               ))}
             </ul>
           </div>
-
         </div>
       </div>
     </footer>

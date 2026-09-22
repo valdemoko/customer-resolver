@@ -140,17 +140,26 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const CASE_STATUS_CONFIG: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
+const CASE_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
   DRAFT: { bg: "bg-slate-100", text: "text-slate-600", label: "Borrador" },
-  COLLECTING_INFORMATION: { bg: "bg-blue-100", text: "text-blue-700", label: "Recopilando información" },
-  READY_FOR_ANALYSIS: { bg: "bg-indigo-100", text: "text-indigo-700", label: "Listo para analizar" },
+  COLLECTING_INFORMATION: {
+    bg: "bg-blue-100",
+    text: "text-blue-700",
+    label: "Recopilando información",
+  },
+  READY_FOR_ANALYSIS: {
+    bg: "bg-indigo-100",
+    text: "text-indigo-700",
+    label: "Listo para analizar",
+  },
   ANALYZING_X: { bg: "bg-purple-100", text: "text-purple-700", label: "Analizando" },
   NEEDS_INFORMATION: { bg: "bg-amber-100", text: "text-amber-700", label: "Necesita información" },
   HAS_CONTRADICTIONS: { bg: "bg-red-100", text: "text-red-700", label: "Contradicciones" },
-  RESULT_AVAILABLE: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Resultado disponible" },
+  RESULT_AVAILABLE: {
+    bg: "bg-emerald-100",
+    text: "text-emerald-700",
+    label: "Resultado disponible",
+  },
   ACTION_IN_PROGRESS: { bg: "bg-cyan-100", text: "text-cyan-700", label: "Acción en progreso" },
   AWAITING_RESPONSE: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Esperando respuesta" },
   ESCALATED: { bg: "bg-orange-100", text: "text-orange-700", label: "Escalado" },
@@ -320,10 +329,17 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
     result ? (STATUS_CONFIG[result.overallStatus] ?? STATUS_CONFIG.UNKNOWN) : STATUS_CONFIG.UNKNOWN
   )!;
 
-  const canEscalate = ["RESULT_AVAILABLE", "ACTION_IN_PROGRESS", "AWAITING_RESPONSE"].includes(caseStatus);
+  const canEscalate = ["RESULT_AVAILABLE", "ACTION_IN_PROGRESS", "AWAITING_RESPONSE"].includes(
+    caseStatus,
+  );
   const canClose = caseStatus !== "CLOSED";
   const canReopen = caseStatus === "CLOSED";
-  const canReanalyze = ["RESULT_AVAILABLE", "ACTION_IN_PROGRESS", "AWAITING_RESPONSE", "ESCALATED"].includes(caseStatus);
+  const canReanalyze = [
+    "RESULT_AVAILABLE",
+    "ACTION_IN_PROGRESS",
+    "AWAITING_RESPONSE",
+    "ESCALATED",
+  ].includes(caseStatus);
 
   // ── Render ─────────────────────────────────────────────────────
 
@@ -331,15 +347,28 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
     <div className="mx-auto max-w-4xl px-5 md:px-8 py-10 md:py-16">
       {/* Back */}
       <Link href="/" className="cr-btn-ghost text-sm mb-6 -ml-2 inline-flex">
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+          />
         </svg>
         Volver
       </Link>
 
       {/* Header */}
       <div className="mb-8 animate-fade-in">
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+        <h1
+          className="text-3xl md:text-4xl font-bold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
           Resultado de tu caso
         </h1>
         <div className="flex flex-wrap items-center gap-3">
@@ -347,7 +376,9 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
             {statusConfig.label}
           </span>
           {result && (
-            <span className={`cr-badge border ${claimStatusConfig.bg} ${claimStatusConfig.border} ${claimStatusConfig.text}`}>
+            <span
+              className={`cr-badge border ${claimStatusConfig.bg} ${claimStatusConfig.border} ${claimStatusConfig.text}`}
+            >
               {claimStatusConfig.icon} {claimStatusConfig.label}
             </span>
           )}
@@ -356,7 +387,11 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-8 border-b border-slate-200">
+      <div
+        role="tablist"
+        aria-label="Secciones del caso"
+        className="flex gap-1 mb-8 border-b border-slate-200"
+      >
         {[
           { key: "result" as const, label: "Resultado", count: result?.claims.length },
           { key: "timeline" as const, label: "Cronología", count: timeline.length },
@@ -364,6 +399,10 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
         ].map((tab) => (
           <button
             key={tab.key}
+            id={`tab-${tab.key}`}
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            aria-controls={`panel-${tab.key}`}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.key
@@ -373,7 +412,9 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           >
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (
-              <span className="ml-1.5 text-xs bg-slate-100 px-1.5 py-0.5 rounded-full">{tab.count}</span>
+              <span className="ml-1.5 text-xs bg-slate-100 px-1.5 py-0.5 rounded-full">
+                {tab.count}
+              </span>
             )}
           </button>
         ))}
@@ -381,11 +422,14 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
 
       {/* ── Result Tab ───────────────────────────────────────────── */}
       {activeTab === "result" && (
-        <div className="space-y-10">
+        <div id="panel-result" role="tabpanel" aria-labelledby="tab-result" className="space-y-10">
           {/* Summary */}
           {result && (
             <section className="animate-fade-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-3" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+              <h2
+                className="text-xl font-semibold text-slate-900 mb-3"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
                 Resumen
               </h2>
               <div className="cr-surface p-6">
@@ -397,7 +441,10 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {/* Claims */}
           {result && result.claims.length > 0 && (
             <section className="animate-fade-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+              <h2
+                className="text-xl font-semibold text-slate-900 mb-4"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
                 Qué hemos podido confirmar
               </h2>
               <div className="space-y-3 stagger">
@@ -406,17 +453,25 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
                   return (
                     <div key={claim.id} className={`rounded-xl border p-5 ${cfg.bg} ${cfg.border}`}>
                       <div className="flex items-start gap-3">
-                        <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
+                        <span
+                          className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold ${cfg.bg} ${cfg.text} border ${cfg.border}`}
+                        >
                           {cfg.icon}
                         </span>
                         <div className="flex-1 min-w-0">
                           <h3 className={`font-semibold ${cfg.text} mb-1`}>{claim.assertion}</h3>
-                          <p className="text-sm text-slate-600 leading-relaxed">{claim.explanation}</p>
+                          <p className="text-sm text-slate-600 leading-relaxed">
+                            {claim.explanation}
+                          </p>
                           {claim.missingFacts.length > 0 && (
-                            <p className="text-sm text-amber-700 mt-2">Datos faltantes: {claim.missingFacts.join(", ")}</p>
+                            <p className="text-sm text-amber-700 mt-2">
+                              Datos faltantes: {claim.missingFacts.join(", ")}
+                            </p>
                           )}
                           {claim.contradictedFacts.length > 0 && (
-                            <p className="text-sm text-red-700 mt-2">Información contradictoria: {claim.contradictedFacts.join(", ")}</p>
+                            <p className="text-sm text-red-700 mt-2">
+                              Información contradictoria: {claim.contradictedFacts.join(", ")}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -430,14 +485,22 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {/* Missing Information */}
           {result && result.missingInformation.length > 0 && (
             <section className="animate-fade-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+              <h2
+                className="text-xl font-semibold text-slate-900 mb-4"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
                 Qué no hemos podido confirmar
               </h2>
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
                 <ul className="space-y-2.5">
                   {result.missingInformation.map((missing) => (
-                    <li key={missing.factKey} className="flex items-start gap-2.5 text-sm text-amber-800">
-                      <span className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center text-xs font-bold">?</span>
+                    <li
+                      key={missing.factKey}
+                      className="flex items-start gap-2.5 text-sm text-amber-800"
+                    >
+                      <span className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center text-xs font-bold">
+                        ?
+                      </span>
                       <span>{missing.description}</span>
                     </li>
                   ))}
@@ -449,7 +512,10 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {/* Actions */}
           {actionPlan && actionPlan.actions.length > 0 && (
             <section className="animate-fade-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+              <h2
+                className="text-xl font-semibold text-slate-900 mb-4"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
                 Qué puedes hacer ahora
               </h2>
               <div className="cr-surface p-5 mb-4">
@@ -457,7 +523,10 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
               </div>
               <div className="space-y-2.5 stagger">
                 {actionPlan.actions.map((action) => (
-                  <div key={action.id} className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-colors">
+                  <div
+                    key={action.id}
+                    className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-colors"
+                  >
                     <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
                       {action.priority}
                     </span>
@@ -476,15 +545,25 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {/* Sources */}
           {result && result.sources.length > 0 && (
             <section className="animate-fade-in">
-              <h2 className="text-xl font-semibold text-slate-900 mb-4" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+              <h2
+                className="text-xl font-semibold text-slate-900 mb-4"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+              >
                 Fuentes consultadas
               </h2>
               <div className="space-y-2.5 stagger">
                 {result.sources.map((source) => (
                   <div key={source.sourceId} className="cr-surface p-4">
                     <h3 className="font-medium text-slate-900 mb-1">{source.title}</h3>
-                    <p className="text-sm text-slate-500 mb-2">{source.type} · Consultado: {source.retrievedAt}</p>
-                    <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors">
+                    <p className="text-sm text-slate-500 mb-2">
+                      {source.type} · Consultado: {source.retrievedAt}
+                    </p>
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+                    >
                       Ver fuente externa
                     </a>
                   </div>
@@ -496,9 +575,22 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {/* Export */}
           {caseId && (
             <section className="animate-fade-in">
-              <a href={`/api/cases/${caseId}/export?format=txt`} className="cr-btn-secondary inline-flex">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              <a
+                href={`/api/cases/${caseId}/export?format=txt`}
+                className="cr-btn-secondary inline-flex"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
                 </svg>
                 Descargar informe (TXT)
               </a>
@@ -508,10 +600,14 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {/* Disclaimers */}
           {result && result.disclaimers.length > 0 && (
             <section className="pt-8 border-t border-slate-200/60 animate-fade-in">
-              <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Aviso legal</h2>
+              <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+                Aviso legal
+              </h2>
               <ul className="space-y-1.5">
                 {result.disclaimers.map((disclaimer, i) => (
-                  <li key={i} className="text-xs text-slate-400 leading-relaxed">{disclaimer}</li>
+                  <li key={i} className="text-xs text-slate-400 leading-relaxed">
+                    {disclaimer}
+                  </li>
                 ))}
               </ul>
             </section>
@@ -521,7 +617,12 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
 
       {/* ── Timeline Tab ─────────────────────────────────────────── */}
       {activeTab === "timeline" && (
-        <div className="space-y-4">
+        <div
+          id="panel-timeline"
+          role="tabpanel"
+          aria-labelledby="tab-timeline"
+          className="space-y-4"
+        >
           {timeline.length === 0 ? (
             <div className="cr-surface p-8 text-center">
               <p className="text-slate-500">No hay eventos registrados aún.</p>
@@ -559,7 +660,12 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
 
       {/* ── Communications Tab ───────────────────────────────────── */}
       {activeTab === "communications" && (
-        <div className="space-y-4">
+        <div
+          id="panel-communications"
+          role="tabpanel"
+          aria-labelledby="tab-communications"
+          className="space-y-4"
+        >
           <div className="flex justify-end">
             <button
               onClick={() => setShowAddCommunication(!showAddCommunication)}
@@ -582,7 +688,9 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {communications.length === 0 ? (
             <div className="cr-surface p-8 text-center">
               <p className="text-slate-500">No hay comunicaciones registradas.</p>
-              <p className="text-sm text-slate-400 mt-1">Registra correos, llamadas u otros contactos con el proveedor.</p>
+              <p className="text-sm text-slate-400 mt-1">
+                Registra correos, llamadas u otros contactos con el proveedor.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -591,15 +699,21 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          comm.direction === "SENT" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
-                        }`}>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            comm.direction === "SENT"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-emerald-100 text-emerald-700"
+                          }`}
+                        >
                           {comm.direction === "SENT" ? "Enviado" : "Recibido"}
                         </span>
                         <span className="text-xs text-slate-400">{comm.channel}</span>
                       </div>
                       <p className="font-medium text-slate-900">{comm.counterparty}</p>
-                      {comm.subject && <p className="text-sm text-slate-600 mt-1">{comm.subject}</p>}
+                      {comm.subject && (
+                        <p className="text-sm text-slate-600 mt-1">{comm.subject}</p>
+                      )}
                       <p className="text-sm text-slate-500 mt-1">{comm.summary}</p>
                     </div>
                     <time className="text-xs text-slate-400 whitespace-nowrap">
@@ -620,20 +734,32 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
 
       {/* ── Case Controls ────────────────────────────────────────── */}
       <div className="mt-10 pt-8 border-t border-slate-200">
-        <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4">Acciones del caso</h2>
+        <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4">
+          Acciones del caso
+        </h2>
         <div className="flex flex-wrap gap-3">
           {canReanalyze && (
-            <button onClick={handleReanalyze} disabled={reanalyzing} className="cr-btn-secondary text-sm">
+            <button
+              onClick={handleReanalyze}
+              disabled={reanalyzing}
+              className="cr-btn-secondary text-sm"
+            >
               {reanalyzing ? "Recalculando..." : "🔄 Recalcular análisis"}
             </button>
           )}
           {canEscalate && (
-            <button onClick={() => handleTransition("ESCALATE")} className="cr-btn-secondary text-sm">
+            <button
+              onClick={() => handleTransition("ESCALATE")}
+              className="cr-btn-secondary text-sm"
+            >
               ⬆️ Escalar caso
             </button>
           )}
           {canClose && (
-            <button onClick={() => handleTransition("CLOSE_CASE")} className="cr-btn-secondary text-sm">
+            <button
+              onClick={() => handleTransition("CLOSE_CASE")}
+              className="cr-btn-secondary text-sm"
+            >
               🔒 Cerrar caso
             </button>
           )}
@@ -655,7 +781,11 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
           {caseId && (
             <button
               onClick={() => {
-                if (confirm("¿Estás seguro de que quieres eliminar este caso permanentemente? Esta acción no se puede deshacer.")) {
+                if (
+                  confirm(
+                    "¿Estás seguro de que quieres eliminar este caso permanentemente? Esta acción no se puede deshacer.",
+                  )
+                ) {
                   fetch(`/api/cases/${caseId}/delete`, { method: "DELETE" })
                     .then((res) => {
                       if (res.ok) {
@@ -680,13 +810,7 @@ export default function CasePage({ params }: { params: Promise<{ caseId: string 
 
 // ── Add Communication Form ─────────────────────────────────────────
 
-function AddCommunicationForm({
-  caseId,
-  onSaved,
-}: {
-  caseId: string;
-  onSaved: () => void;
-}) {
+function AddCommunicationForm({ caseId, onSaved }: { caseId: string; onSaved: () => void }) {
   const [direction, setDirection] = useState("SENT");
   const [channel, setChannel] = useState("EMAIL");
   const [counterparty, setCounterparty] = useState("");
@@ -717,7 +841,11 @@ function AddCommunicationForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm text-slate-600 mb-1">Dirección</label>
-          <select value={direction} onChange={(e) => setDirection(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <select
+            value={direction}
+            onChange={(e) => setDirection(e.target.value)}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          >
             <option value="SENT">Enviado</option>
             <option value="RECEIVED">Recibido</option>
             <option value="PHONE_CALL">Llamada telefónica</option>
@@ -726,7 +854,11 @@ function AddCommunicationForm({
         </div>
         <div>
           <label className="block text-sm text-slate-600 mb-1">Canal</label>
-          <select value={channel} onChange={(e) => setChannel(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <select
+            value={channel}
+            onChange={(e) => setChannel(e.target.value)}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          >
             <option value="EMAIL">Email</option>
             <option value="LETTER">Carta</option>
             <option value="PHONE">Teléfono</option>

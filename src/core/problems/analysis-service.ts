@@ -50,10 +50,7 @@ export function isConcurrentUpdateError(error: unknown): boolean {
  * Only the losing side of an optimistic lock is retried: it means "the data
  * moved, read it again", not "something is broken".
  */
-export async function withConcurrentRetry<T>(
-  run: () => Promise<T>,
-  maxAttempts = 3,
-): Promise<T> {
+export async function withConcurrentRetry<T>(run: () => Promise<T>, maxAttempts = 3): Promise<T> {
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await run();

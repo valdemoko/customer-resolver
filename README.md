@@ -93,6 +93,11 @@ Son dos cosas distintas, y el proyecto las mantiene separadas:
   para anuncios en EEA/UK/CH. Se configura pegando la etiqueta exacta que genera
   AdSense; el código no construye ni inventa esa URL. Mientras la variable no esté
   definida, no se renderiza ninguna etiqueta.
+- **Google AdSense** (`NEXT_PUBLIC_ADSENSE_CLIENT`): etiqueta `adsbygoogle.js`,
+  oculta salvo que la variable esté definida con un `ca-pub-…` válido. `ads.txt`
+  identifica el dominio; no carga nada por sí solo. Solo debe activarse con el CMP
+  certificado ya configurado y después de actualizar las políticas de privacidad y
+  cookies.
 
 No se implementa TCF ni Consent Mode a mano: el CMP certificado ya los cubre, y
 reimplementarlos sería una simulación. La decisión de publicidad tampoco se usa

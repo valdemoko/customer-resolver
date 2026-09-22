@@ -630,7 +630,7 @@ describe("F14 — Adversarial / Security", () => {
     });
 
     expect(result.disclaimers.length).toBeGreaterThan(0);
-    expect(result.disclaimers.some(d => d.includes("asesoramiento legal"))).toBe(true);
+    expect(result.disclaimers.some((d) => d.includes("asesoramiento legal"))).toBe(true);
   });
 });
 

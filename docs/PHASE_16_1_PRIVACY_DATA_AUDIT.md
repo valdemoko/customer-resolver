@@ -71,28 +71,28 @@ This audit focused on F16's case deletion, data export, and privacy functionalit
 
 The delete endpoint now correctly handles:
 
-| Table | Cleanup Method |
-|-------|----------------|
-| `cases` | Explicit DELETE |
-| `case_facts` | Explicit DELETE |
-| `case_contradictions` | Explicit DELETE |
-| `case_snapshots` | Explicit DELETE |
-| `case_events` | Explicit DELETE |
-| `evidence_fact_links` | Explicit DELETE (via fact IDs) |
-| `rule_evaluations` | Explicit DELETE |
-| `generated_documents` | Explicit DELETE |
-| `research_sessions` | Explicit DELETE |
-| `research_findings` | Explicit DELETE (via session IDs) |
-| `research_sources` | Explicit DELETE (via session IDs) |
-| `research_conflicts` | Explicit DELETE (via session IDs) |
-| `case_communications` | Explicit DELETE |
-| `evidence` | ON DELETE CASCADE |
-| `physical_objects` | ON DELETE CASCADE |
-| `document_processing_runs` | ON DELETE CASCADE |
-| `document_locations` | ON DELETE CASCADE |
-| `document_fact_candidates` | ON DELETE CASCADE |
-| `ai_requests` | ON DELETE CASCADE |
-| `ai_budgets` | ON DELETE CASCADE |
+| Table                      | Cleanup Method                    |
+| -------------------------- | --------------------------------- |
+| `cases`                    | Explicit DELETE                   |
+| `case_facts`               | Explicit DELETE                   |
+| `case_contradictions`      | Explicit DELETE                   |
+| `case_snapshots`           | Explicit DELETE                   |
+| `case_events`              | Explicit DELETE                   |
+| `evidence_fact_links`      | Explicit DELETE (via fact IDs)    |
+| `rule_evaluations`         | Explicit DELETE                   |
+| `generated_documents`      | Explicit DELETE                   |
+| `research_sessions`        | Explicit DELETE                   |
+| `research_findings`        | Explicit DELETE (via session IDs) |
+| `research_sources`         | Explicit DELETE (via session IDs) |
+| `research_conflicts`       | Explicit DELETE (via session IDs) |
+| `case_communications`      | Explicit DELETE                   |
+| `evidence`                 | ON DELETE CASCADE                 |
+| `physical_objects`         | ON DELETE CASCADE                 |
+| `document_processing_runs` | ON DELETE CASCADE                 |
+| `document_locations`       | ON DELETE CASCADE                 |
+| `document_fact_candidates` | ON DELETE CASCADE                 |
+| `ai_requests`              | ON DELETE CASCADE                 |
+| `ai_budgets`               | ON DELETE CASCADE                 |
 
 ### Object Storage Cleanup
 
@@ -106,22 +106,22 @@ R2 cleanup is now implemented:
 
 ### Data Included in Export
 
-| Category | Fields Included |
-|----------|-----------------|
-| `_exportMetadata` | exportedAt, formatVersion, caseId |
-| `case` | id, problemSlug, jurisdiction, locale, currency, status, version, ownerId, timestamps |
-| `facts` | id, key, value, status, provenance, evidenceRefs, createdAt |
-| `contradictions` | id, factIdA, factIdB, factKey, status, detectedAt, resolvedAt |
-| `evidence` | id, type, status, source, content, label, checksum, createdAt |
-| `evidenceLinks` | id, factId, evidenceId, relation, createdAt |
-| `snapshots` | id, engineVersion, rulesetHash, factIds, contradictionIds, createdAt |
-| `ruleEvaluations` | ruleKey, ruleVersion, status, evaluatedAt |
-| `timeline` | id, type, occurredAt, payload |
-| `physicalObjects` | id, storageKey, mimeType, sizeBytes, checksumSha256, originalFilename, status, createdAt |
-| `generatedDocuments` | id, type, status, version, format, title, recipient, subject, createdAt |
-| `aiRequests` | id, task, provider, model, status, usage, durationMs, createdAt |
-| `aiBudgets` | task, count, maxAllowed |
-| `communications` | id, direction, channel, counterparty, subject, summary, linkedEvidenceIds, occurredAt, createdAt |
+| Category             | Fields Included                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `_exportMetadata`    | exportedAt, formatVersion, caseId                                                                |
+| `case`               | id, problemSlug, jurisdiction, locale, currency, status, version, ownerId, timestamps            |
+| `facts`              | id, key, value, status, provenance, evidenceRefs, createdAt                                      |
+| `contradictions`     | id, factIdA, factIdB, factKey, status, detectedAt, resolvedAt                                    |
+| `evidence`           | id, type, status, source, content, label, checksum, createdAt                                    |
+| `evidenceLinks`      | id, factId, evidenceId, relation, createdAt                                                      |
+| `snapshots`          | id, engineVersion, rulesetHash, factIds, contradictionIds, createdAt                             |
+| `ruleEvaluations`    | ruleKey, ruleVersion, status, evaluatedAt                                                        |
+| `timeline`           | id, type, occurredAt, payload                                                                    |
+| `physicalObjects`    | id, storageKey, mimeType, sizeBytes, checksumSha256, originalFilename, status, createdAt         |
+| `generatedDocuments` | id, type, status, version, format, title, recipient, subject, createdAt                          |
+| `aiRequests`         | id, task, provider, model, status, usage, durationMs, createdAt                                  |
+| `aiBudgets`          | task, count, maxAllowed                                                                          |
+| `communications`     | id, direction, channel, counterparty, subject, summary, linkedEvidenceIds, occurredAt, createdAt |
 
 ### Data Excluded (Correctly)
 
@@ -270,6 +270,6 @@ Build:      PASS
 
 ---
 
-*Audit completed: 2026-09-21*
-*F16.1 Status: APPROVED*
-*Test count: 995 (+24 new)*
+_Audit completed: 2026-09-21_
+_F16.1 Status: APPROVED_
+_Test count: 995 (+24 new)_

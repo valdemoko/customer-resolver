@@ -162,10 +162,13 @@ export function intakeRequirementsSatisfied(
     );
     return module.factCatalogue
       .filter((f) => f.required)
-      .every((f) => settled.has(f.key as FactKey) || declinedFactKeys?.has(f.key as string) === true);
+      .every(
+        (f) => settled.has(f.key as FactKey) || declinedFactKeys?.has(f.key as string) === true,
+      );
   }
 
   return (
-    selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys, declinedFactKeys) === null
+    selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys, declinedFactKeys) ===
+    null
   );
 }

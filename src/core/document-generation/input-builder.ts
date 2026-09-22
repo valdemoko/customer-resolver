@@ -169,10 +169,7 @@ function buildCitations(claims: readonly Claim[]): readonly DocumentCitation[] {
 /**
  * Build unresolved items from contradictions, missing info, and unconfirmed facts.
  */
-function buildUnresolvedItems(
-  result: Result,
-  facts: readonly Fact[],
-): readonly UnresolvedItem[] {
+function buildUnresolvedItems(result: Result, facts: readonly Fact[]): readonly UnresolvedItem[] {
   const items: UnresolvedItem[] = [];
 
   // Contradictions

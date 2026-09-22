@@ -61,7 +61,7 @@ function compositionRoot() {
 
 const PRIVATE_CACHE_HEADERS = {
   "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "Pragma": "no-cache",
+  Pragma: "no-cache",
 } as const;
 
 export async function GET(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
@@ -159,9 +159,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
 
     // Binary formats are returned as bytes: decoding them as text corrupted PDFs.
     const body: BodyInit =
-      typeof exported.content === "string"
-        ? exported.content
-        : new Uint8Array(exported.content);
+      typeof exported.content === "string" ? exported.content : new Uint8Array(exported.content);
 
     return new NextResponse(body, {
       headers: {

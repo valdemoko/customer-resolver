@@ -229,9 +229,7 @@ export class CaseService {
     const at = options?.at ?? systemNow();
 
     // Check for existing fact with same key
-    const existing = loaded.facts.find(
-      (f) => f.key === input.key && f.status !== "SUPERSEDED",
-    );
+    const existing = loaded.facts.find((f) => f.key === input.key && f.status !== "SUPERSEDED");
 
     if (existing && existing.status === "CONFIRMED") {
       const { valuesEqual } = await import("./fact-value");

@@ -26,9 +26,9 @@ describe("isConcurrentUpdateError", () => {
   it("recognises a lost optimistic lock", () => {
     expect(isConcurrentUpdateError(new ConcurrentCaseUpdateDbError())).toBe(true);
     expect(isConcurrentUpdateError(new Error("Case x version conflict (expected 2)"))).toBe(true);
-    expect(isConcurrentUpdateError(Object.assign(new Error("nope"), { code: "CONCURRENT_UPDATE" }))).toBe(
-      true,
-    );
+    expect(
+      isConcurrentUpdateError(Object.assign(new Error("nope"), { code: "CONCURRENT_UPDATE" })),
+    ).toBe(true);
   });
 
   it("leaves every other error alone", () => {

@@ -173,7 +173,8 @@ const ES_ES: Translations = {
   },
   legal: {
     disclaimer: "Esta información no constituye asesoramiento legal.",
-    notLegalAdvice: "Los resultados se basan en la información proporcionada y las normativas vigentes.",
+    notLegalAdvice:
+      "Los resultados se basan en la información proporcionada y las normativas vigentes.",
     sourcesDisclaimer: "Las fuentes consultadas son de carácter público e informativo.",
   },
 };
@@ -320,10 +321,7 @@ export function getTranslations(locale: string): Translations {
  * Get a translated string by key path.
  * Example: getTranslation("es-ES", "case.status.ACTIVE")
  */
-export function getTranslation(
-  locale: string,
-  keyPath: string,
-): string {
+export function getTranslation(locale: string, keyPath: string): string {
   const translations = getTranslations(locale);
   const keys = keyPath.split(".");
 

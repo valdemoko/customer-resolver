@@ -55,9 +55,17 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }>
   SOURCES_VALIDATED: { bg: "bg-purple-100", text: "text-purple-700", label: "Fuentes validadas" },
   ANALYSIS_READY: { bg: "bg-amber-100", text: "text-amber-700", label: "Análisis listo" },
   RESULT_READY: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Resultado listo" },
-  INSUFFICIENT_INFORMATION: { bg: "bg-orange-100", text: "text-orange-700", label: "Información insuficiente" },
+  INSUFFICIENT_INFORMATION: {
+    bg: "bg-orange-100",
+    text: "text-orange-700",
+    label: "Información insuficiente",
+  },
   NO_RELIABLE_SOURCE: { bg: "bg-red-100", text: "text-red-700", label: "Sin fuente fiable" },
-  JURISDICTION_UNCERTAIN: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Jurisdicción incierta" },
+  JURISDICTION_UNCERTAIN: {
+    bg: "bg-yellow-100",
+    text: "text-yellow-700",
+    label: "Jurisdicción incierta",
+  },
   SOURCE_CONFLICT: { bg: "bg-red-100", text: "text-red-700", label: "Conflicto entre fuentes" },
   RESEARCH_FAILED: { bg: "bg-red-100", text: "text-red-700", label: "Investigación fallida" },
 };
@@ -68,7 +76,10 @@ const AUTHORITY_CONFIG: Record<string, { label: string; color: string }> = {
   GOVERNMENT_MINISTRY: { label: "Ministerio", color: "bg-blue-100 text-blue-700" },
   OFFICIAL_REGULATOR: { label: "Regulador oficial", color: "bg-blue-100 text-blue-700" },
   JUDICIAL_DATABASE: { label: "Base de datos judicial", color: "bg-indigo-100 text-indigo-700" },
-  ADMINISTRATIVE_GUIDANCE: { label: "Orientación administrativa", color: "bg-purple-100 text-purple-700" },
+  ADMINISTRATIVE_GUIDANCE: {
+    label: "Orientación administrativa",
+    color: "bg-purple-100 text-purple-700",
+  },
   INSTITUTIONAL_SOURCE: { label: "Fuente institucional", color: "bg-slate-100 text-slate-700" },
   PROFESSIONAL_SOURCE: { label: "Fuente profesional", color: "bg-slate-100 text-slate-600" },
   SECONDARY_SOURCE: { label: "Fuente secundaria", color: "bg-slate-100 text-slate-500" },
@@ -77,7 +88,11 @@ const AUTHORITY_CONFIG: Record<string, { label: string; color: string }> = {
 
 const FINDING_STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
   SUPPORTED: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Confirmado" },
-  POTENTIALLY_APPLICABLE: { bg: "bg-amber-50", text: "text-amber-700", label: "Potencialmente aplicable" },
+  POTENTIALLY_APPLICABLE: {
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    label: "Potencialmente aplicable",
+  },
   INSUFFICIENT_DATA: { bg: "bg-orange-50", text: "text-orange-700", label: "Datos insuficientes" },
   CONTRADICTED: { bg: "bg-red-50", text: "text-red-700", label: "Contradictorio" },
   NOT_APPLICABLE: { bg: "bg-slate-50", text: "text-slate-500", label: "No aplicable" },
@@ -115,26 +130,29 @@ export default function ResearchPage({ params }: { params: Promise<{ caseId: str
     }
   };
 
-  const handleStartResearch = useCallback(async (description: string, jurisdiction: string) => {
-    if (!caseId || startingResearch) return;
-    setStartingResearch(true);
-    try {
-      const res = await fetch(`/api/cases/${caseId}/research`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          problemDescription: description,
-          jurisdiction,
-        }),
-      });
-      if (res.ok) {
-        setShowStartForm(false);
-        await loadData(caseId);
+  const handleStartResearch = useCallback(
+    async (description: string, jurisdiction: string) => {
+      if (!caseId || startingResearch) return;
+      setStartingResearch(true);
+      try {
+        const res = await fetch(`/api/cases/${caseId}/research`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            problemDescription: description,
+            jurisdiction,
+          }),
+        });
+        if (res.ok) {
+          setShowStartForm(false);
+          await loadData(caseId);
+        }
+      } finally {
+        setStartingResearch(false);
       }
-    } finally {
-      setStartingResearch(false);
-    }
-  }, [caseId, startingResearch]);
+    },
+    [caseId, startingResearch],
+  );
 
   if (loading) {
     return (
@@ -153,26 +171,27 @@ export default function ResearchPage({ params }: { params: Promise<{ caseId: str
     );
   }
 
-
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-slate-900" style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}>
+        <h2
+          className="text-xl font-semibold text-slate-900"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
           Investigación
         </h2>
-        <button
-          onClick={() => setShowStartForm(!showStartForm)}
-          className="cr-btn-primary text-sm"
-        >
+        <button onClick={() => setShowStartForm(!showStartForm)} className="cr-btn-primary text-sm">
           + Nueva investigación
         </button>
       </div>
 
       {/* Start Research Form */}
       {showStartForm && (
-        <StartResearchForm onSubmit={handleStartResearch} onCancel={() => setShowStartForm(false)} />
+        <StartResearchForm
+          onSubmit={handleStartResearch}
+          onCancel={() => setShowStartForm(false)}
+        />
       )}
 
       {/* No Research */}
@@ -180,7 +199,8 @@ export default function ResearchPage({ params }: { params: Promise<{ caseId: str
         <div className="cr-surface p-8 text-center">
           <p className="text-slate-500 mb-2">No hay investigaciones realizadas.</p>
           <p className="text-sm text-slate-400">
-            La investigación busca fuentes oficiales para problemas no cubiertos por los módulos deterministas.
+            La investigación busca fuentes oficiales para problemas no cubiertos por los módulos
+            deterministas.
           </p>
         </div>
       )}
@@ -266,7 +286,9 @@ function ResearchSessionCard({ session }: { session: ResearchSession }) {
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}
+            >
               {statusConfig.label}
             </span>
             <span className="text-xs text-slate-400">{session.jurisdiction}</span>
@@ -284,7 +306,8 @@ function ResearchSessionCard({ session }: { session: ResearchSession }) {
           <h4 className="text-sm font-medium text-slate-700 mb-2">Conclusiones</h4>
           <div className="space-y-2">
             {session.findings.map((finding) => {
-              const findingConfig = (FINDING_STATUS_CONFIG[finding.status] ?? FINDING_STATUS_CONFIG.UNKNOWN)!;
+              const findingConfig = (FINDING_STATUS_CONFIG[finding.status] ??
+                FINDING_STATUS_CONFIG.UNKNOWN)!;
               return (
                 <div key={finding.id} className={`p-3 rounded-lg border ${findingConfig.bg}`}>
                   <div className="flex items-start gap-2">
@@ -304,13 +327,18 @@ function ResearchSessionCard({ session }: { session: ResearchSession }) {
       {/* Sources */}
       {session.sources.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-medium text-slate-700 mb-2">Fuentes ({session.sources.length})</h4>
+          <h4 className="text-sm font-medium text-slate-700 mb-2">
+            Fuentes ({session.sources.length})
+          </h4>
           <div className="space-y-2">
             {session.sources.slice(0, 5).map((source) => {
-              const authorityConfig = (AUTHORITY_CONFIG[source.authority] ?? AUTHORITY_CONFIG.UNVERIFIED)!;
+              const authorityConfig = (AUTHORITY_CONFIG[source.authority] ??
+                AUTHORITY_CONFIG.UNVERIFIED)!;
               return (
                 <div key={source.id} className="flex items-center gap-2 text-sm">
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${authorityConfig.color}`}>
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${authorityConfig.color}`}
+                  >
                     {authorityConfig.label}
                   </span>
                   <a

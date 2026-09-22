@@ -46,14 +46,14 @@ Acciones concretas
 
 ## 4. Endpoints utilizados
 
-| Endpoint | Status | Usage |
-|----------|--------|-------|
-| `POST /api/intake/interpret` | EXISTING | Interpreta el problema del usuario |
-| `POST /api/intake/confirm` | EXISTING | Confirma/rechaza hechos |
-| `GET /api/cases/:id/intake` | EXISTING | Obtiene estado del caso y siguiente pregunta |
-| `GET /api/cases/:id/result` | EXISTING | Obtiene resultado del análisis |
-| `GET /api/cases/:id/actions` | EXISTING | Obtiene plan de acciones |
-| `GET /api/cases/:id/export` | EXISTING | Exporta informe |
+| Endpoint                     | Status   | Usage                                        |
+| ---------------------------- | -------- | -------------------------------------------- |
+| `POST /api/intake/interpret` | EXISTING | Interpreta el problema del usuario           |
+| `POST /api/intake/confirm`   | EXISTING | Confirma/rechaza hechos                      |
+| `GET /api/cases/:id/intake`  | EXISTING | Obtiene estado del caso y siguiente pregunta |
+| `GET /api/cases/:id/result`  | EXISTING | Obtiene resultado del análisis               |
+| `GET /api/cases/:id/actions` | EXISTING | Obtiene plan de acciones                     |
+| `GET /api/cases/:id/export`  | EXISTING | Exporta informe                              |
 
 No se crearon nuevos endpoints.
 
@@ -71,6 +71,7 @@ No se crearon nuevos endpoints.
 ## 6. IA
 
 Qué hace la IA:
+
 - Interpreta la descripción del usuario en lenguaje natural
 - Identifica el problema candidato
 - Extrae hechos relevantes
@@ -78,6 +79,7 @@ Qué hace la IA:
 - Detecta pistas de jurisdicción
 
 Qué NO puede hacer la IA:
+
 - Determinar el resultado legal (eso es trabajo del Rule Engine)
 - Inventar fuentes (eso es trabajo del Source Engine)
 - Confirmar hechos automáticamente (eso requiere confirmación del usuario)
@@ -86,6 +88,7 @@ Qué NO puede hacer la IA:
 ## 7. Rule Engine
 
 Cómo se llega al resultado determinista:
+
 1. El caso tiene un `problemSlug` asignado por el Intake
 2. El Analysis Service carga las reglas PUBLISHED para ese problema
 3. El Evaluator evalúa cada regla contra los hechos confirmados
@@ -95,6 +98,7 @@ Cómo se llega al resultado determinista:
 ## 8. Research Resolver
 
 Cómo se manejan problemas sin módulo:
+
 1. El Intake detecta que no hay módulo candidato con confianza suficiente
 2. El routing status es `UNROUTED` en lugar de `ROUTED`
 3. El Research Resolver investiga en fuentes oficiales
@@ -104,6 +108,7 @@ Cómo se manejan problemas sin módulo:
 ## 9. Evidence
 
 Cómo se incorporan documentos:
+
 1. El usuario puede subir documentos en la fase de evidencia
 2. Los documentos se procesan mediante el Evidence Engine existente
 3. Los datos extraídos se convierten en candidatos de hechos
@@ -113,6 +118,7 @@ Cómo se incorporan documentos:
 ## 10. UX
 
 El nuevo flujo de usuario:
+
 1. **Intake**: Textarea limpio con placeholder contextual
 2. **Interpretación**: Muestra lo que la IA entendió de forma estructurada
 3. **Preguntas**: Una pregunta a la vez, solo las necesarias
@@ -144,6 +150,7 @@ El nuevo flujo de usuario:
 **APPROVED**
 
 El flujo de resolución ahora:
+
 - Crea un Case real via `/api/intake/interpret`
 - Muestra la interpretación IA al usuario
 - Permite confirmar/corregir hechos
@@ -158,5 +165,5 @@ El flujo de resolución ahora:
 
 ---
 
-*Implementado: 2026-09-21*
-*Tests: 995/995 | Typecheck: PASS | Lint: PASS | Build: PASS*
+_Implementado: 2026-09-21_
+_Tests: 995/995 | Typecheck: PASS | Lint: PASS | Build: PASS_

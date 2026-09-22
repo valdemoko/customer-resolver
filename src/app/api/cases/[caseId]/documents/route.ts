@@ -61,7 +61,7 @@ function compositionRoot() {
 
 const PRIVATE_CACHE_HEADERS = {
   "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "Pragma": "no-cache",
+  Pragma: "no-cache",
 } as const;
 
 // ── GET: List documents ─────────────────────────────────────────────
@@ -220,9 +220,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     const { createAIProvidersFromEnv } = await import("@server/adapters/ai");
     const { AIRouter } = await import("@core/ai/router");
     const { createDefaultPromptRegistry } = await import("@core/ai/prompts");
-    const { AIRequestAuditRepository } = await import(
-      "@server/db/repositories/ai-request-repository"
-    );
+    const { AIRequestAuditRepository } =
+      await import("@server/db/repositories/ai-request-repository");
 
     const providers = createAIProvidersFromEnv(env);
     const promptRegistry = createDefaultPromptRegistry();

@@ -20,29 +20,70 @@ export const metadata: Metadata = {
       "Explora los problemas de consumo que podemos ayudarte a resolver con información verificada.",
     type: "website",
     locale: "es_ES",
+    images: ["/og.png"],
   },
 };
 
 /* ── Problem icons ──────────────────────────────────────────────── */
 const PROBLEM_ICONS: Record<string, React.ReactNode> = {
   "cancellation-charge": (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
+      />
     </svg>
   ),
   "no-delivery-refund": (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"
+      />
     </svg>
   ),
   "warranty-rejection": (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      />
     </svg>
   ),
   "flight-cancel": (
-    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+      />
     </svg>
   ),
 };
@@ -52,15 +93,14 @@ export default function ProblemsIndexPage() {
 
   return (
     <div className="bg-[var(--surface-page)] min-h-screen">
-
       {/* ── Header ──────────────────────────────────────────────── */}
       <section className="bg-[var(--surface-paper)] border-b border-[var(--border-light)]">
         <div className="max-w-[800px] mx-auto px-5 md:px-8 py-12 md:py-16">
           <p className="label mb-3">Resolveo</p>
           <h1 className="mb-4">Problemas de consumo que podemos analizar</h1>
           <p className="text-lg text-[var(--color-ink-muted)] leading-relaxed max-w-2xl">
-            Cada problema tiene su propio módulo de análisis, con reglas basadas en
-            normativa vigente y fuentes verificables.
+            Cada problema tiene su propio módulo de análisis, con reglas basadas en normativa
+            vigente y fuentes verificables.
           </p>
         </div>
       </section>
@@ -82,7 +122,6 @@ export default function ProblemsIndexPage() {
 
                 <div className="p-6 md:p-8">
                   <div className="flex flex-col md:flex-row md:items-start gap-5">
-
                     {/* Icon + number */}
                     <div className="flex-shrink-0 flex items-center gap-4">
                       {/* Problem number */}
@@ -144,7 +183,11 @@ export default function ProblemsIndexPage() {
                           strokeWidth={2}
                           stroke="currentColor"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                          />
                         </svg>
                       </span>
                     </div>
@@ -167,14 +210,24 @@ export default function ProblemsIndexPage() {
           <p className="label mb-4">Otros problemas</p>
           <div className="p-6 bg-[var(--surface-paper)] border border-[var(--border-light)]">
             <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mb-4">
-              Si tu problema no aparece en la lista, puedes describirlo con tus
-              propias palabras. El sistema intentará identificar si hay un módulo
-              compatible o te orientará sobre los pasos a seguir.
+              Si tu problema no aparece en la lista, puedes describirlo con tus propias palabras. El
+              sistema intentará identificar si hay un módulo compatible o te orientará sobre los
+              pasos a seguir.
             </p>
             <Link href="/" className="btn-primary text-sm inline-flex">
               Describir mi problema
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
               </svg>
             </Link>
           </div>
@@ -184,9 +237,8 @@ export default function ProblemsIndexPage() {
       {/* ── Trust note ───────────────────────────────────────────── */}
       <div className="max-w-[800px] mx-auto px-5 md:px-8 pb-12">
         <p className="text-xs text-[var(--color-ink-faint)] leading-relaxed">
-          Cada módulo utiliza normativa vigente en España. Las conclusiones se
-          basan en la información que proporcionas y están vinculadas a fuentes
-          verificables. Consulta{" "}
+          Cada módulo utiliza normativa vigente en España. Las conclusiones se basan en la
+          información que proporcionas y están vinculadas a fuentes verificables. Consulta{" "}
           <Link
             href="/como-funciona"
             className="text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] underline underline-offset-2 transition-colors"

@@ -23,11 +23,7 @@ export function Nav() {
       {/* Desktop nav */}
       <nav className="hidden md:flex items-center gap-1">
         {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="btn-ghost text-[13px]"
-          >
+          <Link key={item.href} href={item.href} className="btn-ghost text-[13px]">
             {item.label}
           </Link>
         ))}
@@ -39,21 +35,33 @@ export function Nav() {
 
       {/* Mobile menu trigger */}
       <div className="md:hidden flex items-center gap-2">
-        <Link href="/#resolver" className="btn-primary text-[12px] py-1.5 px-3">
+        <Link href="/#resolver" className="btn-primary text-[12px] py-3 px-4 min-h-[44px]">
           Contar
         </Link>
         <button
-          className="p-2 rounded hover:bg-[var(--surface-warm)] transition-colors"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded hover:bg-[var(--surface-warm)] transition-colors"
           aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(!mobileOpen)}
         >
           {mobileOpen ? (
-            <svg className="w-4 h-4 text-[var(--color-ink)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <svg
+              className="w-4 h-4 text-[var(--color-ink)]"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg className="w-4 h-4 text-[var(--color-ink)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <svg
+              className="w-4 h-4 text-[var(--color-ink)]"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
             </svg>
           )}

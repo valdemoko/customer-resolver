@@ -58,7 +58,11 @@ export function createFact(input: CreateFactInput): Fact {
   const status = input.initialStatus ?? "UNCONFIRMED";
 
   // Only USER_PROVIDED and USER_RESOLVED provenance can produce CONFIRMED facts
-  if (status === "CONFIRMED" && input.provenance !== "USER_PROVIDED" && input.provenance !== "USER_RESOLVED") {
+  if (
+    status === "CONFIRMED" &&
+    input.provenance !== "USER_PROVIDED" &&
+    input.provenance !== "USER_RESOLVED"
+  ) {
     throw new DomainError(
       `Cannot create CONFIRMED fact with provenance ${input.provenance}. Only USER_PROVIDED or USER_RESOLVED allowed.`,
     );

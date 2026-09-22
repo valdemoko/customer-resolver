@@ -18,6 +18,14 @@ export const metadata: Metadata = {
       "Resuelve problemas con información estructurada, fuentes verificables y pasos claros.",
     type: "website",
     locale: "es_ES",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Resolveo — Entiende tu problema. Resuélvelo.",
+      },
+    ],
   },
 };
 

@@ -34,7 +34,11 @@ import {
 } from "./schemas";
 import { buildModuleCatalogue, formatCatalogueForPrompt } from "./catalogue";
 import { routeInterpretation } from "./routing";
-import { selectNextQuestion, allRequiredFactsConfirmed, intakeRequirementsSatisfied } from "./question-selector";
+import {
+  selectNextQuestion,
+  allRequiredFactsConfirmed,
+  intakeRequirementsSatisfied,
+} from "./question-selector";
 import { BudgetExceededError } from "./errors";
 
 // ── Constants ────────────────────────────────────────────────────────

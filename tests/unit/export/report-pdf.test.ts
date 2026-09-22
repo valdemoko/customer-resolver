@@ -77,10 +77,34 @@ const FACTS = [
 ];
 
 const QUESTIONS = [
-  { id: "q-dep", text: "¿De qué aeropuerto salía tu vuelo?", factKey: "flight.departure_airport", required: true, type: "string" },
-  { id: "q-costs", text: "¿Tuviste gastos adicionales?", factKey: "passenger.additional_costs", required: false, type: "money" },
-  { id: "q-reroute", text: "¿La aerolínea te ofreció un vuelo alternativo?", factKey: "airline.re_routing_offered", required: true, type: "boolean" },
-  { id: "q-sched", text: "¿Cuál era la fecha programada del vuelo?", factKey: "flight.scheduled_date", required: true, type: "date" },
+  {
+    id: "q-dep",
+    text: "¿De qué aeropuerto salía tu vuelo?",
+    factKey: "flight.departure_airport",
+    required: true,
+    type: "string",
+  },
+  {
+    id: "q-costs",
+    text: "¿Tuviste gastos adicionales?",
+    factKey: "passenger.additional_costs",
+    required: false,
+    type: "money",
+  },
+  {
+    id: "q-reroute",
+    text: "¿La aerolínea te ofreció un vuelo alternativo?",
+    factKey: "airline.re_routing_offered",
+    required: true,
+    type: "boolean",
+  },
+  {
+    id: "q-sched",
+    text: "¿Cuál era la fecha programada del vuelo?",
+    factKey: "flight.scheduled_date",
+    required: true,
+    type: "date",
+  },
 ];
 
 const EVALUATION = {

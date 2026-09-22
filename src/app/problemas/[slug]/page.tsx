@@ -15,7 +15,6 @@ import {
 import { getProblemTrace } from "@/lib/trace";
 import { TraceDemo } from "@/components/TraceDemo";
 
-
 /* ── Problem images ─────────────────────────────────────────────── */
 const PROBLEM_IMAGES: Record<string, string> = {
   "cancellation-charge": "/images/cancelacion-cargo.jpg",
@@ -39,7 +38,11 @@ export function generateStaticParams() {
 }
 
 /* ── Metadata ───────────────────────────────────────────────────── */
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const problem = getProblemBySlug(slug);
   if (!problem) return {};
@@ -52,6 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: problem.description,
       type: "article",
       locale: "es_ES",
+      images: ["/og.png"],
     },
   };
 }
@@ -136,12 +140,14 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
       <section className="relative bg-[var(--surface-paper)] border-b border-[var(--border-light)]">
         {imageUrl && (
           <div className="absolute inset-0 overflow-hidden">
+            {/* Decorative (7% opacity): no `priority` — preloading it would
+                compete with the real LCP element (the H1 text). */}
             <Image
               src={imageUrl}
               alt=""
               fill
               sizes="100vw"
-              priority
+              loading="lazy"
               className="object-cover opacity-[0.07]"
             />
           </div>
@@ -152,8 +158,18 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
             href="/problemas"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] transition-colors mb-6"
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
             </svg>
             Problemas
           </Link>
@@ -180,13 +196,15 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
       <section className="section bg-[var(--surface-page)]">
         <div className="max-w-[800px] mx-auto px-5 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-
             {/* Left — What we analyze */}
             <div>
-              <p className="label mb-4">Qué analizamos</p>
+              <h2 className="label mb-4">Qué analizamos</h2>
               <ul className="space-y-3">
                 {problem.whatWeAnalyze.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed"
+                  >
                     <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-accent)] mt-2" />
                     {item}
                   </li>
@@ -196,10 +214,13 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
             {/* Right — What you get */}
             <div>
-              <p className="label mb-4">Qué obtienes</p>
+              <h2 className="label mb-4">Qué obtienes</h2>
               <ul className="space-y-3">
                 {problem.whatYouGet.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed"
+                  >
                     <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-ink)] mt-2" />
                     {item}
                   </li>
@@ -210,15 +231,20 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
           {/* ── Saber más ─────────────────────────────────────── */}
           <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-            <p className="label mb-6">Saber más</p>
+            <h2 className="label mb-6">Saber más</h2>
 
             <div className="space-y-8">
               {/* Key facts */}
               <div>
-                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Datos importantes</h3>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Datos importantes
+                </h3>
                 <ul className="space-y-2">
                   {problem.saberMas.keyFacts.map((fact) => (
-                    <li key={fact} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    <li
+                      key={fact}
+                      className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed"
+                    >
                       <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-accent)] mt-2" />
                       {fact}
                     </li>
@@ -228,10 +254,15 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
               {/* Important dates */}
               <div>
-                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Fechas relevantes</h3>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Fechas relevantes
+                </h3>
                 <ul className="space-y-2">
                   {problem.saberMas.importantDates.map((date) => (
-                    <li key={date} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    <li
+                      key={date}
+                      className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed"
+                    >
                       <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-ink)] mt-2" />
                       {date}
                     </li>
@@ -241,10 +272,15 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
               {/* Evidence */}
               <div>
-                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Documentos útiles</h3>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Documentos útiles
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {problem.saberMas.evidenceTypes.map((ev) => (
-                    <span key={ev} className="text-xs font-medium text-[var(--color-ink-muted)] bg-[var(--surface-warm)] border border-[var(--border-light)] px-3 py-1.5 rounded">
+                    <span
+                      key={ev}
+                      className="text-xs font-medium text-[var(--color-ink-muted)] bg-[var(--surface-warm)] border border-[var(--border-light)] px-3 py-1.5 rounded"
+                    >
                       {ev}
                     </span>
                   ))}
@@ -253,10 +289,15 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
               {/* Common mistakes */}
               <div>
-                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Errores comunes</h3>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Errores comunes
+                </h3>
                 <ul className="space-y-2">
                   {problem.saberMas.commonMistakes.map((mistake) => (
-                    <li key={mistake} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    <li
+                      key={mistake}
+                      className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed"
+                    >
                       <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-contradicted)] mt-2" />
                       {mistake}
                     </li>
@@ -266,10 +307,15 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
               {/* What we verify */}
               <div>
-                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Qué verificamos</h3>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Qué verificamos
+                </h3>
                 <ul className="space-y-2">
                   {problem.saberMas.whatWeVerify.map((item) => (
-                    <li key={item} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    <li
+                      key={item}
+                      className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed"
+                    >
                       <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-accent)] mt-2" />
                       {item}
                     </li>
@@ -279,10 +325,15 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
               {/* What cannot be determined */}
               <div>
-                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Qué no podemos determinar</h3>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>
+                  Qué no podemos determinar
+                </h3>
                 <ul className="space-y-2">
                   {problem.saberMas.whatCannotBeDetermined.map((item) => (
-                    <li key={item} className="flex items-start gap-3 text-sm text-[var(--color-ink-muted)] leading-relaxed">
+                    <li
+                      key={item}
+                      className="flex items-start gap-3 text-sm text-[var(--color-ink-muted)] leading-relaxed"
+                    >
                       <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-contradicted)] mt-2" />
                       {item}
                     </li>
@@ -294,10 +345,13 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
           {/* ── Legal basis ───────────────────────────────────── */}
           <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-            <p className="label mb-3">Base legal</p>
+            <h2 className="label mb-3">Base legal</h2>
             <div className="flex flex-wrap gap-2">
               {problem.legalBasis.map((basis) => (
-                <span key={basis} className="text-xs font-medium text-[var(--color-ink-muted)] bg-[var(--surface-warm)] border border-[var(--border-light)] px-3 py-1.5 rounded">
+                <span
+                  key={basis}
+                  className="text-xs font-medium text-[var(--color-ink-muted)] bg-[var(--surface-warm)] border border-[var(--border-light)] px-3 py-1.5 rounded"
+                >
                   {basis}
                 </span>
               ))}
@@ -306,7 +360,9 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
           {/* ── Limitations ───────────────────────────────────── */}
           <div className="mt-8 p-4 bg-[var(--surface-warm)] border border-[var(--border-light)]">
-            <p className="text-xs font-medium text-[var(--color-ink-faint)] uppercase tracking-wider mb-2">Limitaciones</p>
+            <p className="text-xs font-medium text-[var(--color-ink-faint)] uppercase tracking-wider mb-2">
+              Limitaciones
+            </p>
             <ul className="space-y-1">
               {problem.limitations.map((limit) => (
                 <li key={limit} className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
@@ -318,7 +374,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
           {/* ── Cómo se llega a una conclusión (ejemplo trazable) ── */}
           <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-            <p className="label mb-4">Cómo se llega a una conclusión</p>
+            <h2 className="label mb-4">Cómo se llega a una conclusión</h2>
             <TraceDemo
               trace={trace}
               scenario={problem.example.scenario}
@@ -328,14 +384,16 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
           {/* ── Cómo reclamar ─────────────────────────────────── */}
           <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-            <p className="label mb-4">Cómo reclamar, paso a paso</p>
+            <h2 className="label mb-4">Cómo reclamar, paso a paso</h2>
             <ol className="space-y-4">
               {problem.steps.map((step, index) => (
                 <li key={step} className="flex items-start gap-4">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--color-ink)] text-[var(--surface-paper)] text-xs font-medium flex items-center justify-center mt-0.5">
                     {index + 1}
                   </span>
-                  <span className="text-sm text-[var(--color-ink-soft)] leading-relaxed">{step}</span>
+                  <span className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    {step}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -346,7 +404,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
 
           {/* ── Preguntas frecuentes ──────────────────────────── */}
           <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-            <p className="label mb-4">Preguntas frecuentes</p>
+            <h2 className="label mb-4">Preguntas frecuentes</h2>
             <div className="space-y-5">
               {problem.faq.map((item) => (
                 <div key={item.question}>
@@ -364,7 +422,7 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
           {/* ── Problemas relacionados ────────────────────────── */}
           {related.length > 0 && (
             <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-              <p className="label mb-4">Problemas relacionados</p>
+              <h2 className="label mb-4">Problemas relacionados</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {related.map((entry) => (
                   <Link
@@ -388,13 +446,20 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
           {/* Deterministic entry: the slug carries the module, so the case is
               created directly and nothing is interpreted by a model. */}
           <div className="mt-10 flex flex-col sm:flex-row gap-3">
-            <Link
-              href={`/resolver?problema=${problem.slug}`}
-              className="btn-primary"
-            >
+            <Link href={`/resolver?problema=${problem.slug}`} className="btn-primary">
               Analizar mi caso
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
               </svg>
             </Link>
             <Link href="/" className="btn-secondary">

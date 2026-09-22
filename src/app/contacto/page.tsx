@@ -28,9 +28,8 @@ export default function ContactPage() {
       </h1>
 
       <p className="text-lg text-slate-500 leading-relaxed mb-8">
-        Este canal sirve para corregir el contenido y mejorar el sistema. Lo
-        mantiene una sola persona, así que los mensajes se atienden por orden de
-        llegada y la respuesta puede tardar.
+        Este canal sirve para corregir el contenido y mejorar el sistema. Lo mantiene una sola
+        persona, así que los mensajes se atienden por orden de llegada y la respuesta puede tardar.
       </p>
 
       <div className="cr-surface p-6 md:p-8 mb-10">
@@ -41,8 +40,8 @@ export default function ContactPage() {
           Correo de contacto
         </h2>
         <p className="text-slate-500 mb-4 text-sm">
-          Para cualquier asunto relacionado con el sitio, la normativa publicada
-          o el tratamiento de tus datos:
+          Para cualquier asunto relacionado con el sitio, la normativa publicada o el tratamiento de
+          tus datos:
         </p>
         <a
           href={`mailto:${CONTACT_EMAIL}?subject=Contacto desde Resolveo`}
@@ -80,8 +79,8 @@ export default function ContactPage() {
               Si has detectado un error en la normativa o en una fuente
             </h3>
             <p className="mb-2">
-              Es el mensaje más útil que podemos recibir. Para poder comprobarlo
-              y corregirlo, indica:
+              Es el mensaje más útil que podemos recibir. Para poder comprobarlo y corregirlo,
+              indica:
             </p>
             <ul className="space-y-1.5 ml-4">
               <li className="flex items-start gap-2">
@@ -94,13 +93,13 @@ export default function ContactPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-slate-300 mt-0.5">—</span>
-                La publicación oficial donde se puede comprobar (BOE, EUR-Lex),
-                con el artículo y, si lo tienes, la versión consolidada.
+                La publicación oficial donde se puede comprobar (BOE, EUR-Lex), con el artículo y,
+                si lo tienes, la versión consolidada.
               </li>
             </ul>
             <p className="mt-2">
-              Puedes consultar qué fuente respalda cada análisis, con su artículo
-              y fecha de consulta, en{" "}
+              Puedes consultar qué fuente respalda cada análisis, con su artículo y fecha de
+              consulta, en{" "}
               <Link
                 href="/fuentes"
                 className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
@@ -112,14 +111,11 @@ export default function ContactPage() {
           </div>
 
           <div>
-            <h3 className="font-semibold text-slate-800 mb-1">
-              Si algo del sitio no funciona
-            </h3>
+            <h3 className="font-semibold text-slate-800 mb-1">Si algo del sitio no funciona</h3>
             <p>
-              Describe qué hiciste, qué esperabas y qué ocurrió, e incluye la
-              dirección del caso si el problema aparece en un informe concreto.
-              No adjuntes documentos de tu caso en el correo: para eso ya existe
-              la subida dentro del propio caso.
+              Describe qué hiciste, qué esperabas y qué ocurrió, e incluye la dirección del caso si
+              el problema aparece en un informe concreto. No adjuntes documentos de tu caso en el
+              correo: para eso ya existe la subida dentro del propio caso.
             </p>
           </div>
 
@@ -128,9 +124,9 @@ export default function ContactPage() {
               Si quieres ejercer tus derechos de privacidad
             </h3>
             <p>
-              Escribe desde la misma dirección si es posible e incluye el
-              identificador del caso: es lo único que permite localizarlo, ya que
-              el sistema no pide nombres. El detalle está en la{" "}
+              Escribe desde la misma dirección si es posible e incluye el identificador del caso: es
+              lo único que permite localizarlo, ya que el sistema no pide nombres. El detalle está
+              en la{" "}
               <Link
                 href="/privacidad"
                 className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
@@ -145,9 +141,9 @@ export default function ContactPage() {
 
       <div className="mt-8 text-sm text-slate-400 border-t border-slate-200/60 pt-6">
         <p>
-          Este canal no es un servicio de asesoría legal y no se pueden atender
-          consultas individuales sobre un caso particular: cada informe ya
-          detalla los pasos, los canales de reclamación y las vías disponibles.
+          Este canal no es un servicio de asesoría legal y no se pueden atender consultas
+          individuales sobre un caso particular: cada informe ya detalla los pasos, los canales de
+          reclamación y las vías disponibles.
         </p>
       </div>
     </div>

@@ -115,9 +115,7 @@ export class DrizzleRateLimitStore implements RateLimitStore {
 
   async cleanup(): Promise<number> {
     const now = systemNow();
-    await this.db
-      .delete(rateLimits)
-      .where(sql`${rateLimits.expiresAt} < ${now}`);
+    await this.db.delete(rateLimits).where(sql`${rateLimits.expiresAt} < ${now}`);
     // rowCount not available on Drizzle return type — best-effort cleanup
     return 0;
   }

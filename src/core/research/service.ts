@@ -65,7 +65,8 @@ export class ResearchService {
     facts: ReadonlyMap<string, unknown>;
     previousResearchId?: string;
   }): Promise<ResearchResult> {
-    const { caseId, problemDescription, jurisdiction, entities, facts, previousResearchId } = params;
+    const { caseId, problemDescription, jurisdiction, entities, facts, previousResearchId } =
+      params;
 
     // 1. Create research plan
     const plan = this.engine.createPlan({
@@ -102,8 +103,10 @@ export class ResearchService {
    */
   canRerun(result: ResearchResult): boolean {
     // Can rerun if status is not RESULT_READY or if there are unresolved conflicts
-    return result.status !== "RESULT_READY" || 
-           result.conflicts.some(c => c.resolutionStatus === "UNRESOLVED");
+    return (
+      result.status !== "RESULT_READY" ||
+      result.conflicts.some((c) => c.resolutionStatus === "UNRESOLVED")
+    );
   }
 
   /**
@@ -118,9 +121,9 @@ export class ResearchService {
     uncertainFindings: number;
     missingInfoCount: number;
   } {
-    const supported = result.findings.filter(f => f.status === "SUPPORTED").length;
-    const uncertain = result.findings.filter(f => 
-      f.status === "POTENTIALLY_APPLICABLE" || f.status === "INSUFFICIENT_DATA"
+    const supported = result.findings.filter((f) => f.status === "SUPPORTED").length;
+    const uncertain = result.findings.filter(
+      (f) => f.status === "POTENTIALLY_APPLICABLE" || f.status === "INSUFFICIENT_DATA",
     ).length;
 
     return {
@@ -146,14 +149,14 @@ export class ResearchService {
       status: finding.status as ClaimStatus,
       assertion: finding.proposition,
       explanation: finding.reasoningSummary,
-      supportingFacts: finding.supportingFacts.map(f => ({
+      supportingFacts: finding.supportingFacts.map((f) => ({
         factKey: f.factKey,
         value: f.value,
         status: f.status as "CONFIRMED" | "UNCONFIRMED" | "CONTRADICTED",
-        confidence: f.source === "USER_PROVIDED" ? "USER" as const : "AI" as const,
+        confidence: f.source === "USER_PROVIDED" ? ("USER" as const) : ("AI" as const),
         evidenceIds: [],
       })),
-      supportingSources: finding.supportingSources.map(s => ({
+      supportingSources: finding.supportingSources.map((s) => ({
         sourceId: s.sourceId,
         title: s.title,
         url: s.url,
@@ -184,10 +187,7 @@ export class ResearchService {
       if (sources.length >= this.budget.maxSourceFetches) break;
 
       // Search for sources
-      const searchResults = await this.searchAdapter.search(
-        question.question,
-        plan.jurisdiction,
-      );
+      const searchResults = await this.searchAdapter.search(question.question, plan.jurisdiction);
 
       // Convert results to sources
       for (const result of searchResults.results) {
@@ -215,7 +215,7 @@ export class ResearchService {
     plan: ResearchPlan,
   ): ResearchFinding {
     // Find validated sources that could answer this question
-    const validSources = sources.filter(s => s.validationStatus === "VALIDATED");
+    const validSources = sources.filter((s) => s.validationStatus === "VALIDATED");
 
     if (validSources.length === 0) {
       return {
@@ -233,7 +233,7 @@ export class ResearchService {
 
     // Sort by authority
     const sortedSources = [...validSources].sort((a, b) =>
-      compareAuthority(a.authority, b.authority)
+      compareAuthority(a.authority, b.authority),
     );
 
     // Use highest authority source

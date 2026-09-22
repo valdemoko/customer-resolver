@@ -22,23 +22,11 @@ import {
   INTAKE_SCHEMA_VERSION,
   type IntakeInterpretationOutput,
 } from "@core/intake/schemas";
-import {
-  buildModuleCatalogue,
-  formatCatalogueForPrompt,
-} from "@core/intake/catalogue";
+import { buildModuleCatalogue, formatCatalogueForPrompt } from "@core/intake/catalogue";
 import { routeInterpretation } from "@core/intake/routing";
-import {
-  selectNextQuestion,
-  allRequiredFactsConfirmed,
-} from "@core/intake/question-selector";
-import {
-  MAX_INTERPRETATION_CALLS,
-  INTERPRETATION_PROMPT_ID,
-} from "@core/intake/service";
-import type {
-  IntakeInterpretation,
-  AISafeModuleDescriptor,
-} from "@core/intake/types";
+import { selectNextQuestion, allRequiredFactsConfirmed } from "@core/intake/question-selector";
+import { MAX_INTERPRETATION_CALLS, INTERPRETATION_PROMPT_ID } from "@core/intake/service";
+import type { IntakeInterpretation, AISafeModuleDescriptor } from "@core/intake/types";
 
 // ── Import existing modules ──────────────────────────────────────────
 import { ProblemRegistry, defineProblemModule } from "@core/problems/contract";
@@ -416,23 +404,17 @@ describe("F8.3 Module Catalogue", () => {
     const registry = createTestRegistry();
     const catalogue = buildModuleCatalogue(registry);
 
-    const cancellation = catalogue.find(
-      (c) => c.problemKey === "cancellation-charge",
-    )!;
+    const cancellation = catalogue.find((c) => c.problemKey === "cancellation-charge")!;
     expect(cancellation.semanticSignals.length).toBeGreaterThan(0);
     // Should contain words from the title
-    expect(
-      cancellation.semanticSignals.some((s) => s.includes("cancel")),
-    ).toBe(true);
+    expect(cancellation.semanticSignals.some((s) => s.includes("cancel"))).toBe(true);
   });
 
   it("includes required fact categories", () => {
     const registry = createTestRegistry();
     const catalogue = buildModuleCatalogue(registry);
 
-    const cancellation = catalogue.find(
-      (c) => c.problemKey === "cancellation-charge",
-    )!;
+    const cancellation = catalogue.find((c) => c.problemKey === "cancellation-charge")!;
     expect(cancellation.requiredFactCategories).toContain("cancellation");
     expect(cancellation.requiredFactCategories).toContain("charge");
   });
@@ -458,7 +440,7 @@ describe("F8.3 Routing", () => {
   const registeredKeys = new Set(["cancellation-charge", "warranty-rejection"]);
 
   it("routes to cancellation-charge with sufficient signals", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -468,9 +450,7 @@ describe("F8.3 Routing", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -479,17 +459,13 @@ describe("F8.3 Routing", () => {
   });
 
   it("DOES NOT route with HIGH confidence but no structural signals", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
           signals: [], // No signals!
           matchedRequiredFacts: [],
-          missingRequiredFacts: [
-            "cancellation.date",
-            "charge.date",
-            "charge.amount",
-          ],
+          missingRequiredFacts: ["cancellation.date", "charge.date", "charge.amount"],
           confidence: "HIGH",
         },
       ],
@@ -501,17 +477,13 @@ describe("F8.3 Routing", () => {
   });
 
   it("DOES NOT route with HIGH confidence but zero matched facts", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
           signals: ["cancelar", "cobrado"],
           matchedRequiredFacts: [], // No matched facts
-          missingRequiredFacts: [
-            "cancellation.date",
-            "charge.date",
-            "charge.amount",
-          ],
+          missingRequiredFacts: ["cancellation.date", "charge.date", "charge.amount"],
           confidence: "HIGH",
         },
       ],
@@ -523,22 +495,17 @@ describe("F8.3 Routing", () => {
   });
 
   it("routes to warranty-rejection with sufficient signals", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "warranty-rejection",
           signals: ["garantia", "rechazado", "producto"],
-          matchedRequiredFacts: [
-            "nonconformity.description",
-            "seller.rejection",
-          ],
+          matchedRequiredFacts: ["nonconformity.description", "seller.rejection"],
           missingRequiredFacts: ["seller.response_received"],
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -547,7 +514,7 @@ describe("F8.3 Routing", () => {
   });
 
   it("returns UNSUPPORTED for unknown module", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "unknown-module",
@@ -564,17 +531,13 @@ describe("F8.3 Routing", () => {
   });
 
   it("returns NEEDS_CLARIFICATION for low confidence", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
           signals: ["algo"],
           matchedRequiredFacts: [],
-          missingRequiredFacts: [
-            "cancellation.date",
-            "charge.date",
-            "charge.amount",
-          ],
+          missingRequiredFacts: ["cancellation.date", "charge.date", "charge.amount"],
           confidence: "LOW",
         },
       ],
@@ -585,7 +548,7 @@ describe("F8.3 Routing", () => {
   });
 
   it("returns UNSUPPORTED_JURISDICTION when jurisdiction incompatible", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -595,9 +558,7 @@ describe("F8.3 Routing", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "FR", confidence: "HIGH", signals: ["France"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "FR", confidence: "HIGH", signals: ["France"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -605,7 +566,7 @@ describe("F8.3 Routing", () => {
   });
 
   it("returns NEEDS_CLARIFICATION for conflicting jurisdiction hints", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -615,9 +576,7 @@ describe("F8.3 Routing", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "FR", confidence: "MEDIUM", signals: ["France"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "FR", confidence: "MEDIUM", signals: ["France"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -626,7 +585,7 @@ describe("F8.3 Routing", () => {
   });
 
   it("routing is deterministic", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -636,31 +595,19 @@ describe("F8.3 Routing", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
-    const result1 = routeInterpretation(
-      interpretation,
-      catalogue,
-      registeredKeys,
-    );
-    const result2 = routeInterpretation(
-      interpretation,
-      catalogue,
-      registeredKeys,
-    );
+    const result1 = routeInterpretation(interpretation, catalogue, registeredKeys);
+    const result2 = routeInterpretation(interpretation, catalogue, registeredKeys);
 
     expect(result1.status).toBe(result2.status);
-    expect(result1.moduleCandidate?.problemKey).toBe(
-      result2.moduleCandidate?.problemKey,
-    );
+    expect(result1.moduleCandidate?.problemKey).toBe(result2.moduleCandidate?.problemKey);
     expect(result1.rationale.score).toBe(result2.rationale.score);
   });
 
   it("user explanation never claims legal conclusions", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -670,9 +617,7 @@ describe("F8.3 Routing", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -706,9 +651,7 @@ describe("F8.3 Question Selection", () => {
 
   it("skips confirmed facts", () => {
     const problemModule = registry.get("cancellation-charge");
-    const confirmed = [
-      { key: "cancellation.date" as FactKey, status: "CONFIRMED" as const },
-    ];
+    const confirmed = [{ key: "cancellation.date" as FactKey, status: "CONFIRMED" as const }];
     const values = new Map<FactKey, unknown>([
       ["cancellation.date" as FactKey, { type: "date", value: "2025-01-15" }],
     ]);
@@ -761,9 +704,7 @@ describe("F8.3 Question Selection", () => {
 
   it("same facts + same module = same question (deterministic)", () => {
     const problemModule = registry.get("cancellation-charge");
-    const confirmed = [
-      { key: "cancellation.date" as FactKey, status: "CONFIRMED" as const },
-    ];
+    const confirmed = [{ key: "cancellation.date" as FactKey, status: "CONFIRMED" as const }];
     const values = new Map<FactKey, unknown>([
       ["cancellation.date" as FactKey, { type: "date", value: "2025-01-15" }],
     ]);
@@ -828,7 +769,7 @@ describe("F8.3 Jurisdiction", () => {
   const registeredKeys = new Set(["cancellation-charge", "warranty-rejection"]);
 
   it("Spanish language alone does NOT confirm jurisdiction", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -847,7 +788,7 @@ describe("F8.3 Jurisdiction", () => {
   });
 
   it("explicit Spain mention routes correctly", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -867,7 +808,7 @@ describe("F8.3 Jurisdiction", () => {
   });
 
   it("English text alone does NOT confirm jurisdiction", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -933,12 +874,9 @@ describe("F8.3 Anti-Hallucination Invariants", () => {
 
   it("Routing never produces SUPPORTED or CONFIRMED status", () => {
     const catalogue = createTestCatalogue();
-    const registeredKeys = new Set([
-      "cancellation-charge",
-      "warranty-rejection",
-    ]);
+    const registeredKeys = new Set(["cancellation-charge", "warranty-rejection"]);
 
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -948,16 +886,10 @@ describe("F8.3 Anti-Hallucination Invariants", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
-    const result = routeInterpretation(
-      interpretation,
-      catalogue,
-      registeredKeys,
-    );
+    const result = routeInterpretation(interpretation, catalogue, registeredKeys);
 
     // Routing status should NEVER be SUPPORTED or CONFIRMED
     expect(result.status).not.toBe("SUPPORTED");
@@ -966,13 +898,13 @@ describe("F8.3 Anti-Hallucination Invariants", () => {
 
   it("User explanation never claims legal rights", () => {
     const catalogue = createTestCatalogue();
-    const registeredKeys = new Set([
-      "cancellation-charge",
-      "warranty-rejection",
-    ]);
+    const registeredKeys = new Set(["cancellation-charge", "warranty-rejection"]);
 
-    const statuses: Array<"ROUTED" | "NEEDS_CLARIFICATION" | "UNSUPPORTED"> =
-      ["ROUTED", "NEEDS_CLARIFICATION", "UNSUPPORTED"];
+    const statuses: Array<"ROUTED" | "NEEDS_CLARIFICATION" | "UNSUPPORTED"> = [
+      "ROUTED",
+      "NEEDS_CLARIFICATION",
+      "UNSUPPORTED",
+    ];
 
     for (const _status of statuses) {
       void _status;
@@ -988,11 +920,7 @@ describe("F8.3 Anti-Hallucination Invariants", () => {
         ],
       });
 
-      const result = routeInterpretation(
-        interpretation,
-        catalogue,
-        registeredKeys,
-      );
+      const result = routeInterpretation(interpretation, catalogue, registeredKeys);
       const explanation = result.userExplanation.toLowerCase();
 
       // Must never claim legal rights
@@ -1023,20 +951,16 @@ describe("F8.3 Edge Cases", () => {
   const registeredKeys = new Set(["cancellation-charge", "warranty-rejection"]);
 
   it("empty candidateModules returns UNSUPPORTED", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [],
     });
 
-    const result = routeInterpretation(
-      interpretation,
-      catalogue,
-      registeredKeys,
-    );
+    const result = routeInterpretation(interpretation, catalogue, registeredKeys);
     expect(result.status).toBe("UNSUPPORTED");
   });
 
   it("multiple candidates near-equal scores returns NEEDS_CLARIFICATION", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1053,22 +977,16 @@ describe("F8.3 Edge Cases", () => {
           confidence: "MEDIUM",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
-    const resultNearEqual = routeInterpretation(
-      interpretation,
-      catalogue,
-      registeredKeys,
-    );
+    const resultNearEqual = routeInterpretation(interpretation, catalogue, registeredKeys);
     // Both candidates have similar scores → NEEDS_CLARIFICATION
     expect(resultNearEqual.status).toBe("NEEDS_CLARIFICATION");
   });
 
   it("blocking contradictions affect routing", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1089,16 +1007,10 @@ describe("F8.3 Edge Cases", () => {
           description: "Date mismatch",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
-    const result = routeInterpretation(
-      interpretation,
-      catalogue,
-      registeredKeys,
-    );
+    const result = routeInterpretation(interpretation, catalogue, registeredKeys);
     // Contradictions penalize the score
     expect(result.rationale.noBlockingContradictions).toBe(false);
   });
@@ -1114,7 +1026,7 @@ describe("F8.3 Adversarial: No Default Jurisdiction", () => {
 
   it("CRITICAL: no jurisdiction hints → NOT compatible → does NOT route", () => {
     // Even with HIGH confidence + structural signals, no jurisdiction = no route
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1134,7 +1046,7 @@ describe("F8.3 Adversarial: No Default Jurisdiction", () => {
   });
 
   it("Spanish language alone does NOT produce jurisdiction compatible", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1152,7 +1064,7 @@ describe("F8.3 Adversarial: No Default Jurisdiction", () => {
   });
 
   it("explicit ES hint + ES module → compatible", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1173,7 +1085,7 @@ describe("F8.3 Adversarial: No Default Jurisdiction", () => {
   });
 
   it("FR hint + ES-only module → incompatible", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1183,9 +1095,7 @@ describe("F8.3 Adversarial: No Default Jurisdiction", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "FR", confidence: "HIGH", signals: ["France"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "FR", confidence: "HIGH", signals: ["France"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -1297,7 +1207,7 @@ describe("F8.3 Adversarial: Routing Self-Validation", () => {
 
   it("CRITICAL: AI cannot fabricate matchedRequiredFacts to boost score", () => {
     // AI claims to match facts that don't exist in the module
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1313,9 +1223,7 @@ describe("F8.3 Adversarial: Routing Self-Validation", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -1326,7 +1234,7 @@ describe("F8.3 Adversarial: Routing Self-Validation", () => {
   });
 
   it("HIGH confidence + 1 signal + no jurisdiction = does NOT route", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1526,7 +1434,7 @@ describe("F8.3 Adversarial: Structural Signals", () => {
     // 2. MIN_STRUCTURAL_SIGNALS threshold
     // 3. User confirmation required for facts
     // 4. Rule Engine evaluates only CONFIRMED facts
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1536,9 +1444,7 @@ describe("F8.3 Adversarial: Structural Signals", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);
@@ -1551,7 +1457,7 @@ describe("F8.3 Adversarial: Structural Signals", () => {
   it("fabricated signals cannot bypass jurisdiction gate", () => {
     // AI fabricates 5 signals + 3 matched facts + HIGH confidence
     // But no jurisdiction hint → gate blocks routing
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1571,7 +1477,7 @@ describe("F8.3 Adversarial: Structural Signals", () => {
   });
 
   it("MIN_STRUCTURAL_SIGNALS enforced — 1 signal blocks routing", () => {
-      const interpretation = createTestInterpretation({
+    const interpretation = createTestInterpretation({
       candidateModules: [
         {
           problemKey: "cancellation-charge",
@@ -1581,9 +1487,7 @@ describe("F8.3 Adversarial: Structural Signals", () => {
           confidence: "HIGH",
         },
       ],
-      jurisdictionHints: [
-        { jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] },
-      ],
+      jurisdictionHints: [{ jurisdiction: "ES", confidence: "HIGH", signals: ["Espana"] }],
     });
 
     const result = routeInterpretation(interpretation, catalogue, registeredKeys);

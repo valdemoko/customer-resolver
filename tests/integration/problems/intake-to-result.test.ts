@@ -20,7 +20,10 @@ import { ProblemRegistry } from "@core/problems";
 import { buildResult } from "@core/result/engine";
 import { warrantyRejectionModule } from "@problems/warranty-rejection";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
-import { moduleIntakeRequirements, publishModuleRuleSets } from "@server/rules/publish-module-rules";
+import {
+  moduleIntakeRequirements,
+  publishModuleRuleSets,
+} from "@server/rules/publish-module-rules";
 import { loadCitedSources } from "@server/rules/load-cited-sources";
 
 const CURRENT_DATE = "2026-09-22";

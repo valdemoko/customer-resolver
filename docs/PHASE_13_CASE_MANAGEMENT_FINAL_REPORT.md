@@ -11,6 +11,7 @@ The implementation extends the existing architecture without rewriting the domai
 ### 2. Initial Audit
 
 **Existing components reused:**
+
 - Case state machine (10 states → 11 with ESCALATED)
 - Case events (15 types → 23 with new F13 types)
 - Case Service (create, update facts, state transitions)
@@ -21,6 +22,7 @@ The implementation extends the existing architecture without rewriting the domai
 - Result Engine, Rule Engine, Source Registry
 
 **Identified gaps:**
+
 1. No ESCALATED state in the state machine
 2. No timeline API endpoint
 3. No case summary API endpoint
@@ -69,6 +71,7 @@ DRAFT → COLLECTING_INFORMATION → READY_FOR_ANALYSIS → ANALYZING_X
 ```
 
 **New transitions added:**
+
 - `ESCALATE`: from RESULT_AVAILABLE, ACTION_IN_PROGRESS, AWAITING_RESPONSE → ESCALATED
 - `RESPONSE_RECEIVED`: from ESCALATED → RESULT_AVAILABLE
 - `CLOSE_CASE`: from ESCALATED → CLOSED
@@ -84,26 +87,29 @@ ANALYSIS_RECALCULATED, DOCUMENT_GENERATED, DOCUMENT_FINALIZED, COMMUNICATION_REC
 ### 7. Database Changes
 
 **New table: `case_communications`**
+
 - id, case_id, direction, channel, counterparty, subject, summary
 - linked_evidence_ids, linked_document_id, related_action_id
 - occurred_at, created_at
 
 **Migration: 0009_f13_case_management.sql**
+
 - Forward-only
 - CASCADE on case deletion
 - Indexes on case_id + occurred_at, direction
 
 ### 8. API Routes (4 New)
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/cases/[caseId]` | GET | Case summary with status, latest snapshot, timeline count |
-| `/api/cases/[caseId]/timeline` | GET | Chronological case events with pagination |
-| `/api/cases/[caseId]/reanalyze` | POST | Trigger reanalysis with current confirmed facts |
-| `/api/cases/[caseId]/communications` | GET/POST | List/record external communications |
-| `/api/cases/[caseId]/transition` | POST | Explicit state transitions (escalate, close, reopen) |
+| Endpoint                             | Method   | Description                                               |
+| ------------------------------------ | -------- | --------------------------------------------------------- |
+| `/api/cases/[caseId]`                | GET      | Case summary with status, latest snapshot, timeline count |
+| `/api/cases/[caseId]/timeline`       | GET      | Chronological case events with pagination                 |
+| `/api/cases/[caseId]/reanalyze`      | POST     | Trigger reanalysis with current confirmed facts           |
+| `/api/cases/[caseId]/communications` | GET/POST | List/record external communications                       |
+| `/api/cases/[caseId]/transition`     | POST     | Explicit state transitions (escalate, close, reopen)      |
 
 **All endpoints include:**
+
 - CaseId validation (isValidCaseId)
 - Error sanitization (sanitizeErrorMessage)
 - Cache-Control: private, no-store
@@ -113,6 +119,7 @@ ANALYSIS_RECALCULATED, DOCUMENT_GENERATED, DOCUMENT_FINALIZED, COMMUNICATION_REC
 ### 9. UI Changes
 
 **Enhanced case page (`/case/[caseId]`):**
+
 - Tabbed interface: Result | Timeline | Communications
 - Timeline view with chronological events and icons
 - Communications section with add form
@@ -148,10 +155,12 @@ total:      732 (+47 new F13 tests)
 ```
 
 **New test files:**
+
 - `tests/unit/case-management/f13-lifecycle.test.ts` (34 tests)
 - `tests/unit/case-management/f13-api-routes.test.ts` (13 tests)
 
 **Test coverage:**
+
 - State machine transitions (ESCALATED, all valid/invalid)
 - Timeline event creation
 - Input validation (caseId, communications, transitions)
@@ -171,6 +180,7 @@ tests:      732/732
 ### 14. Files Changed
 
 **New files (7):**
+
 - `src/app/api/cases/[caseId]/route.ts` — Case summary API
 - `src/app/api/cases/[caseId]/timeline/route.ts` — Timeline API
 - `src/app/api/cases/[caseId]/reanalyze/route.ts` — Reanalysis API
@@ -181,6 +191,7 @@ tests:      732/732
 - `tests/unit/case-management/f13-api-routes.test.ts` — API validation tests
 
 **Modified files (5):**
+
 - `src/core/types.ts` — Added ESCALATED status + 8 new event types + CaseCommunication type
 - `src/core/case/state-machine.ts` — Added ESCALATE transition + ESCALATED state support
 - `src/server/db/schema.ts` — Added caseCommunications table
@@ -190,17 +201,20 @@ tests:      732/732
 ### 15. Deferred Items
 
 **F14 — Research Resolver:**
+
 - Web research capabilities
 - RAG integration
 - Source discovery agents
 - General legal research
 
 **F15 — Internationalization:**
+
 - Multi-language support
 - Multiple jurisdictions
 - Locale-specific formatting
 
 **F16 — Monetization:**
+
 - Stripe integration
 - Subscriptions
 - Credits system
@@ -209,11 +223,13 @@ tests:      732/732
 ### 16. Remaining Risks
 
 **LOW — Authentication:**
+
 - Case access control relies on caseId knowledge
 - No user authentication system yet
 - Mitigated by: caseId UUID format, no enumeration possible
 
 **LOW — Concurrent edits:**
+
 - Optimistic locking prevents lost updates
 - But no conflict resolution UI for users
 
@@ -224,6 +240,7 @@ APPROVED
 ```
 
 All acceptance criteria met:
+
 - ✅ Case lifecycle works (escalate, close, reopen)
 - ✅ Timeline is persistent and chronological
 - ✅ Communications can be recorded

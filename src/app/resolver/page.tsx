@@ -37,10 +37,5 @@ export default async function ResolverPage({ searchParams }: ResolverPageProps) 
     ? (availableProblems.find((problem) => problem.slug === requestedSlug) ?? null)
     : null;
 
-  return (
-    <ResolverClient
-      initialProblem={initialProblem}
-      availableProblems={availableProblems}
-    />
-  );
+  return <ResolverClient initialProblem={initialProblem} availableProblems={availableProblems} />;
 }

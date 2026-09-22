@@ -16,7 +16,8 @@ import { drizzle as drizzleNeonServerless } from "drizzle-orm/neon-serverless";
 
 import * as schema from "./schema";
 
-export type AppDb = NodePgDatabase<typeof schema> | ReturnType<typeof drizzleNeonServerless<typeof schema>>;
+export type AppDb =
+  NodePgDatabase<typeof schema> | ReturnType<typeof drizzleNeonServerless<typeof schema>>;
 
 /** Create a Neon-backed Drizzle instance from a connection string. */
 export function createNeonDb(databaseUrl: string) {

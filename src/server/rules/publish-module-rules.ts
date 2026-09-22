@@ -16,10 +16,7 @@
  */
 import type { Rule, Source } from "@core/rules";
 import type { ProblemModuleDefinition, ProblemRegistry } from "@core/problems/contract";
-import {
-  computeIntakeRequirements,
-  type IntakeRequirements,
-} from "@core/problems/requirements";
+import { computeIntakeRequirements, type IntakeRequirements } from "@core/problems/requirements";
 import type { RulesRepository } from "@server/db/repositories/rules-repository";
 
 import {

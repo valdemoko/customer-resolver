@@ -27,6 +27,7 @@ export const metadata: Metadata = {
       "Registro fechado de correcciones aplicadas a la normativa citada, a las fuentes, al análisis y al contenido.",
     type: "website",
     locale: "es_ES",
+    images: ["/og.png"],
   },
 };
 
@@ -44,9 +45,7 @@ export default function CorrectionsPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 md:px-8 py-12 md:py-16">
       <header className="mb-12">
-        <p className="text-slate-400 text-sm font-medium tracking-wide uppercase mb-3">
-          Resolveo
-        </p>
+        <p className="text-slate-400 text-sm font-medium tracking-wide uppercase mb-3">Resolveo</p>
         <h1
           className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
           style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
@@ -54,9 +53,9 @@ export default function CorrectionsPage() {
           Correcciones
         </h1>
         <p className="text-lg text-slate-500 leading-relaxed">
-          Resolveo cita normativa concreta, así que también tiene que poder
-          enseñar cuándo se equivocó y qué cambió. Este registro recoge los
-          cambios que afectaron a lo que el sitio afirma.
+          Resolveo cita normativa concreta, así que también tiene que poder enseñar cuándo se
+          equivocó y qué cambió. Este registro recoge los cambios que afectaron a lo que el sitio
+          afirma.
         </p>
       </header>
 
@@ -70,10 +69,7 @@ export default function CorrectionsPage() {
                   className="py-6 border-b border-slate-100 last:border-0"
                 >
                   <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <time
-                      dateTime={entry.date}
-                      className="text-xs font-mono text-slate-400"
-                    >
+                    <time dateTime={entry.date} className="text-xs font-mono text-slate-400">
                       {formatDate(entry.date)}
                     </time>
                     <span className="text-xs px-2 py-0.5 border border-slate-200 bg-slate-50 text-slate-500">
@@ -89,9 +85,7 @@ export default function CorrectionsPage() {
                     <span className="font-medium text-slate-700">Qué dice ahora: </span>
                     {entry.resolution}
                   </p>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Afecta a: {entry.scope}
-                  </p>
+                  <p className="text-xs text-slate-400 leading-relaxed">Afecta a: {entry.scope}</p>
                 </li>
               ))}
             </ol>
@@ -107,20 +101,19 @@ export default function CorrectionsPage() {
             <ul className="space-y-2 text-sm text-slate-500 leading-relaxed">
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
-                El registro empieza el {formatDate(CORRECTIONS_LOG_START)}. Los cambios
-                anteriores a esa fecha no están documentados aquí, y no se ha
-                reconstruido un historial a posteriori.
+                El registro empieza el {formatDate(CORRECTIONS_LOG_START)}. Los cambios anteriores a
+                esa fecha no están documentados aquí, y no se ha reconstruido un historial a
+                posteriori.
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
-                Recoge cambios que afectan a lo que el sitio afirma. Los ajustes
-                de diseño, redacción o rendimiento no se listan.
+                Recoge cambios que afectan a lo que el sitio afirma. Los ajustes de diseño,
+                redacción o rendimiento no se listan.
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
-                Cuando una corrección afecta a una regla de análisis, la regla se
-                publica como una versión nueva: una regla publicada no se edita en
-                silencio.
+                Cuando una corrección afecta a una regla de análisis, la regla se publica como una
+                versión nueva: una regla publicada no se edita en silencio.
               </li>
             </ul>
           </section>
@@ -133,10 +126,9 @@ export default function CorrectionsPage() {
               Cómo informar de un error
             </h2>
             <p className="text-sm text-slate-500 leading-relaxed mb-4">
-              Si detectas una afirmación que no coincide con la normativa, o una
-              fuente que ya no está disponible, escríbenos indicando la página y
-              el artículo concreto. Con ese detalle se puede comprobar contra el
-              texto oficial antes de cambiar nada.
+              Si detectas una afirmación que no coincide con la normativa, o una fuente que ya no
+              está disponible, escríbenos indicando la página y el artículo concreto. Con ese
+              detalle se puede comprobar contra el texto oficial antes de cambiar nada.
             </p>
             <Link
               href="/contacto"
@@ -155,9 +147,8 @@ export default function CorrectionsPage() {
             Todavía no hay correcciones registradas
           </h2>
           <p className="text-sm text-slate-500 leading-relaxed">
-            El registro comienza el {formatDate(CORRECTIONS_LOG_START)}. Cuando se
-            aplique la primera corrección que afecte a lo que el sitio afirma, se
-            publicará aquí con su fecha.
+            El registro comienza el {formatDate(CORRECTIONS_LOG_START)}. Cuando se aplique la
+            primera corrección que afecte a lo que el sitio afirma, se publicará aquí con su fecha.
           </p>
         </section>
       )}

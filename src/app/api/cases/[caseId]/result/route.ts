@@ -57,7 +57,7 @@ function compositionRoot() {
 
 const PRIVATE_CACHE_HEADERS = {
   "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "Pragma": "no-cache",
+  Pragma: "no-cache",
 } as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {

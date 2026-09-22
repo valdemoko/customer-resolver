@@ -35,14 +35,11 @@ export function SearchBar({ size = "default", autoFocus = false, initialQuery }:
   const hasQuery = query.trim().length > 0;
 
   type MenuItem =
-    | { kind: "result"; problem: ProblemCatalogueEntry }
-    | { kind: "ai"; label: string };
+    { kind: "result"; problem: ProblemCatalogueEntry } | { kind: "ai"; label: string };
 
   const menuItems: MenuItem[] = [
     ...results.map((p) => ({ kind: "result" as const, problem: p })),
-    ...(hasQuery
-      ? [{ kind: "ai" as const, label: "Analizar con IA" }]
-      : []),
+    ...(hasQuery ? [{ kind: "ai" as const, label: "Analizar con IA" }] : []),
   ];
 
   const totalItems = menuItems.length;
@@ -158,20 +155,14 @@ export function SearchBar({ size = "default", autoFocus = false, initialQuery }:
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            isLarge
-              ? "Describe tu problema de consumo..."
-              : "Describe tu problema..."
-          }
+          placeholder={isLarge ? "Describe tu problema de consumo..." : "Describe tu problema..."}
           className={`w-full bg-transparent border-none outline-none font-[var(--font-body)] text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] ${
             isLarge ? "py-4 pr-4 pl-2 text-[15px]" : "py-3.5 pr-4 pl-2 text-sm"
           }`}
           role="combobox"
           aria-expanded={isOpen && totalItems > 0}
           aria-controls="search-results"
-          aria-activedescendant={
-            activeIndex >= 0 ? `search-item-${activeIndex}` : undefined
-          }
+          aria-activedescendant={activeIndex >= 0 ? `search-item-${activeIndex}` : undefined}
           aria-autocomplete="list"
           aria-label="Buscar problema de consumo"
           autoFocus={autoFocus}
@@ -180,9 +171,7 @@ export function SearchBar({ size = "default", autoFocus = false, initialQuery }:
         {/* Submit button */}
         {hasQuery && (
           <button
-            onClick={() =>
-              handleSelect({ kind: "ai", label: "Analizar con IA" })
-            }
+            onClick={() => handleSelect({ kind: "ai", label: "Analizar con IA" })}
             disabled={isLoading}
             className="mr-3 px-4 py-2 bg-[var(--color-ink)] text-white text-xs font-medium rounded hover:bg-[var(--color-ink-soft)] transition-colors flex-shrink-0 disabled:opacity-50"
             aria-label="Analizar con IA"
@@ -216,16 +205,16 @@ export function SearchBar({ size = "default", autoFocus = false, initialQuery }:
           <div className="py-1">
             {menuItems.map((item, index) => (
               <button
-                key={
-                  item.kind === "result" ? item.problem.slug : "ai-option"
-                }
+                key={item.kind === "result" ? item.problem.slug : "ai-option"}
                 id={`search-item-${index}`}
                 role="option"
                 aria-selected={activeIndex === index}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setActiveIndex(index)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                  activeIndex === index ? "bg-[var(--surface-warm)]" : "hover:bg-[var(--surface-warm)]"
+                  activeIndex === index
+                    ? "bg-[var(--surface-warm)]"
+                    : "hover:bg-[var(--surface-warm)]"
                 }`}
               >
                 {item.kind === "result" ? (
@@ -245,9 +234,7 @@ export function SearchBar({ size = "default", autoFocus = false, initialQuery }:
                 ) : (
                   <>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[var(--color-ink)]">
-                        Analizar con IA
-                      </p>
+                      <p className="text-sm font-medium text-[var(--color-ink)]">Analizar con IA</p>
                       <p className="text-xs text-[var(--color-ink-faint)] mt-0.5">
                         Describe tu caso y lo analizaremos
                       </p>

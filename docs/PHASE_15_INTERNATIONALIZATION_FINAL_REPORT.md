@@ -11,6 +11,7 @@ The Spanish implementation remains fully functional. All 860 tests pass.
 ### 2. Initial Audit
 
 **Existing international-ready infrastructure:**
+
 - `JurisdictionCode` — already branded string type supporting "ES", "UK", "US-CA", etc.
 - `Locale` — already branded string type (BCP-47 format)
 - `CurrencyCode` — already branded string type (ISO 4217)
@@ -20,6 +21,7 @@ The Spanish implementation remains fully functional. All 860 tests pass.
 - Rule Engine — already has jurisdiction scoping via `jurisdictionApplies()`
 
 **Spain-specific assumptions (legitimate — Spanish domain data):**
+
 - Problem catalogue is entirely in Spanish
 - Problem modules only support ES jurisdiction
 - Legal references (TRLGDCU, BOE) are Spain-specific
@@ -28,6 +30,7 @@ The Spanish implementation remains fully functional. All 860 tests pass.
 ### 3. Jurisdiction Architecture
 
 **Registry-based configuration:**
+
 ```
 JurisdictionConfig
 ├── code: "ES" | "UK" | "US-CA" | ...
@@ -45,6 +48,7 @@ JurisdictionConfig
 ```
 
 **Support levels:**
+
 - `DETERMINISTIC` — Reviewed, versioned Rule Engine modules exist (ES only currently)
 - `RESEARCH_ONLY` — Research Resolver may investigate (EU, UK, US, FR, DE, PT, IT)
 - `UNSUPPORTED` — No reliable support available
@@ -52,6 +56,7 @@ JurisdictionConfig
 ### 4. Locale Architecture
 
 **Translation layer with structured keys:**
+
 ```
 Translations
 ├── common: { next, back, save, cancel, ... }
@@ -67,21 +72,22 @@ Translations
 
 ### 5. Support Matrix
 
-| Jurisdiction | Deterministic | Research | UI | Documents | Currency |
-|---|---|---|---|---|---|
-| ES | ✅ (4 modules) | ✅ | es-ES, en-GB | ✅ | EUR |
-| EU | ❌ | ✅ | en-GB, es-ES, fr-FR, ... | ✅ | EUR |
-| UK | ❌ | ✅ | en-GB | ✅ | GBP |
-| US | ❌ | ✅ | en-US, es-US | ✅ | USD |
-| US-CA | ❌ | ✅ | en-US, es-US | ✅ | USD |
-| FR | ❌ | ✅ | fr-FR, en-GB | ✅ | EUR |
-| DE | ❌ | ✅ | de-DE, en-GB | ✅ | EUR |
-| PT | ❌ | ✅ | pt-PT, en-GB | ✅ | EUR |
-| IT | ❌ | ✅ | it-IT, en-GB | ✅ | EUR |
+| Jurisdiction | Deterministic  | Research | UI                       | Documents | Currency |
+| ------------ | -------------- | -------- | ------------------------ | --------- | -------- |
+| ES           | ✅ (4 modules) | ✅       | es-ES, en-GB             | ✅        | EUR      |
+| EU           | ❌             | ✅       | en-GB, es-ES, fr-FR, ... | ✅        | EUR      |
+| UK           | ❌             | ✅       | en-GB                    | ✅        | GBP      |
+| US           | ❌             | ✅       | en-US, es-US             | ✅        | USD      |
+| US-CA        | ❌             | ✅       | en-US, es-US             | ✅        | USD      |
+| FR           | ❌             | ✅       | fr-FR, en-GB             | ✅        | EUR      |
+| DE           | ❌             | ✅       | de-DE, en-GB             | ✅        | EUR      |
+| PT           | ❌             | ✅       | pt-PT, en-GB             | ✅        | EUR      |
+| IT           | ❌             | ✅       | it-IT, en-GB             | ✅        | EUR      |
 
 ### 6. Rule Isolation
 
 **Rule Engine jurisdiction safety verified:**
+
 - ES rule + ES case → applies
 - ES rule + FR case → NOT_APPLICABLE
 - FR rule + ES case → NOT_APPLICABLE
@@ -93,6 +99,7 @@ The `jurisdictionApplies()` function is deterministic and pure.
 ### 7. Source Isolation
 
 **Source hierarchy by jurisdiction:**
+
 - ES: boe.es, consumo.gob.es, cuadernosdederecho.com
 - UK: legislation.gov.uk, gov.uk
 - US: congress.gov, ftc.gov, consumerfinance.gov
@@ -118,6 +125,7 @@ Document generation receives jurisdiction context. A Spanish legal source is nev
 ### 11. Security
 
 **Validated:**
+
 - Jurisdiction codes: format validation (ISO 3166-1 alpha-2 or subdivision)
 - Locale codes: format validation (BCP-47)
 - Language does NOT determine jurisdiction (critical design decision)
@@ -128,6 +136,7 @@ Document generation receives jurisdiction context. A Spanish legal source is nev
 ### 12. Database
 
 No new tables required. Existing schema already supports:
+
 - `cases.jurisdiction` — jurisdiction code
 - `cases.locale` — locale code
 - `cases.currency` — currency code
@@ -142,9 +151,11 @@ total:      860
 ```
 
 **New test file:**
+
 - `tests/unit/jurisdiction/f15-internationalization.test.ts` (75 tests)
 
 **Test coverage:**
+
 - Jurisdiction config registry (12 tests)
 - Jurisdiction code validation (5 tests)
 - Locale code validation (2 tests)
@@ -169,6 +180,7 @@ tests:      860/860
 ### 15. Files Changed
 
 **New files (4):**
+
 - `src/core/jurisdiction/config.ts` — Jurisdiction configuration registry
 - `src/core/jurisdiction/translations.ts` — Locale translation layer
 - `src/core/jurisdiction/resolver.ts` — Jurisdiction resolution service
@@ -180,6 +192,7 @@ No existing files were modified. F15 adds new infrastructure without changing ex
 ### 16. Deferred Items
 
 **F16 — Product & Monetization:**
+
 - Stripe integration
 - Subscriptions
 - Credits system
@@ -188,11 +201,13 @@ No existing files were modified. F15 adds new infrastructure without changing ex
 ### 17. Remaining Risks
 
 **MEDIUM — Translation Coverage:**
+
 - Only es-ES and en-GB are fully translated
 - Other locales (fr-FR, de-DE, etc.) need translation work
 - Architecture supports adding translations without code changes
 
 **LOW — Jurisdiction Hierarchy:**
+
 - EU is not a country for rule scoping purposes
 - EU regulations may need special handling
 - Current implementation treats EU as a separate jurisdiction
@@ -204,6 +219,7 @@ APPROVED
 ```
 
 All acceptance criteria met:
+
 - ✅ Spain functionality remains intact
 - ✅ Jurisdiction is explicit
 - ✅ Locale and jurisdiction are independent

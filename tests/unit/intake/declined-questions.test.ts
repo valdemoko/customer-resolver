@@ -9,10 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  intakeRequirementsSatisfied,
-  selectNextQuestion,
-} from "@core/intake/question-selector";
+import { intakeRequirementsSatisfied, selectNextQuestion } from "@core/intake/question-selector";
 import type { ProblemModuleDefinition } from "@core/problems/contract";
 import type { FactKey } from "@core/types";
 
@@ -54,9 +51,9 @@ describe("declined questions", () => {
 
   it("does not treat a declined fact as confirmed data", () => {
     // The rules still miss it: declining only stops the question.
-    expect(
-      intakeRequirementsSatisfied(testModule, [], valuesOf({}), needed, new Set(["a"])),
-    ).toBe(false);
+    expect(intakeRequirementsSatisfied(testModule, [], valuesOf({}), needed, new Set(["a"]))).toBe(
+      false,
+    );
   });
 
   it("still asks a question whose fact was not declined", () => {

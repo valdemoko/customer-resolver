@@ -7,6 +7,7 @@ This audit verifies that F14 (Research Resolver) and F15 (Internationalization &
 **Verdict: APPROVED**
 
 Two bugs were found and fixed:
+
 1. **BUG-001 (HIGH)**: Document generation hardcoded `jurisdiction: "ES"`
 2. **BUG-002 (MEDIUM)**: Demo case creation API hardcoded `jurisdiction: "ES"`
 
@@ -16,14 +17,15 @@ After fixes, all 971 tests pass (including 43 new adversarial integration tests)
 
 ## F14 Status
 
-| Metric | Value |
-|--------|-------|
-| Tests | 971/971 PASS |
-| Typecheck | PASS |
-| Lint | PASS |
-| Build | PASS |
+| Metric    | Value        |
+| --------- | ------------ |
+| Tests     | 971/971 PASS |
+| Typecheck | PASS         |
+| Lint      | PASS         |
+| Build     | PASS         |
 
 F14 Research Resolver is fully integrated with:
+
 - F8.3 intake routing (UNSUPPORTED → Research)
 - F12 document generation (research findings → claims)
 - F13 case management (timeline events)
@@ -33,14 +35,15 @@ F14 Research Resolver is fully integrated with:
 
 ## F15 Status
 
-| Metric | Value |
-|--------|-------|
-| Tests | 971/971 PASS |
-| Typecheck | PASS |
-| Lint | PASS |
-| Build | PASS |
+| Metric    | Value        |
+| --------- | ------------ |
+| Tests     | 971/971 PASS |
+| Typecheck | PASS         |
+| Lint      | PASS         |
+| Build     | PASS         |
 
 F15 Internationalization provides:
+
 - 9 jurisdictions configured (ES, EU, UK, US, US-CA, FR, DE, PT, IT)
 - Explicit support levels (DETERMINISTIC, RESEARCH_ONLY, UNSUPPORTED)
 - Language ≠ Jurisdiction separation verified
@@ -90,37 +93,37 @@ F13 Case Timeline / Reanalysis
 
 ### Test Matrix Results
 
-| Test Case | Expected | Actual | Status |
-|-----------|----------|--------|--------|
-| ES rule + ES case | SUPPORTED | SUPPORTED | ✅ |
-| ES rule + UK case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + FR case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + US case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + US-CA case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + DE case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + PT case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + IT case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
+| Test Case            | Expected       | Actual         | Status |
+| -------------------- | -------------- | -------------- | ------ |
+| ES rule + ES case    | SUPPORTED      | SUPPORTED      | ✅     |
+| ES rule + UK case    | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + FR case    | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + US case    | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + US-CA case | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + DE case    | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + PT case    | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + IT case    | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
 
 ### Language ≠ Jurisdiction Verification
 
-| Scenario | Expected | Actual | Status |
-|----------|----------|--------|--------|
-| Spanish language + UK jurisdiction | UK applies | UK applies | ✅ |
-| English language + ES jurisdiction | ES applies | ES applies | ✅ |
+| Scenario                           | Expected   | Actual     | Status |
+| ---------------------------------- | ---------- | ---------- | ------ |
+| Spanish language + UK jurisdiction | UK applies | UK applies | ✅     |
+| English language + ES jurisdiction | ES applies | ES applies | ✅     |
 
 ### US vs US-CA Isolation Verification
 
-| Test Case | Expected | Actual | Status |
-|-----------|----------|--------|--------|
-| US jurisdiction distinct from US-CA | Distinct | Distinct | ✅ |
-| ES rule + US case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
-| ES rule + US-CA case | NOT_APPLICABLE | NOT_APPLICABLE | ✅ |
+| Test Case                           | Expected       | Actual         | Status |
+| ----------------------------------- | -------------- | -------------- | ------ |
+| US jurisdiction distinct from US-CA | Distinct       | Distinct       | ✅     |
+| ES rule + US case                   | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
+| ES rule + US-CA case                | NOT_APPLICABLE | NOT_APPLICABLE | ✅     |
 
 ### Unknown Jurisdiction Verification
 
-| Scenario | Expected | Actual | Status |
-|----------|----------|--------|--------|
-| Unknown jurisdiction → no deterministic routing | Not routed | Not routed | ✅ |
+| Scenario                                        | Expected   | Actual     | Status |
+| ----------------------------------------------- | ---------- | ---------- | ------ |
+| Unknown jurisdiction → no deterministic routing | Not routed | Not routed | ✅     |
 
 ---
 
@@ -134,7 +137,8 @@ F13 Case Timeline / Reanalysis
 
 **Impact**: Documents generated for non-ES cases would have ES jurisdiction, potentially citing Spanish law in foreign cases.
 
-**Fix**: 
+**Fix**:
+
 1. Added `jurisdiction` and `language` to `BuildInputParams`
 2. Updated `DocumentGenerationInput.caseMetadata` to include jurisdiction/language
 3. Changed hardcoded values to use params
@@ -157,17 +161,18 @@ F13 Case Timeline / Reanalysis
 
 ## Validation Results
 
-| Category | Result |
-|----------|--------|
-| **Tests** | 971/971 PASS |
-| **Typecheck** | PASS |
-| **Lint** | PASS |
-| **Build** | PASS |
-| **Adversarial Tests** | 43/43 PASS |
+| Category              | Result       |
+| --------------------- | ------------ |
+| **Tests**             | 971/971 PASS |
+| **Typecheck**         | PASS         |
+| **Lint**              | PASS         |
+| **Build**             | PASS         |
+| **Adversarial Tests** | 43/43 PASS   |
 
 ### New Tests Added
 
 43 adversarial integration tests covering:
+
 - Rule Engine jurisdiction isolation (8 tests)
 - jurisdictionApplies function (8 tests)
 - Routing respects jurisdiction (5 tests)
@@ -181,23 +186,23 @@ F13 Case Timeline / Reanalysis
 
 ## API Security Verification
 
-| Check | Status |
-|-------|--------|
-| No hardcoded ES defaults in API routes | ✅ |
-| jurisdictionApplies function correctly filters rules | ✅ |
-| Rule Engine returns NOT_APPLICABLE for mismatched jurisdictions | ✅ |
-| Routing rejects incompatible jurisdictions | ✅ |
-| Support levels prevent cross-jurisdiction rule execution | ✅ |
+| Check                                                           | Status |
+| --------------------------------------------------------------- | ------ |
+| No hardcoded ES defaults in API routes                          | ✅     |
+| jurisdictionApplies function correctly filters rules            | ✅     |
+| Rule Engine returns NOT_APPLICABLE for mismatched jurisdictions | ✅     |
+| Routing rejects incompatible jurisdictions                      | ✅     |
+| Support levels prevent cross-jurisdiction rule execution        | ✅     |
 
 ---
 
 ## Cache Isolation Verification
 
-| Cache | Key Includes Jurisdiction | Status |
-|-------|---------------------------|--------|
-| Rule Engine evaluation | Yes (via context) | ✅ |
-| jurisdictionApplies | Yes (scope.country) | ✅ |
-| Module availability | Yes (supportedJurisdictions) | ✅ |
+| Cache                  | Key Includes Jurisdiction    | Status |
+| ---------------------- | ---------------------------- | ------ |
+| Rule Engine evaluation | Yes (via context)            | ✅     |
+| jurisdictionApplies    | Yes (scope.country)          | ✅     |
+| Module availability    | Yes (supportedJurisdictions) | ✅     |
 
 ---
 
@@ -216,6 +221,7 @@ APPROVED
 ```
 
 **Rationale**:
+
 1. ✅ Language ≠ Locale ≠ Jurisdiction verified
 2. ✅ No silent ES fallback exists
 3. ✅ RESEARCH_ONLY never enters deterministic rules
@@ -250,5 +256,5 @@ APPROVED
 
 ---
 
-*Report generated: 2026-09-21*
-*F14 + F15 Final Integration Audit: APPROVED*
+_Report generated: 2026-09-21_
+_F14 + F15 Final Integration Audit: APPROVED_

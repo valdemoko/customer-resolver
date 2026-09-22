@@ -8,10 +8,7 @@ import { and, asc, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { generatedDocuments } from "../schema";
 import { now as systemNow } from "@core/shared/temporal";
-import type {
-  GeneratedDocument,
-  DocumentStatus,
-} from "@core/document-generation/types";
+import type { GeneratedDocument, DocumentStatus } from "@core/document-generation/types";
 
 type Db = NodePgDatabase<Record<string, never>>;
 
@@ -119,21 +116,13 @@ export class DocumentRepository {
     const [row] = await this.db
       .select()
       .from(generatedDocuments)
-      .where(
-        and(
-          eq(generatedDocuments.caseId, caseId),
-          eq(generatedDocuments.version, version),
-        ),
-      )
+      .where(and(eq(generatedDocuments.caseId, caseId), eq(generatedDocuments.version, version)))
       .limit(1);
 
     return row ? mapDocument(row) : null;
   }
 
-  async updateStatus(
-    docId: string,
-    status: DocumentStatus,
-  ): Promise<GeneratedDocument | null> {
+  async updateStatus(docId: string, status: DocumentStatus): Promise<GeneratedDocument | null> {
     const now = systemNow();
     const [row] = await this.db
       .update(generatedDocuments)
@@ -160,8 +149,6 @@ export class DocumentRepository {
   }
 
   async delete(docId: string): Promise<void> {
-    await this.db
-      .delete(generatedDocuments)
-      .where(eq(generatedDocuments.id, docId));
+    await this.db.delete(generatedDocuments).where(eq(generatedDocuments.id, docId));
   }
 }

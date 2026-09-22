@@ -30,7 +30,7 @@ const answerRequestSchema = z
 
 const PRIVATE_CACHE_HEADERS = {
   "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "Pragma": "no-cache",
+  Pragma: "no-cache",
 } as const;
 
 export async function GET(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
@@ -82,15 +82,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
     : { nextQuestion: null, allRequiredConfirmed: false };
   const { nextQuestion, allRequiredConfirmed } = progress;
 
-  return NextResponse.json({
-    caseId,
-    status: loaded.case.status,
-    problemKey,
-    confirmedFacts,
-    nextQuestion,
-    allRequiredConfirmed,
-    factCount: loaded.facts.length,
-  }, { headers: PRIVATE_CACHE_HEADERS });
+  return NextResponse.json(
+    {
+      caseId,
+      status: loaded.case.status,
+      problemKey,
+      confirmedFacts,
+      nextQuestion,
+      allRequiredConfirmed,
+      factCount: loaded.facts.length,
+    },
+    { headers: PRIVATE_CACHE_HEADERS },
+  );
 }
 
 // ── POST handler ─────────────────────────────────────────────────────

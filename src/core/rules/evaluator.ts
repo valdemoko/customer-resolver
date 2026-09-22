@@ -511,7 +511,10 @@ export function evaluateRule(rule: Rule, context: RuleEvaluationContext): RuleEv
     traces: [trace],
     // Nothing can be collected for a rule that cannot apply: listing its
     // missing facts would keep asking for answers that change nothing.
-    missingFacts: status === "NOT_APPLICABLE" ? [] : ([...missing] as unknown as RuleEvaluation["missingFacts"]),
+    missingFacts:
+      status === "NOT_APPLICABLE"
+        ? []
+        : ([...missing] as unknown as RuleEvaluation["missingFacts"]),
     contradictedFacts: [...contradicted] as unknown as RuleEvaluation["contradictedFacts"],
     evidenceRefs: [...evidence],
     sourceIds: rule.sourceIds,

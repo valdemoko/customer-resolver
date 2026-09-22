@@ -270,9 +270,7 @@ describe("validateDraft", () => {
 
   it("blocks untraceable factual statements", () => {
     const draft = makeDraft({
-      factualStatements: [
-        { factKey: "nonexistent.fact", text: "This fact doesn't exist" },
-      ],
+      factualStatements: [{ factKey: "nonexistent.fact", text: "This fact doesn't exist" }],
     });
 
     const result = validateDraft(draft, makeInput());
@@ -282,9 +280,7 @@ describe("validateDraft", () => {
 
   it("blocks untraceable legal statements", () => {
     const draft = makeDraft({
-      legalStatements: [
-        { claimId: "fake-claim", text: "This claim doesn't exist" },
-      ],
+      legalStatements: [{ claimId: "fake-claim", text: "This claim doesn't exist" }],
     });
 
     const result = validateDraft(draft, makeInput());
@@ -365,9 +361,7 @@ describe("validateDraft", () => {
 describe("Adversarial: Hallucination Protection", () => {
   it("blocks facts not in the confirmed list", () => {
     const draft = makeDraft({
-      factualStatements: [
-        { factKey: "invented.fact", text: "The seller owes €500" },
-      ],
+      factualStatements: [{ factKey: "invented.fact", text: "The seller owes €500" }],
     });
 
     const result = validateDraft(draft, makeInput());
@@ -376,9 +370,7 @@ describe("Adversarial: Hallucination Protection", () => {
 
   it("blocks claims not in the supported list", () => {
     const draft = makeDraft({
-      legalStatements: [
-        { claimId: "invented-claim", text: "You have the right to €1000" },
-      ],
+      legalStatements: [{ claimId: "invented-claim", text: "You have the right to €1000" }],
     });
 
     const result = validateDraft(draft, makeInput());

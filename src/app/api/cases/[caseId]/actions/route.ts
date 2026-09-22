@@ -57,7 +57,7 @@ function compositionRoot() {
 
 const PRIVATE_CACHE_HEADERS = {
   "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "Pragma": "no-cache",
+  Pragma: "no-cache",
 } as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
@@ -148,7 +148,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
  *
  * R2 objects are cleaned up asynchronously if storage is configured.
  */
-export async function DELETE(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ caseId: string }> },
+) {
   const { caseId } = await params;
 
   if (!isValidCaseId(caseId)) {
@@ -210,7 +213,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (storageKeys.length > 0) {
     try {
       const env = getServerEnv();
-      if (env.R2_ACCOUNT_ID && env.R2_BUCKET_DOCUMENTS && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
+      if (
+        env.R2_ACCOUNT_ID &&
+        env.R2_BUCKET_DOCUMENTS &&
+        env.R2_ACCESS_KEY_ID &&
+        env.R2_SECRET_ACCESS_KEY
+      ) {
         const { R2ObjectStorage } = await import("@server/adapters/storage/r2-object-storage");
         const storage = new R2ObjectStorage({
           accountId: env.R2_ACCOUNT_ID,

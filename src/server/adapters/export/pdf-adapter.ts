@@ -299,7 +299,9 @@ function buildCompanySection(writer: ReportWriter, data: ExportData): void {
 
   for (const channel of company.channels) {
     const detail =
-      channel.value !== undefined ? `${channel.value}. ${channel.hours ?? ""}`.trim() : (channel.hours ?? "");
+      channel.value !== undefined
+        ? `${channel.value}. ${channel.hours ?? ""}`.trim()
+        : (channel.hours ?? "");
     writer.labelled(`${channel.label}: ${detail}`, channel.note ?? "", 4);
     if (channel.url) {
       writer.paragraph(channel.url, { size: SMALL_SIZE, color: COLORS.accent, indent: 8 });
@@ -388,7 +390,11 @@ function buildChannelsSection(writer: ReportWriter, data: ExportData): void {
   );
 }
 
-function buildSourcesSection(writer: ReportWriter, data: ExportData, includeSources: boolean): void {
+function buildSourcesSection(
+  writer: ReportWriter,
+  data: ExportData,
+  includeSources: boolean,
+): void {
   if (!includeSources || data.result.sources.length === 0) return;
   writer.sectionHeading("Fuentes consultadas");
   for (const source of data.result.sources) {

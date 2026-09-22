@@ -79,7 +79,7 @@ export interface Claim {
   readonly contradictedFacts: readonly FactKey[];
   /** Raw rule evaluation traces (for debugging/audit). */
   readonly ruleTraces: readonly unknown[];
-}// ── Missing Information ─────────────────────────────────────────────
+} // ── Missing Information ─────────────────────────────────────────────
 export interface MissingInformation {
   /** The fact the rules reported as missing (may be a derived fact). */
   readonly factKey: FactKey;

@@ -286,5 +286,5 @@ Final verdict: APPROVED
 
 ---
 
-*F18 completed: 2026-09-21*
-*F18.1 completion: 2026-09-21*
+_F18 completed: 2026-09-21_
+_F18.1 completion: 2026-09-21_

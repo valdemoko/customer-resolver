@@ -11,7 +11,11 @@ import { evaluateRule } from "@core/rules/evaluator";
 import type { JurisdictionScope, Rule } from "@core/rules/types";
 import { routeInterpretation } from "@core/intake/routing";
 import type { IntakeInterpretation, AISafeModuleDescriptor } from "@core/intake/types";
-import { getJurisdictionConfig, isModuleAvailableInJurisdiction, getJurisdictionsByLevel } from "@core/jurisdiction/config";
+import {
+  getJurisdictionConfig,
+  isModuleAvailableInJurisdiction,
+  getJurisdictionsByLevel,
+} from "@core/jurisdiction/config";
 import type { FactKey, JurisdictionCode } from "@core/types";
 
 // ── ES Rules for Testing ──────────────────────────────────────────
@@ -87,7 +91,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "ES" },
@@ -100,7 +109,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "UK" },
@@ -113,7 +127,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "FR" },
@@ -126,7 +145,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "US" },
@@ -139,7 +163,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "US", region: "CA" },
@@ -152,7 +181,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "DE" },
@@ -165,7 +199,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "PT" },
@@ -178,7 +217,12 @@ describe("CRITICAL — Rule Engine jurisdiction isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "IT" },
@@ -244,14 +288,18 @@ describe("CRITICAL — jurisdictionApplies function", () => {
 describe("CRITICAL — Routing respects jurisdiction", () => {
   it("ES problem + ES jurisdiction → ROUTED", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
-      jurisdictionHints: [{ jurisdiction: "ES" as JurisdictionCode, confidence: "HIGH", signals: ["language"] }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
+      jurisdictionHints: [
+        { jurisdiction: "ES" as JurisdictionCode, confidence: "HIGH", signals: ["language"] },
+      ],
     });
 
     const decision = routeInterpretation(interpretation, mockModules, registeredKeys);
@@ -261,14 +309,18 @@ describe("CRITICAL — Routing respects jurisdiction", () => {
 
   it("ES problem + UK jurisdiction → NOT ROUTED (UNSUPPORTED_JURISDICTION)", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
-      jurisdictionHints: [{ jurisdiction: "UK" as JurisdictionCode, confidence: "HIGH", signals: ["language"] }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
+      jurisdictionHints: [
+        { jurisdiction: "UK" as JurisdictionCode, confidence: "HIGH", signals: ["language"] },
+      ],
     });
 
     const decision = routeInterpretation(interpretation, mockModules, registeredKeys);
@@ -277,14 +329,18 @@ describe("CRITICAL — Routing respects jurisdiction", () => {
 
   it("ES problem + FR jurisdiction → NOT ROUTED (UNSUPPORTED_JURISDICTION)", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
-      jurisdictionHints: [{ jurisdiction: "FR" as JurisdictionCode, confidence: "HIGH", signals: ["language"] }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
+      jurisdictionHints: [
+        { jurisdiction: "FR" as JurisdictionCode, confidence: "HIGH", signals: ["language"] },
+      ],
     });
 
     const decision = routeInterpretation(interpretation, mockModules, registeredKeys);
@@ -293,14 +349,18 @@ describe("CRITICAL — Routing respects jurisdiction", () => {
 
   it("ES problem + US jurisdiction → NOT ROUTED (UNSUPPORTED_JURISDICTION)", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
-      jurisdictionHints: [{ jurisdiction: "US" as JurisdictionCode, confidence: "HIGH", signals: ["language"] }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
+      jurisdictionHints: [
+        { jurisdiction: "US" as JurisdictionCode, confidence: "HIGH", signals: ["language"] },
+      ],
     });
 
     const decision = routeInterpretation(interpretation, mockModules, registeredKeys);
@@ -309,13 +369,15 @@ describe("CRITICAL — Routing respects jurisdiction", () => {
 
   it("ES problem + no jurisdiction hints → NOT ROUTED (no jurisdiction compatible)", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
       jurisdictionHints: [],
     });
 
@@ -388,27 +450,27 @@ describe("CRITICAL — Support levels are correctly separated", () => {
 
   it("DETERMINISTIC jurisdictions include ES", () => {
     const deterministic = getJurisdictionsByLevel("DETERMINISTIC");
-    expect(deterministic.some(j => j.code === "ES")).toBe(true);
+    expect(deterministic.some((j) => j.code === "ES")).toBe(true);
   });
 
   it("DETERMINISTIC jurisdictions do NOT include UK", () => {
     const deterministic = getJurisdictionsByLevel("DETERMINISTIC");
-    expect(deterministic.some(j => j.code === "UK")).toBe(false);
+    expect(deterministic.some((j) => j.code === "UK")).toBe(false);
   });
 
   it("DETERMINISTIC jurisdictions do NOT include FR", () => {
     const deterministic = getJurisdictionsByLevel("DETERMINISTIC");
-    expect(deterministic.some(j => j.code === "FR")).toBe(false);
+    expect(deterministic.some((j) => j.code === "FR")).toBe(false);
   });
 
   it("RESEARCH_ONLY jurisdictions include UK", () => {
     const researchOnly = getJurisdictionsByLevel("RESEARCH_ONLY");
-    expect(researchOnly.some(j => j.code === "UK")).toBe(true);
+    expect(researchOnly.some((j) => j.code === "UK")).toBe(true);
   });
 
   it("RESEARCH_ONLY jurisdictions include FR", () => {
     const researchOnly = getJurisdictionsByLevel("RESEARCH_ONLY");
-    expect(researchOnly.some(j => j.code === "FR")).toBe(true);
+    expect(researchOnly.some((j) => j.code === "FR")).toBe(true);
   });
 });
 
@@ -417,15 +479,19 @@ describe("CRITICAL — Support levels are correctly separated", () => {
 describe("CRITICAL — Language ≠ Jurisdiction", () => {
   it("Spanish language + UK jurisdiction → remains UK", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
       // Spanish language but UK jurisdiction
-      jurisdictionHints: [{ jurisdiction: "UK" as JurisdictionCode, confidence: "HIGH", signals: ["language"] }],
+      jurisdictionHints: [
+        { jurisdiction: "UK" as JurisdictionCode, confidence: "HIGH", signals: ["language"] },
+      ],
     });
 
     const decision = routeInterpretation(interpretation, mockModules, registeredKeys);
@@ -435,15 +501,19 @@ describe("CRITICAL — Language ≠ Jurisdiction", () => {
 
   it("English language + ES jurisdiction → remains ES", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
       // English language but ES jurisdiction
-      jurisdictionHints: [{ jurisdiction: "ES" as JurisdictionCode, confidence: "HIGH", signals: ["language"] }],
+      jurisdictionHints: [
+        { jurisdiction: "ES" as JurisdictionCode, confidence: "HIGH", signals: ["language"] },
+      ],
     });
 
     const decision = routeInterpretation(interpretation, mockModules, registeredKeys);
@@ -469,7 +539,12 @@ describe("CRITICAL — US vs US-CA isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "US" },
@@ -482,7 +557,12 @@ describe("CRITICAL — US vs US-CA isolation", () => {
     const result = evaluateRule(esRule, {
       facts: [
         { key: "purchase.paid" as FactKey, status: "CONFIRMED", value: true, evidenceRefs: [] },
-        { key: "merchant.notified" as FactKey, status: "CONFIRMED", value: false, evidenceRefs: [] },
+        {
+          key: "merchant.notified" as FactKey,
+          status: "CONFIRMED",
+          value: false,
+          evidenceRefs: [],
+        },
       ],
       contradictedKeys: new Set(),
       jurisdiction: { country: "US", region: "CA" },
@@ -497,13 +577,15 @@ describe("CRITICAL — US vs US-CA isolation", () => {
 describe("CRITICAL — Unknown jurisdiction requires clarification", () => {
   it("Unknown jurisdiction → NOT routed to deterministic module", () => {
     const interpretation = makeInterpretation({
-      candidateModules: [{
-        problemKey: "cancellation-charge",
-        confidence: "HIGH",
-        signals: ["cancelled", "charge"],
-        matchedRequiredFacts: [],
-        missingRequiredFacts: [],
-      }],
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          confidence: "HIGH",
+          signals: ["cancelled", "charge"],
+          matchedRequiredFacts: [],
+          missingRequiredFacts: [],
+        },
+      ],
       jurisdictionHints: [],
     });
 

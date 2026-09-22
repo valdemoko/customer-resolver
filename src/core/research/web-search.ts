@@ -94,10 +94,7 @@ export class WebSearchAdapter {
   /**
    * Convert a search result to a ResearchSource.
    */
-  resultToSource(
-    result: SearchResult,
-    jurisdiction: string,
-  ): ResearchSource {
+  resultToSource(result: SearchResult, jurisdiction: string): ResearchSource {
     const authority = this.classifyAuthority(result.domain, result.title);
     const sourceType = this.classifySourceType(result.title, result.snippet);
 
@@ -241,7 +238,7 @@ export async function fetchSourceContent(
       signal: controller.signal,
       headers: {
         "User-Agent": "Resolveo/1.0 (Research; +https://resolveo.site)",
-        "Accept": "text/html,text/plain,application/json",
+        Accept: "text/html,text/plain,application/json",
       },
       redirect: "follow",
     });

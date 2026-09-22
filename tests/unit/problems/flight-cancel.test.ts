@@ -1257,7 +1257,9 @@ describe("legal rule evaluation", () => {
       const c = ctx({ facts });
 
       // Exemption applies → airline pays NOTHING (not 50%)
-      expect(evaluateRule(rules.compensationExemptionAlternativeTransport, c).status).toBe("SUPPORTED");
+      expect(evaluateRule(rules.compensationExemptionAlternativeTransport, c).status).toBe(
+        "SUPPORTED",
+      );
       // Reduction NOT applicable (exemption takes precedence)
       expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe("NOT_APPLICABLE");
     });
@@ -1294,7 +1296,9 @@ describe("legal rule evaluation", () => {
       const c = ctx({ facts });
 
       // Missing delay hours → Rule 9 can't evaluate
-      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe("INSUFFICIENT_DATA");
+      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe(
+        "INSUFFICIENT_DATA",
+      );
     });
 
     it("RED10: reduction_eligible missing → Rule 8 returns SUPPORTED (full amount)", () => {
@@ -1353,7 +1357,9 @@ describe("legal rule evaluation", () => {
       const c = ctx({ facts });
 
       // Exemption applies → airline pays NOTHING
-      expect(evaluateRule(rules.compensationExemptionAlternativeTransport, c).status).toBe("SUPPORTED");
+      expect(evaluateRule(rules.compensationExemptionAlternativeTransport, c).status).toBe(
+        "SUPPORTED",
+      );
       // Rule 8: exempt → NOT_APPLICABLE (no compensation owed)
       expect(evaluateRule(rules.compensationAmount, c).status).toBe("NOT_APPLICABLE");
       // Rule 9: reduction NOT applicable (exemption already covers it)
@@ -1400,7 +1406,9 @@ describe("legal rule evaluation", () => {
       const c = ctx({ facts });
 
       // Exemption applies → airline pays NOTHING (not 50% of 600)
-      expect(evaluateRule(rules.compensationExemptionAlternativeTransport, c).status).toBe("SUPPORTED");
+      expect(evaluateRule(rules.compensationExemptionAlternativeTransport, c).status).toBe(
+        "SUPPORTED",
+      );
       expect(evaluateRule(rules.compensationAmount, c).status).toBe("NOT_APPLICABLE");
     });
 
@@ -1625,7 +1633,9 @@ describe("legal rule evaluation", () => {
       // No reduction: re_routing.accepted, delay hours, and reduction_eligible
       // all MISSING → INSUFFICIENT_DATA (evaluator can't assume NOT_APPLICABLE
       // when required facts are absent)
-      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe("INSUFFICIENT_DATA");
+      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe(
+        "INSUFFICIENT_DATA",
+      );
     });
 
     it("SCEN3: notice <7d, alt transport accepted, delay 1.5h short-haul → 50% reduction", () => {
@@ -1721,7 +1731,9 @@ describe("legal rule evaluation", () => {
 
       // Missing delay hours → INSUFFICIENT_DATA (evaluator can't assume
       // NOT_APPLICABLE when a required fact is absent)
-      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe("INSUFFICIENT_DATA");
+      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe(
+        "INSUFFICIENT_DATA",
+      );
     });
 
     it("MISS2: missing reduction_eligible → INSUFFICIENT_DATA (not false reduction)", () => {
@@ -1738,7 +1750,9 @@ describe("legal rule evaluation", () => {
 
       expect(evaluateRule(rules.compensationAmount, c).status).toBe("SUPPORTED");
       // reduction_eligible is MISSING → Rule 9 needs it → INSUFFICIENT_DATA
-      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe("INSUFFICIENT_DATA");
+      expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe(
+        "INSUFFICIENT_DATA",
+      );
     });
   });
 

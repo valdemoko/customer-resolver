@@ -216,7 +216,10 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     const r = evaluateRule(
       rules.sellerRejectedWithinPeriod,
       ctx({
-        facts: [fact("seller.rejection", false), fact("compliance.responsibility_deadline", "2026-12-01")],
+        facts: [
+          fact("seller.rejection", false),
+          fact("compliance.responsibility_deadline", "2026-12-01"),
+        ],
       }),
     );
     expect(r.status).toBe("NOT_APPLICABLE");
@@ -266,7 +269,10 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     const r = evaluateRule(
       rules.presumptionApplies,
       ctx({
-        facts: [fact("seller.rejection", false), fact("compliance.presumption_deadline", "2026-12-01")],
+        facts: [
+          fact("seller.rejection", false),
+          fact("compliance.presumption_deadline", "2026-12-01"),
+        ],
       }),
     );
     expect(r.status).toBe("NOT_APPLICABLE");
@@ -438,10 +444,7 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     const r = evaluateRule(
       rules.sellerClaimsExpired,
       ctx({
-        facts: [
-          fact("seller.rejection", true),
-          fact("seller.claimed_warranty_expired", true),
-        ],
+        facts: [fact("seller.rejection", true), fact("seller.claimed_warranty_expired", true)],
       }),
     );
     expect(r.status).toBe("SUPPORTED");
@@ -452,10 +455,7 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     const r = evaluateRule(
       rules.sellerClaimsExpired,
       ctx({
-        facts: [
-          fact("seller.rejection", true),
-          fact("seller.claimed_warranty_expired", false),
-        ],
+        facts: [fact("seller.rejection", true), fact("seller.claimed_warranty_expired", false)],
       }),
     );
     expect(r.status).toBe("NOT_APPLICABLE");
@@ -468,10 +468,7 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     const r = evaluateRule(
       rules.sellerDeclaresWontRepair,
       ctx({
-        facts: [
-          fact("seller.rejection", true),
-          fact("seller.declared_wont_repair", true),
-        ],
+        facts: [fact("seller.rejection", true), fact("seller.declared_wont_repair", true)],
       }),
     );
     expect(r.status).toBe("SUPPORTED");
@@ -482,10 +479,7 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     const r = evaluateRule(
       rules.sellerDeclaresWontRepair,
       ctx({
-        facts: [
-          fact("seller.rejection", true),
-          fact("seller.declared_wont_repair", false),
-        ],
+        facts: [fact("seller.rejection", true), fact("seller.declared_wont_repair", false)],
       }),
     );
     expect(r.status).toBe("NOT_APPLICABLE");
@@ -672,14 +666,18 @@ describe("anti-hallucination: AI extraction ≠ confirmed fact", () => {
     };
 
     // Rules 1, 2 need delivery date → INSUFFICIENT_DATA
-    expect(evaluateRule(rules.sellerRejectedWithinPeriod, context).status).toBe("INSUFFICIENT_DATA");
+    expect(evaluateRule(rules.sellerRejectedWithinPeriod, context).status).toBe(
+      "INSUFFICIENT_DATA",
+    );
     expect(evaluateRule(rules.presumptionApplies, context).status).toBe("INSUFFICIENT_DATA");
 
     // Rules 3 needs offered_repair and offered_replacement → INSUFFICIENT_DATA
     expect(evaluateRule(rules.noRemedyOffered, context).status).toBe("INSUFFICIENT_DATA");
 
     // Rules 4 needs repair.completed → INSUFFICIENT_DATA
-    expect(evaluateRule(rules.repairFailedOrDefectRecurred, context).status).toBe("INSUFFICIENT_DATA");
+    expect(evaluateRule(rules.repairFailedOrDefectRecurred, context).status).toBe(
+      "INSUFFICIENT_DATA",
+    );
 
     // Rules 5, 6 need their specific boolean facts → INSUFFICIENT_DATA
     expect(evaluateRule(rules.sellerClaimsExpired, context).status).toBe("INSUFFICIENT_DATA");

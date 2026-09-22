@@ -25,9 +25,9 @@
  * Support levels for jurisdictions.
  */
 export type JurisdictionSupportLevel =
-  | "UNSUPPORTED"      // No reliable support available
-  | "RESEARCH_ONLY"    // Research Resolver may investigate, no deterministic module
-  | "DETERMINISTIC";   // Reviewed, versioned Rule Engine modules exist
+  | "UNSUPPORTED" // No reliable support available
+  | "RESEARCH_ONLY" // Research Resolver may investigate, no deterministic module
+  | "DETERMINISTIC"; // Reviewed, versioned Rule Engine modules exist
 
 // ── Jurisdiction Configuration ──────────────────────────────────────
 
@@ -128,11 +128,7 @@ JURISDICTION_REGISTRY.set("EU", {
   deterministicModules: ["flight-cancel"], // EU regulation applies
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "eur-lex.europa.eu",
-      "ec.europa.eu",
-      "europa.eu",
-    ],
+    officialDomains: ["eur-lex.europa.eu", "ec.europa.eu", "europa.eu"],
     legislationRepository: "https://eur-lex.europa.eu",
   },
 });
@@ -151,10 +147,7 @@ JURISDICTION_REGISTRY.set("UK", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "legislation.gov.uk",
-      "gov.uk",
-    ],
+    officialDomains: ["legislation.gov.uk", "gov.uk"],
     legislationRepository: "https://legislation.gov.uk",
     regulatorUrl: "https://www.gov.uk/government/organisations/competition-and-markets-authority",
   },
@@ -174,12 +167,7 @@ JURISDICTION_REGISTRY.set("US", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "congress.gov",
-      "uscode.house.gov",
-      "ftc.gov",
-      "consumerfinance.gov",
-    ],
+    officialDomains: ["congress.gov", "uscode.house.gov", "ftc.gov", "consumerfinance.gov"],
     legislationRepository: "https://www.congress.gov",
     regulatorUrl: "https://www.ftc.gov",
   },
@@ -200,10 +188,7 @@ JURISDICTION_REGISTRY.set("US-CA", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "oag.ca.gov",
-      "leginfo.legislature.ca.gov",
-    ],
+    officialDomains: ["oag.ca.gov", "leginfo.legislature.ca.gov"],
     legislationRepository: "https://leginfo.legislature.ca.gov",
     regulatorUrl: "https://oag.ca.gov",
   },
@@ -223,10 +208,7 @@ JURISDICTION_REGISTRY.set("FR", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "legifrance.gouv.fr",
-      ".service-public.fr",
-    ],
+    officialDomains: ["legifrance.gouv.fr", ".service-public.fr"],
     legislationRepository: "https://legifrance.gouv.fr",
     regulatorUrl: "https://www.economie.gouv.fr/dgccrf",
   },
@@ -246,10 +228,7 @@ JURISDICTION_REGISTRY.set("DE", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "bundesgesetzblatt.de",
-      "bmi.bund.de",
-    ],
+    officialDomains: ["bundesgesetzblatt.de", "bmi.bund.de"],
     legislationRepository: "https://www.bundesgesetzblatt.de",
     regulatorUrl: "https://www.bmi.bund.de",
   },
@@ -269,10 +248,7 @@ JURISDICTION_REGISTRY.set("PT", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "dre.pt",
-      "portaldasqueixas.dgdrj.pt",
-    ],
+    officialDomains: ["dre.pt", "portaldasqueixas.dgdrj.pt"],
     legislationRepository: "https://dre.pt",
     regulatorUrl: "https://www.dgdrj.pt",
   },
@@ -292,10 +268,7 @@ JURISDICTION_REGISTRY.set("IT", {
   deterministicModules: [],
   researchSupported: true,
   sourceConfig: {
-    officialDomains: [
-      "gazzettaufficiale.it",
-      "giustizia.it",
-    ],
+    officialDomains: ["gazzettaufficiale.it", "giustizia.it"],
     legislationRepository: "https://www.gazzettaufficiale.it",
     regulatorUrl: "https://www.antitrust.it",
   },
@@ -320,8 +293,10 @@ export function getAllJurisdictions(): readonly JurisdictionConfig[] {
 /**
  * Get jurisdictions with a specific support level.
  */
-export function getJurisdictionsByLevel(level: JurisdictionSupportLevel): readonly JurisdictionConfig[] {
-  return Array.from(JURISDICTION_REGISTRY.values()).filter(j => j.supportLevel === level);
+export function getJurisdictionsByLevel(
+  level: JurisdictionSupportLevel,
+): readonly JurisdictionConfig[] {
+  return Array.from(JURISDICTION_REGISTRY.values()).filter((j) => j.supportLevel === level);
 }
 
 /**
@@ -342,7 +317,10 @@ export function hasDeterministicModules(code: string): boolean {
 /**
  * Check if a specific module is available in a jurisdiction.
  */
-export function isModuleAvailableInJurisdiction(moduleKey: string, jurisdictionCode: string): boolean {
+export function isModuleAvailableInJurisdiction(
+  moduleKey: string,
+  jurisdictionCode: string,
+): boolean {
   const config = JURISDICTION_REGISTRY.get(jurisdictionCode);
   if (!config) return false;
   return config.deterministicModules.includes(moduleKey);

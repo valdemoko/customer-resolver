@@ -35,7 +35,11 @@ export function factPrimitive(value: unknown): unknown {
  * question in the form.
  */
 export function factValueMap(
-  facts: readonly { readonly key: FactKey | string; readonly value: unknown; readonly status: string }[],
+  facts: readonly {
+    readonly key: FactKey | string;
+    readonly value: unknown;
+    readonly status: string;
+  }[],
 ): Map<FactKey, unknown> {
   const map = new Map<FactKey, unknown>();
   for (const fact of facts) {

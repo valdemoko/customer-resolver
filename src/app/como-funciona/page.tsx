@@ -22,6 +22,7 @@ export const metadata: Metadata = {
       "Proceso de análisis de problemas de consumo con normativa vigente y fuentes verificables.",
     type: "website",
     locale: "es_ES",
+    images: ["/og.png"],
   },
 };
 
@@ -68,9 +69,7 @@ export default function HowItWorksPage() {
     <div className="mx-auto max-w-3xl px-5 md:px-8 py-12 md:py-16">
       {/* Header */}
       <header className="mb-12">
-        <p className="text-slate-400 text-sm font-medium tracking-wide uppercase mb-3">
-          Resolveo
-        </p>
+        <p className="text-slate-400 text-sm font-medium tracking-wide uppercase mb-3">Resolveo</p>
         <h1
           className="text-3xl md:text-4xl font-bold text-slate-900 mb-4"
           style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
@@ -78,8 +77,8 @@ export default function HowItWorksPage() {
           Cómo funciona
         </h1>
         <p className="text-lg text-slate-500 leading-relaxed">
-          Cinco pasos para transformar un problema de consumo en un análisis
-          estructurado, verificable y con acciones concretas.
+          Cinco pasos para transformar un problema de consumo en un análisis estructurado,
+          verificable y con acciones concretas.
         </p>
       </header>
 
@@ -104,9 +103,7 @@ export default function HowItWorksPage() {
                 >
                   {step.title}
                 </h2>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  {step.body}
-                </p>
+                <p className="text-sm text-slate-500 leading-relaxed">{step.body}</p>
               </div>
             </li>
           ))}
@@ -123,10 +120,9 @@ export default function HowItWorksPage() {
             Así se traza una conclusión
           </h2>
           <p className="text-slate-500 leading-relaxed mb-6">
-            Esta demostración se genera a partir de las reglas y las fuentes reales del
-            problema «{demoProblem?.title}». Los hechos que verás son los que el
-            cuestionario recoge; las reglas, las que el motor evalúa; y las fuentes, las
-            que el sistema cita al concluir.
+            Esta demostración se genera a partir de las reglas y las fuentes reales del problema «
+            {demoProblem?.title}». Los hechos que verás son los que el cuestionario recoge; las
+            reglas, las que el motor evalúa; y las fuentes, las que el sistema cita al concluir.
           </p>
 
           <TraceDemo
@@ -137,8 +133,8 @@ export default function HowItWorksPage() {
           />
 
           <p className="text-sm text-slate-500 leading-relaxed mt-6">
-            El registro completo, con la versión consultada de cada norma y el texto del
-            artículo aplicado, está en{" "}
+            El registro completo, con la versión consultada de cada norma y el texto del artículo
+            aplicado, está en{" "}
             <Link
               href="/fuentes"
               className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
@@ -164,11 +160,7 @@ export default function HowItWorksPage() {
           <div className="cr-surface p-6">
             <div className="flex items-start gap-3 mb-3">
               <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-emerald-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
+                <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
                     d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -177,16 +169,13 @@ export default function HowItWorksPage() {
                 </svg>
               </span>
               <div>
-                <h3 className="font-semibold text-slate-900">
-                  Eliges el problema
-                </h3>
+                <h3 className="font-semibold text-slate-900">Eliges el problema</h3>
                 <p className="text-sm text-slate-500 leading-relaxed mt-1">
-                  Si tu problema está en la lista (cancelación y cargo, pedido no
-                  entregado, garantía rechazada, vuelo cancelado), el caso se crea
-                  directamente con su módulo y pasas al cuestionario. No hay
-                  interpretación por medio: se aplican reglas deterministas basadas en
-                  normativa verificada, con trazabilidad completa hasta la fuente
-                  oficial.
+                  Si tu problema está en la lista (cancelación y cargo, pedido no entregado,
+                  garantía rechazada, vuelo cancelado), el caso se crea directamente con su módulo y
+                  pasas al cuestionario. No hay interpretación por medio: se aplican reglas
+                  deterministas basadas en normativa verificada, con trazabilidad completa hasta la
+                  fuente oficial.
                 </p>
               </div>
             </div>
@@ -211,15 +200,13 @@ export default function HowItWorksPage() {
                 </svg>
               </span>
               <div>
-                <h3 className="font-semibold text-slate-900">
-                  Describes el problema
-                </h3>
+                <h3 className="font-semibold text-slate-900">Describes el problema</h3>
                 <p className="text-sm text-slate-500 leading-relaxed mt-1">
-                  Si no aparece en la lista, cuéntalo con tus palabras: el sistema
-                  intenta identificar a qué módulo corresponde. Si no existe ninguno
-                  aplicable, lo dice y te orienta sobre los siguientes pasos en lugar de
-                  inventar conclusiones. Y si el análisis automático no está disponible,
-                  la lista de problemas sigue ahí para continuar.
+                  Si no aparece en la lista, cuéntalo con tus palabras: el sistema intenta
+                  identificar a qué módulo corresponde. Si no existe ninguno aplicable, lo dice y te
+                  orienta sobre los siguientes pasos en lugar de inventar conclusiones. Y si el
+                  análisis automático no está disponible, la lista de problemas sigue ahí para
+                  continuar.
                 </p>
               </div>
             </div>
@@ -236,15 +223,14 @@ export default function HowItWorksPage() {
           Las fuentes importan
         </h2>
         <p className="text-slate-500 leading-relaxed mb-4">
-          Cada regla de análisis está vinculada a una fuente oficial concreta:
-          BOE, EUR-Lex, normativa publicada. Las fuentes incluyen versión,
-          fecha de consulta y estado de verificación.
+          Cada regla de análisis está vinculada a una fuente oficial concreta: BOE, EUR-Lex,
+          normativa publicada. Las fuentes incluyen versión, fecha de consulta y estado de
+          verificación.
         </p>
         <p className="text-slate-500 leading-relaxed mb-6">
-          Cuando el sistema muestra una conclusión, puedes verificar a qué
-          normativa se remite. Si la información no es suficiente para una
-          conclusión, el sistema lo declara explícitamente en lugar de inventar
-          una respuesta.
+          Cuando el sistema muestra una conclusión, puedes verificar a qué normativa se remite. Si
+          la información no es suficiente para una conclusión, el sistema lo declara explícitamente
+          en lugar de inventar una respuesta.
         </p>
         <Link
           href="/fuentes"
@@ -265,13 +251,11 @@ export default function HowItWorksPage() {
         <ul className="space-y-2 text-sm text-slate-500 leading-relaxed">
           <li className="flex items-start gap-3">
             <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
-            No es un despacho de abogados ni sustituye asesoría legal
-            profesional.
+            No es un despacho de abogados ni sustituye asesoría legal profesional.
           </li>
           <li className="flex items-start gap-3">
             <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
-            No resuelve litigios judiciales ni presenta reclamaciones en tu
-            nombre.
+            No resuelve litigios judiciales ni presenta reclamaciones en tu nombre.
           </li>
           <li className="flex items-start gap-3">
             <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>

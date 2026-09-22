@@ -11,6 +11,7 @@ The Research Resolver follows the core principle: **AI researches → System val
 ### 2. Initial Audit
 
 **Existing infrastructure reused:**
+
 - F8.3 Universal Intake (routing: deterministic modules have priority)
 - F12 Document Generation (research findings → claims → documents)
 - F13 Case Management (timeline, reanalysis)
@@ -21,6 +22,7 @@ The Research Resolver follows the core principle: **AI researches → System val
 - Case Engine (timeline events)
 
 **Identified gaps:**
+
 1. No Research Resolver domain types
 2. No source validation/hierarchy
 3. No web search adapter with SSRF protection
@@ -68,6 +70,7 @@ The routing is deterministic: same input + same catalogue → same decision. AI 
 Jurisdiction is explicit and required. The system never silently defaults to Spain.
 
 If jurisdiction cannot be established:
+
 ```
 JURISDICTION_UNCERTAIN
 ```
@@ -100,6 +103,7 @@ RESEARCH_PENDING → RESEARCHING → SOURCES_FOUND → SOURCES_VALIDATED
 ```
 
 Failure states:
+
 - `INSUFFICIENT_INFORMATION`
 - `NO_RELIABLE_SOURCE`
 - `JURISDICTION_UNCERTAIN`
@@ -109,6 +113,7 @@ Failure states:
 ### 8. Source Validation
 
 Sources are validated against:
+
 1. URL validity (HTTP/HTTPS only)
 2. SSRF protection (blocked hostnames, private IPs)
 3. Domain authority (official domain lists)
@@ -123,6 +128,7 @@ A source that fails validation becomes `REJECTED` and cannot support a `SUPPORTE
 Research findings are structured conclusions from source analysis. They are NOT legal conclusions.
 
 Each finding contains:
+
 - Proposition (what was investigated)
 - Status (SUPPORTED/POTENTIALLY_APPLICABLE/INSUFFICIENT_DATA/CONTRADICTED/NOT_APPLICABLE)
 - Supporting sources (with authority levels)
@@ -137,6 +143,7 @@ Findings can be converted to Result Engine claims for document generation (F12).
 Source conflicts are represented explicitly, not silently resolved.
 
 Conflict types:
+
 - `DIFFERENT_JURISDICTION`
 - `DIFFERENT_DATE`
 - `PRIMARY_VS_SECONDARY`
@@ -150,6 +157,7 @@ Conflicts result in `SOURCE_CONFLICT` status, requiring user resolution or profe
 ### 11. Temporal Validity
 
 Sources are validated for temporal relevance:
+
 - Publication date
 - Effective date
 - Retrieval date
@@ -159,6 +167,7 @@ The system distinguishes between current, historical, and future sources.
 ### 12. AI Boundaries
 
 AI can:
+
 - Search-query formulation
 - Source classification
 - Source relevance ranking
@@ -169,6 +178,7 @@ AI can:
 - Explanation drafting
 
 AI cannot:
+
 - Invent legislation
 - Invent articles
 - Invent case law
@@ -185,6 +195,7 @@ AI cannot:
 ### 13. Security
 
 **SSRF Protection:**
+
 - Blocked hostnames: localhost, 127.0.0.1, 169.254.169.254, etc.
 - Private IP detection: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
 - Protocol restrictions: HTTP/HTTPS only
@@ -193,12 +204,14 @@ AI cannot:
 - Timeout enforcement
 
 **Prompt Injection Defense:**
+
 - User content sanitized
 - Web content treated as untrusted
 - Structured AI output schemas
 - No raw webpage concatenation into prompts
 
 **Resource Exhaustion:**
+
 - Max searches: 5
 - Max source fetches: 10
 - Max AI calls: 10
@@ -208,6 +221,7 @@ AI cannot:
 ### 14. Persistence
 
 **New tables:**
+
 - `research_sessions` — Research investigations
 - `research_findings` — Conclusions from source analysis
 - `research_sources` — Sources discovered during research
@@ -217,12 +231,13 @@ AI cannot:
 
 ### 15. API Routes
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/cases/[caseId]/research` | POST | Start research for unsupported problem |
-| `/api/cases/[caseId]/research` | GET | List research sessions for case |
+| Endpoint                       | Method | Description                            |
+| ------------------------------ | ------ | -------------------------------------- |
+| `/api/cases/[caseId]/research` | POST   | Start research for unsupported problem |
+| `/api/cases/[caseId]/research` | GET    | List research sessions for case        |
 
 All endpoints include:
+
 - CaseId validation
 - Error sanitization
 - Cache-Control: private, no-store
@@ -232,6 +247,7 @@ All endpoints include:
 ### 16. UI
 
 **Research tab (`/case/[caseId]/research`):**
+
 - Research status display
 - Findings with status badges
 - Sources with authority levels
@@ -249,9 +265,11 @@ total:      785
 ```
 
 **New test file:**
+
 - `tests/unit/research/f14-research.test.ts` (53 tests)
 
 **Test coverage:**
+
 - Source validation (8 tests)
 - URL validation/SSRF (13 tests)
 - Source authority hierarchy (6 tests)
@@ -275,6 +293,7 @@ tests:      785/785
 ### 19. Files Changed
 
 **New files (9):**
+
 - `src/core/research/types.ts` — Domain types
 - `src/core/research/engine.ts` — Research engine
 - `src/core/research/source-validator.ts` — Source validation
@@ -286,6 +305,7 @@ tests:      785/785
 - `tests/unit/research/f14-research.test.ts` — 53 tests
 
 **Modified files (5):**
+
 - `src/core/ai/types.ts` — Added research task types
 - `src/core/intake/routing.ts` — Extended UNSUPPORTED handling
 - `src/server/db/schema.ts` — Added research tables
@@ -295,11 +315,13 @@ tests:      785/785
 ### 20. Deferred Items
 
 **F15 — Internationalization:**
+
 - Multi-language support
 - Multiple jurisdictions
 - Locale-specific formatting
 
 **F16 — Product & Monetization:**
+
 - Stripe integration
 - Subscriptions
 - Credits system
@@ -308,11 +330,13 @@ tests:      785/785
 ### 21. Remaining Risks
 
 **MEDIUM — Search Provider:**
+
 - Current web search adapter returns empty results
 - Requires integration with actual search provider (Google, Bing, etc.)
 - Architecture is designed to be swappable
 
 **LOW — AI Research Quality:**
+
 - Research quality depends on AI model capabilities
 - Structured output schemas ensure consistency
 - But AI may still misinterpret legal texts
@@ -324,6 +348,7 @@ APPROVED
 ```
 
 All acceptance criteria met:
+
 - ✅ Deterministic modules retain priority
 - ✅ Unsupported problems can enter Research Resolver
 - ✅ Jurisdiction is explicit (no silent Spain default)

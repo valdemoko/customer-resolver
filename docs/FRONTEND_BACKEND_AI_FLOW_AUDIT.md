@@ -56,27 +56,27 @@ No facts confirmed, no analysis
 
 ## 3. Frontend → API Map
 
-| Frontend | Action | API | Method | Status |
-|----------|--------|-----|--------|--------|
-| SearchBar (AI) | Enter query | /api/intake/interpret | POST | CONNECTED |
-| SearchBar (module) | Click result | /case/new?problem=X | Navigation | CONNECTED |
-| Intake Page | Load case | /api/cases/{id}/intake | GET | CONNECTED |
-| Intake Page | Confirm fact | /api/intake/confirm | POST | CONNECTED |
-| Case Page | Load result | /api/cases/{id}/result | GET | CONNECTED |
-| Case Page | Load actions | /api/cases/{id}/actions | GET | CONNECTED |
-| Case Page | Load timeline | /api/cases/{id}/timeline | GET | CONNECTED |
-| Case Page | Load comms | /api/cases/{id}/communications | GET | CONNECTED |
-| Case Page | Reanalyze | /api/cases/{id}/reanalyze | POST | CONNECTED |
-| Case Page | Transition | /api/cases/{id}/transition | POST | CONNECTED |
-| Case Page | Export TXT | /api/cases/{id}/export | GET | CONNECTED |
-| Case Page | Export JSON | /api/cases/{id}/data | GET | CONNECTED |
-| Case Page | Delete | /api/cases/{id}/delete | DELETE | CONNECTED |
-| Research Page | Start research | /api/cases/{id}/research | POST | CONNECTED |
-| Research Page | List research | /api/cases/{id}/research | GET | CONNECTED |
-| NewCasePage | Create case | /api/problems/{key}/cases | POST | **BROKEN** |
-| NewCasePage | Upload evidence | (none) | - | **MISSING** |
-| NewCasePage | Confirm facts | (none) | - | **MISSING** |
-| NewCasePage | Trigger analysis | (none) | - | **MISSING** |
+| Frontend           | Action           | API                            | Method     | Status      |
+| ------------------ | ---------------- | ------------------------------ | ---------- | ----------- |
+| SearchBar (AI)     | Enter query      | /api/intake/interpret          | POST       | CONNECTED   |
+| SearchBar (module) | Click result     | /case/new?problem=X            | Navigation | CONNECTED   |
+| Intake Page        | Load case        | /api/cases/{id}/intake         | GET        | CONNECTED   |
+| Intake Page        | Confirm fact     | /api/intake/confirm            | POST       | CONNECTED   |
+| Case Page          | Load result      | /api/cases/{id}/result         | GET        | CONNECTED   |
+| Case Page          | Load actions     | /api/cases/{id}/actions        | GET        | CONNECTED   |
+| Case Page          | Load timeline    | /api/cases/{id}/timeline       | GET        | CONNECTED   |
+| Case Page          | Load comms       | /api/cases/{id}/communications | GET        | CONNECTED   |
+| Case Page          | Reanalyze        | /api/cases/{id}/reanalyze      | POST       | CONNECTED   |
+| Case Page          | Transition       | /api/cases/{id}/transition     | POST       | CONNECTED   |
+| Case Page          | Export TXT       | /api/cases/{id}/export         | GET        | CONNECTED   |
+| Case Page          | Export JSON      | /api/cases/{id}/data           | GET        | CONNECTED   |
+| Case Page          | Delete           | /api/cases/{id}/delete         | DELETE     | CONNECTED   |
+| Research Page      | Start research   | /api/cases/{id}/research       | POST       | CONNECTED   |
+| Research Page      | List research    | /api/cases/{id}/research       | GET        | CONNECTED   |
+| NewCasePage        | Create case      | /api/problems/{key}/cases      | POST       | **BROKEN**  |
+| NewCasePage        | Upload evidence  | (none)                         | -          | **MISSING** |
+| NewCasePage        | Confirm facts    | (none)                         | -          | **MISSING** |
+| NewCasePage        | Trigger analysis | (none)                         | -          | **MISSING** |
 
 ---
 
@@ -85,30 +85,36 @@ No facts confirmed, no analysis
 ### User enters: "Me han cobrado una penalización después de cancelar"
 
 **Step 1**: SearchBar.tsx
+
 - Input: `query = "Me han cobrado una penalización después de cancelar"`
 - Action: `handleSelect({ kind: "ai", label: "Analizar con IA" })`
 - Calls: `fetch("/api/intake/interpret", { method: "POST", body: { message: query } })`
 
 **Step 2**: /api/intake/interpret/route.ts
+
 - Validates: `z.string().min(10).max(5000)`
 - Budget check: `tryReserveBudget(budgetKey)`
 - Calls: `services.intakeService.interpretUserMessage(message, options)`
 
 **Step 3**: IntakeService.interpretUserMessage()
+
 - Sanitizes text (prompt injection defense)
 - Builds catalogue from registered modules
 - Calls: `this.router.run({ task: "PROBLEM_INTERPRETATION", ... })`
 - AI returns: `IntakeInterpretationOutput` (validated by Zod)
 
 **Step 4**: Routing
+
 - Calls: `services.intakeService.routeInterpretation(interpretation)`
 - Returns: `{ status: "ROUTED", moduleCandidate: { problemKey: "cancellation-charge" } }`
 
 **Step 5**: Case Creation
+
 - Calls: `services.caseService.createCase({ problemSlug: "unknown", jurisdiction: "UNKNOWN", ... })`
 - Returns: `caseId`
 
 **Step 6**: Response
+
 ```json
 {
   "caseId": "abc-123",
@@ -119,6 +125,7 @@ No facts confirmed, no analysis
 ```
 
 **Step 7**: Frontend Navigation
+
 - `window.location.href = "/case/abc-123/intake"`
 
 ### VERDICT: PROPERLY CONNECTED ✅
@@ -128,20 +135,24 @@ No facts confirmed, no analysis
 ## 5. Confirmation Flow — Detailed Trace
 
 **Intake Page loads**:
+
 - `GET /api/cases/{caseId}/intake`
 - Returns: `confirmedFacts`, `nextQuestion`, `allRequiredConfirmed`
 
 **User answers question**:
+
 - Input: `answer = "15 de marzo"`
 - Calls: `POST /api/intake/confirm`
 - Body: `{ caseId, candidateId, factKey: "cancellation_date", decision: "confirm", value: { type: "date", value: "2025-03-15" } }`
 
 **Backend**:
+
 - Validates factKey belongs to module
 - Calls: `services.caseService.confirmFactForCase(caseId, { key, value })`
 - Returns: `{ success: true, contradictionDetected: false }`
 
 **Frontend reloads**:
+
 - `GET /api/cases/{caseId}/intake`
 - Gets next question
 
@@ -172,6 +183,7 @@ const createRes = await fetch("/api/problems/cancellation-charge/cases", {
 ```
 
 **The form collects**:
+
 - `cancellationDate`
 - `chargeDate`
 - `chargeAmount`
@@ -179,6 +191,7 @@ const createRes = await fetch("/api/problems/cancellation-charge/cases", {
 - `hasCommitment`
 
 **But sends only**:
+
 ```json
 { "ownerId": "anonymous" }
 ```
@@ -192,14 +205,17 @@ const createRes = await fetch("/api/problems/cancellation-charge/cases", {
 ### Current State: NOT CONNECTED
 
 **Frontend** (NewCasePage):
+
 - Has file input UI
 - `console.log("Files selected:", ...)` on file selection
 - NEVER uploads to backend
 
 **Frontend** (Intake Page):
+
 - No evidence upload UI
 
 **Backend**:
+
 - EvidenceService exists (src/core/evidence/service.ts)
 - Evidence upload API exists? **NO dedicated upload endpoint found**
 - R2 storage exists (src/server/adapters/storage/r2-object-storage.ts)
@@ -215,6 +231,7 @@ const createRes = await fetch("/api/problems/cancellation-charge/cases", {
 **When**: `GET /api/cases/{caseId}/result` is called
 
 **What happens**:
+
 ```typescript
 // result/route.ts
 const analysis = await services.analysisService.runProblemAnalysis(caseId);
@@ -227,11 +244,13 @@ return NextResponse.json({ result });
 ### Frontend Trigger
 
 **Case Page** (`/case/[caseId]/page.tsx`):
+
 - `useEffect` calls `loadData(id)`
 - `loadData` calls `fetch(/api/cases/${id}/result)`
 - This triggers real-time analysis
 
 **Intake Complete Flow**:
+
 - When `allRequiredConfirmed === true`
 - Intake Page shows "Ver resultado" button
 - Links to `/case/{caseId}`
@@ -260,11 +279,13 @@ GET /api/cases/{id}/research → Display results
 ### Automatic Research (NOT CONNECTED)
 
 The architecture intends:
+
 ```
 Unsupported problem → Research Resolver → automatically
 ```
 
 But currently:
+
 - Research must be manually triggered from the Research tab
 - No automatic routing to research for unsupported problems
 - The intake flow shows "no module found" but does not offer research
@@ -278,11 +299,12 @@ But currently:
 ### Where Jurisdiction Comes From
 
 **Path A (AI Intake)**:
+
 ```typescript
 // /api/intake/interpret/route.ts
 const created = await services.caseService.createCase({
   problemSlug: "unknown",
-  jurisdiction: "UNKNOWN",  // ← Default
+  jurisdiction: "UNKNOWN", // ← Default
   locale: "es-ES",
   currency: "EUR",
 });
@@ -290,11 +312,12 @@ const created = await services.caseService.createCase({
 ```
 
 **Path B (Legacy)**:
+
 ```typescript
 // /api/problems/[problemKey]/cases/route.ts
 const created = await services.caseService.createCase({
   problemSlug: problemKey,
-  jurisdiction: "ES",  // ← HARDCODED SPAIN
+  jurisdiction: "ES", // ← HARDCODED SPAIN
   locale: "es-ES",
   currency: "EUR",
 });
@@ -305,6 +328,7 @@ const created = await services.caseService.createCase({
 The legacy demo API (`/api/problems/[problemKey]/cases`) HARDCODES `jurisdiction: "ES"`.
 
 This API is called by `/case/new/page.tsx` which is linked from:
+
 1. SearchBar when clicking a module result
 2. Problem detail pages "Comenzar análisis" button
 
@@ -316,21 +340,22 @@ This API is called by `/case/new/page.tsx` which is linked from:
 
 ### State Map
 
-| State | Owner | Lifetime | Source of Truth | Can Diverge? |
-|-------|-------|----------|-----------------|--------------|
-| query | SearchBar | Component | Local state | No |
-| isLoading | SearchBar | Component | Local state | No |
-| caseId (intake) | IntakePage | Component | URL params | No |
-| phase | IntakePage | Component | Derived from API | Could be stale |
-| answer | IntakePage | Component | Local state | No |
-| form data | NewCasePage | Component | Local state | **YES** |
-| caseId (new) | NewCasePage | Component | API response | No |
-| result | CasePage | Component | API response | Could be stale |
-| timeline | CasePage | Component | API response | Could be stale |
+| State           | Owner       | Lifetime  | Source of Truth  | Can Diverge?   |
+| --------------- | ----------- | --------- | ---------------- | -------------- |
+| query           | SearchBar   | Component | Local state      | No             |
+| isLoading       | SearchBar   | Component | Local state      | No             |
+| caseId (intake) | IntakePage  | Component | URL params       | No             |
+| phase           | IntakePage  | Component | Derived from API | Could be stale |
+| answer          | IntakePage  | Component | Local state      | No             |
+| form data       | NewCasePage | Component | Local state      | **YES**        |
+| caseId (new)    | NewCasePage | Component | API response     | No             |
+| result          | CasePage    | Component | API response     | Could be stale |
+| timeline        | CasePage    | Component | API response     | Could be stale |
 
 ### Critical Divergence
 
 **NewCasePage form state** vs **Backend case facts**:
+
 ```
 Frontend state: { cancellationDate: "2025-03-15", chargeAmount: "80" }
 Backend state: { facts: [] }  ← EMPTY
@@ -344,16 +369,16 @@ The frontend has data that the backend never received.
 
 ### Backend Error Codes
 
-| Code | HTTP | Meaning |
-|------|------|---------|
-| INVALID_INPUT | 400 | Bad request |
-| NOT_FOUND | 404 | Case/module not found |
-| CONCURRENT_UPDATE | 409 | Optimistic lock conflict |
-| CASE_CREATE_FAILED | 500 | DB error during creation |
-| BUDGET_EXCEEDED | 429 | AI call limit |
-| AI_UNAVAILABLE | 503 | AI provider down |
-| SERVICE_UNAVAILABLE | 503 | DB not configured |
-| ANALYSIS_FAILED | 500 | Rule engine error |
+| Code                | HTTP | Meaning                  |
+| ------------------- | ---- | ------------------------ |
+| INVALID_INPUT       | 400  | Bad request              |
+| NOT_FOUND           | 404  | Case/module not found    |
+| CONCURRENT_UPDATE   | 409  | Optimistic lock conflict |
+| CASE_CREATE_FAILED  | 500  | DB error during creation |
+| BUDGET_EXCEEDED     | 429  | AI call limit            |
+| AI_UNAVAILABLE      | 503  | AI provider down         |
+| SERVICE_UNAVAILABLE | 503  | DB not configured        |
+| ANALYSIS_FAILED     | 500  | Rule engine error        |
 
 ### Frontend Error Handling
 
@@ -366,17 +391,18 @@ The frontend has data that the backend never received.
 
 ## 13. Duplicated Business Logic
 
-| File | Logic | Canonical Backend | Risk |
-|------|-------|-------------------|------|
-| problema-libre/page.tsx | `detectMatch()` keyword matching | IntakeService.moduleCandidate | LOW (simple fallback) |
-| intake/page.tsx | `buildValueInput()` type inference | Backend validation | MEDIUM (type mismatch risk) |
-| case/new/page.tsx | Entire form state management | CaseService.confirmFactForCase | HIGH (data never sent) |
+| File                    | Logic                              | Canonical Backend              | Risk                        |
+| ----------------------- | ---------------------------------- | ------------------------------ | --------------------------- |
+| problema-libre/page.tsx | `detectMatch()` keyword matching   | IntakeService.moduleCandidate  | LOW (simple fallback)       |
+| intake/page.tsx         | `buildValueInput()` type inference | Backend validation             | MEDIUM (type mismatch risk) |
+| case/new/page.tsx       | Entire form state management       | CaseService.confirmFactForCase | HIGH (data never sent)      |
 
 ---
 
 ## 14. Disconnected Flows
 
 ### FLOW-001: Legacy Case Creation
+
 - **Name**: /case/new form workflow
 - **Frontend**: Collects dates, amount, confirmation
 - **Backend**: Creates case with NO facts
@@ -385,6 +411,7 @@ The frontend has data that the backend never received.
 - **Fix**: Remove or connect to IntakeService
 
 ### FLOW-002: Evidence Upload
+
 - **Name**: File upload in case creation
 - **Frontend**: File input exists, logs to console
 - **Backend**: No upload endpoint called
@@ -393,6 +420,7 @@ The frontend has data that the backend never received.
 - **Fix**: Implement upload endpoint or remove UI
 
 ### FLOW-003: Automatic Research Routing
+
 - **Name**: Unsupported problem → Research
 - **Frontend**: Shows "no module found"
 - **Backend**: Research available but not triggered
@@ -401,6 +429,7 @@ The frontend has data that the backend never received.
 - **Fix**: Auto-suggest research for unsupported problems
 
 ### FLOW-004: Intake Interpretation Display
+
 - **Name**: AI interpretation results
 - **Frontend**: Redirects immediately to intake page
 - **Backend**: Returns full interpretation with candidates
@@ -413,18 +442,21 @@ The frontend has data that the backend never received.
 ## 15. Critical Bugs
 
 ### BUG-001: Legacy Form Data Loss
+
 - **Location**: src/app/case/new/page.tsx
 - **Issue**: Form collects data but only sends ownerId
 - **Impact**: Cases created without useful facts
 - **Severity**: CRITICAL
 
 ### BUG-002: Hardcoded ES Jurisdiction
+
 - **Location**: src/app/api/problems/[problemKey]/cases/route.ts
 - **Issue**: `jurisdiction: "ES"` hardcoded
 - **Impact**: Non-ES cases get wrong jurisdiction
 - **Severity**: HIGH
 
 ### BUG-003: SearchBar Error Handling
+
 - **Location**: src/components/SearchBar.tsx
 - **Issue**: On API error, redirects to /problema-libre
 - **Impact**: User sees "no automated flow" instead of error

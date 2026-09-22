@@ -30,8 +30,12 @@
   --color-ink: #1a1a1a;
   --color-ink-soft: #3d3d3d;
   --color-ink-muted: #6b6b6b;
-  --color-ink-faint: #9e9e9e;
-  --color-ink-whisper: #d4d0ca;
+  /* #6d6d6d → 4.6:1 on --surface-page / 4.5:1 on --surface-warm (WCAG AA for the
+     11px labels that use it; the old #9e9e9e failed at ~2.6:1). */
+  --color-ink-faint: #6d6d6d;
+  /* #8c877f → 3.3:1 on light surfaces and 4.9:1 on --color-ink: passes the 3:1
+     required by the large display numerals (and stays legible on the dark CTA). */
+  --color-ink-whisper: #8c877f;
 
   /* Accent — forest green */
   --color-accent: #1d4d3e;
@@ -103,7 +107,12 @@
     letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     color: var(--color-ink);
     line-height: 1.15;
@@ -111,9 +120,15 @@
     font-weight: 400;
   }
 
-  h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
-  h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); }
-  h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+  h1 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+  }
+  h2 {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+  }
+  h3 {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+  }
 
   ::selection {
     background-color: var(--color-accent);
@@ -121,7 +136,9 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   /* Focus visible */
@@ -139,7 +156,6 @@
 
 /* ── Component Layer ──────────────────────────────────────────────── */
 @layer components {
-
   /* ── Buttons ──────────────────────────────────────────────────── */
 
   .btn-primary {
@@ -289,6 +305,9 @@
 
   .label {
     display: block;
+    /* Explicit: labels now also render on <h2>, which would otherwise inherit the
+       serif display family from the base heading rule. */
+    font-family: var(--font-body);
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -330,33 +349,65 @@
 /* ── Core animations ─────────────────────────────────────────────── */
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes revealLine {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 @keyframes wordReveal {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Animation classes ───────────────────────────────────────────── */
@@ -382,7 +433,9 @@
 .reveal {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
 }
 
 .reveal.visible {
@@ -391,17 +444,31 @@
 }
 
 /* Staggered children */
-.reveal-stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
-.reveal-stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
-.reveal-stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
-.reveal-stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
-.reveal-stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
-.reveal-stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
+.reveal-stagger > .reveal:nth-child(1) {
+  transition-delay: 0ms;
+}
+.reveal-stagger > .reveal:nth-child(2) {
+  transition-delay: 80ms;
+}
+.reveal-stagger > .reveal:nth-child(3) {
+  transition-delay: 160ms;
+}
+.reveal-stagger > .reveal:nth-child(4) {
+  transition-delay: 240ms;
+}
+.reveal-stagger > .reveal:nth-child(5) {
+  transition-delay: 320ms;
+}
+.reveal-stagger > .reveal:nth-child(6) {
+  transition-delay: 400ms;
+}
 
 /* ── Reduced motion ──────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

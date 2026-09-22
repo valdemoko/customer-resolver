@@ -9,11 +9,7 @@
  * - Reanalysis trigger
  */
 import { describe, it, expect } from "vitest";
-import {
-  transition,
-  allowedEvents,
-  InvalidCaseStateTransition,
-} from "@core/case/state-machine";
+import { transition, allowedEvents, InvalidCaseStateTransition } from "@core/case/state-machine";
 import { createEvent } from "@core/case/events";
 import type { CaseStatus, CaseEventType } from "@core/types";
 
@@ -41,21 +37,21 @@ describe("F13 — State Machine Extended Transitions", () => {
     });
 
     it("rejects ESCALATE from DRAFT", () => {
-      expect(() =>
-        transition({ current: "DRAFT", event: "ESCALATE" }),
-      ).toThrow(InvalidCaseStateTransition);
+      expect(() => transition({ current: "DRAFT", event: "ESCALATE" })).toThrow(
+        InvalidCaseStateTransition,
+      );
     });
 
     it("rejects ESCALATE from CLOSED", () => {
-      expect(() =>
-        transition({ current: "CLOSED", event: "ESCALATE" }),
-      ).toThrow(InvalidCaseStateTransition);
+      expect(() => transition({ current: "CLOSED", event: "ESCALATE" })).toThrow(
+        InvalidCaseStateTransition,
+      );
     });
 
     it("rejects ESCALATE from COLLECTING_INFORMATION", () => {
-      expect(() =>
-        transition({ current: "COLLECTING_INFORMATION", event: "ESCALATE" }),
-      ).toThrow(InvalidCaseStateTransition);
+      expect(() => transition({ current: "COLLECTING_INFORMATION", event: "ESCALATE" })).toThrow(
+        InvalidCaseStateTransition,
+      );
     });
   });
 
@@ -85,21 +81,21 @@ describe("F13 — State Machine Extended Transitions", () => {
 
   describe("Invalid transitions remain invalid", () => {
     it("rejects ESCALATE from ANALYZING_X", () => {
-      expect(() =>
-        transition({ current: "ANALYZING_X", event: "ESCALATE" }),
-      ).toThrow(InvalidCaseStateTransition);
+      expect(() => transition({ current: "ANALYZING_X", event: "ESCALATE" })).toThrow(
+        InvalidCaseStateTransition,
+      );
     });
 
     it("rejects ESCALATE from NEEDS_INFORMATION", () => {
-      expect(() =>
-        transition({ current: "NEEDS_INFORMATION", event: "ESCALATE" }),
-      ).toThrow(InvalidCaseStateTransition);
+      expect(() => transition({ current: "NEEDS_INFORMATION", event: "ESCALATE" })).toThrow(
+        InvalidCaseStateTransition,
+      );
     });
 
     it("rejects ESCALATE from HAS_CONTRADICTIONS", () => {
-      expect(() =>
-        transition({ current: "HAS_CONTRADICTIONS", event: "ESCALATE" }),
-      ).toThrow(InvalidCaseStateTransition);
+      expect(() => transition({ current: "HAS_CONTRADICTIONS", event: "ESCALATE" })).toThrow(
+        InvalidCaseStateTransition,
+      );
     });
 
     it("rejects REOPEN from non-CLOSED states", () => {

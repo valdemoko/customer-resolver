@@ -32,6 +32,7 @@ Finalization
 ## 3. Document Domain
 
 ### Document Types
+
 - `CONSUMER_COMPLAINT` — general consumer complaint
 - `REFUND_REQUEST` — refund/refund request
 - `WARRANTY_CLAIM` — warranty claim
@@ -39,6 +40,7 @@ Finalization
 - `GENERAL_FORMAL_REQUEST` — generic formal request
 
 ### Document Status Lifecycle
+
 ```
 DRAFT → VALIDATED → USER_EDITED → FINAL → EXPORTED
                                     ↓
@@ -46,11 +48,13 @@ DRAFT → VALIDATED → USER_EDITED → FINAL → EXPORTED
 ```
 
 ### Versioning
+
 Each document version is a separate DB row linked by `previous_version_id`. Historical versions are never overwritten.
 
 ## 4. Generation Pipeline
 
 ### Input Builder
+
 - Filters to only CONFIRMED facts
 - Filters to only SUPPORTED claims
 - Builds citations from verified sources
@@ -58,6 +62,7 @@ Each document version is a separate DB row linked by `previous_version_id`. Hist
 - Deterministic: same input → same output
 
 ### AI Drafting
+
 - Structured Zod schema output (never raw text)
 - Prompt explicitly constrains AI behavior:
   - "USA SOLO los hechos confirmados"
@@ -66,7 +71,9 @@ Each document version is a separate DB row linked by `previous_version_id`. Hist
 - Low temperature (0.1) for formal drafting
 
 ### Deterministic Validation
+
 Seven validation checks:
+
 1. **Factual traceability** — every statement traces to a confirmed fact
 2. **Legal traceability** — every claim traces to a supported claim
 3. **Source citation** — legal basis sections reference real sources
@@ -77,17 +84,17 @@ Seven validation checks:
 
 ## 5. Files Created
 
-| File | Purpose |
-|---|---|
-| `src/core/document-generation/types.ts` | Domain types |
-| `src/core/document-generation/schemas.ts` | Zod validation schemas |
-| `src/core/document-generation/input-builder.ts` | Case data → structured input |
-| `src/core/document-generation/validator.ts` | Deterministic validation |
-| `src/core/document-generation/service.ts` | Generation orchestrator |
-| `src/server/db/repositories/document-repository.ts` | DB persistence |
-| `src/app/api/cases/[caseId]/documents/route.ts` | API routes |
-| `src/server/db/migrations/0008_generated_documents.sql` | DB migration |
-| `tests/unit/document-generation/generation.test.ts` | 23 tests |
+| File                                                    | Purpose                      |
+| ------------------------------------------------------- | ---------------------------- |
+| `src/core/document-generation/types.ts`                 | Domain types                 |
+| `src/core/document-generation/schemas.ts`               | Zod validation schemas       |
+| `src/core/document-generation/input-builder.ts`         | Case data → structured input |
+| `src/core/document-generation/validator.ts`             | Deterministic validation     |
+| `src/core/document-generation/service.ts`               | Generation orchestrator      |
+| `src/server/db/repositories/document-repository.ts`     | DB persistence               |
+| `src/app/api/cases/[caseId]/documents/route.ts`         | API routes                   |
+| `src/server/db/migrations/0008_generated_documents.sql` | DB migration                 |
+| `tests/unit/document-generation/generation.test.ts`     | 23 tests                     |
 
 ## 6. Tests
 
@@ -98,6 +105,7 @@ total:             728
 ```
 
 ### Test Categories
+
 - **Input builder**: document type determination, fact filtering, claim filtering
 - **Validator**: traceability, hallucination detection, contradiction visibility
 - **Adversarial**: untraceable facts blocked, untraceable claims blocked, invented numbers warned

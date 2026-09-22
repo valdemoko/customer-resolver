@@ -115,7 +115,7 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
     saberMas: {
       keyFacts: [
         "Fecha exacta en que solicitaste la cancelación (no la fecha efectiva)",
-        "Fecha y cuantía del cargo recibido después de la cancelación", 
+        "Fecha y cuantía del cargo recibido después de la cancelación",
         "Si existía compromiso de permanencia en el contrato",
         "Si dispones de confirmación escrita de la cancelación",
       ],
@@ -127,7 +127,7 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
       evidenceTypes: [
         "Confirmación de cancelación (email, SMS, documento)",
         "Contrato o condiciones del servicio",
-        "Factura o extracto con el cargo", 
+        "Factura o extracto con el cargo",
         "Comunicaciones con el proveedor",
       ],
       commonMistakes: [
@@ -583,16 +583,12 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
 ] as const;
 
 /** Get a problem by its slug */
-export function getProblemBySlug(
-  slug: string,
-): ProblemCatalogueEntry | undefined {
+export function getProblemBySlug(slug: string): ProblemCatalogueEntry | undefined {
   return PROBLEM_CATALOGUE.find((p) => p.slug === slug);
 }
 
 /** Get a problem by its module key */
-export function getProblemByKey(
-  key: string,
-): ProblemCatalogueEntry | undefined {
+export function getProblemByKey(key: string): ProblemCatalogueEntry | undefined {
   return PROBLEM_CATALOGUE.find((p) => p.key === key);
 }
 

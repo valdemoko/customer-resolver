@@ -46,30 +46,21 @@ export function compareAuthority(a: SourceAuthority, b: SourceAuthority): number
  * This is a curated list — NOT exhaustive, but covers major official sources.
  */
 const OFFICIAL_DOMAINS: ReadonlyMap<string, readonly string[]> = new Map([
-  ["ES", [
-    "boe.es",           // Boletín Oficial del Estado
-    "boe.gob.es",       // BOE alternate
-    "eur-lex.europa.eu", // EUR-Lex
-    "minetur.gob.es",   // Ministerio de Turismo
-    "consumo.gob.es",   // Dirección General de Consumo
-    "gob.es",           // General government
-    "cuadernosdederecho.com", // Professional (secondary)
-  ]],
-  ["EU", [
-    "eur-lex.europa.eu",
-    "ec.europa.eu",
-    "europa.eu",
-  ]],
-  ["UK", [
-    "legislation.gov.uk",
-    "gov.uk",
-  ]],
-  ["US", [
-    "congress.gov",
-    "uscode.house.gov",
-    "ftc.gov",
-    "consumerfinance.gov",
-  ]],
+  [
+    "ES",
+    [
+      "boe.es", // Boletín Oficial del Estado
+      "boe.gob.es", // BOE alternate
+      "eur-lex.europa.eu", // EUR-Lex
+      "minetur.gob.es", // Ministerio de Turismo
+      "consumo.gob.es", // Dirección General de Consumo
+      "gob.es", // General government
+      "cuadernosdederecho.com", // Professional (secondary)
+    ],
+  ],
+  ["EU", ["eur-lex.europa.eu", "ec.europa.eu", "europa.eu"]],
+  ["UK", ["legislation.gov.uk", "gov.uk"]],
+  ["US", ["congress.gov", "uscode.house.gov", "ftc.gov", "consumerfinance.gov"]],
 ]);
 
 // ── Validation Result ───────────────────────────────────────────────
@@ -179,9 +170,7 @@ export function validateSource(
   // 2. Domain authority check
   const domain = extractDomain(source.url);
   const officialDomains = OFFICIAL_DOMAINS.get(jurisdiction) ?? [];
-  const isOfficialDomain = officialDomains.some(
-    (d) => domain === d || domain.endsWith(`.${d}`),
-  );
+  const isOfficialDomain = officialDomains.some((d) => domain === d || domain.endsWith(`.${d}`));
 
   // 3. Determine authority based on domain + publisher
   let authority: SourceAuthority;

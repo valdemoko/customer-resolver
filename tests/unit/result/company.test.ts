@@ -29,13 +29,15 @@ function fact(key: string, value: unknown, overrides: Partial<Fact> = {}): Fact 
 
 describe("detectCompanyName", () => {
   it("reads the company from the module's own fact", () => {
-    expect(detectCompanyName([fact("airline.name", { type: "string", value: "Vueling" })])).toEqual({
-      name: "Vueling",
-      factKey: "airline.name",
-    });
-    expect(detectCompanyName([fact("seller.name", { type: "string", value: "MediaMarkt" })])).toEqual(
-      { name: "MediaMarkt", factKey: "seller.name" },
+    expect(detectCompanyName([fact("airline.name", { type: "string", value: "Vueling" })])).toEqual(
+      {
+        name: "Vueling",
+        factKey: "airline.name",
+      },
     );
+    expect(
+      detectCompanyName([fact("seller.name", { type: "string", value: "MediaMarkt" })]),
+    ).toEqual({ name: "MediaMarkt", factKey: "seller.name" });
     expect(
       detectCompanyName([fact("provider.name", { type: "string", value: "Iberdrola" })]),
     ).toEqual({ name: "Iberdrola", factKey: "provider.name" });
@@ -43,7 +45,11 @@ describe("detectCompanyName", () => {
 
   it("returns null when the company is still unknown", () => {
     expect(detectCompanyName([])).toBeNull();
-    expect(detectCompanyName([fact("charge.amount", { type: "money", value: { amountMinor: 1, currency: "EUR" } })])).toBeNull();
+    expect(
+      detectCompanyName([
+        fact("charge.amount", { type: "money", value: { amountMinor: 1, currency: "EUR" } }),
+      ]),
+    ).toBeNull();
     // An empty or non-text answer is not a company name.
     expect(detectCompanyName([fact("seller.name", { type: "string", value: "   " })])).toBeNull();
     expect(detectCompanyName([fact("seller.name", { type: "boolean", value: true })])).toBeNull();

@@ -9,17 +9,9 @@
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  buildPublicSourceIndex,
-  formatConsultedAt,
-  getSourceGroups,
-} from "@/lib/source-catalogue";
+import { buildPublicSourceIndex, formatConsultedAt, getSourceGroups } from "@/lib/source-catalogue";
 
-const OFFICIAL_HOSTS = [
-  "www.boe.es",
-  "boe.es",
-  "eur-lex.europa.eu",
-];
+const OFFICIAL_HOSTS = ["www.boe.es", "boe.es", "eur-lex.europa.eu"];
 
 describe("public source catalogue", () => {
   it("lists sources for every problem module in the catalogue", () => {
@@ -62,9 +54,7 @@ describe("public source catalogue", () => {
   });
 
   it("attributes art. 102.2 TRLGDCU to the TRLGDCU, not to the Ley 11/2022", () => {
-    const ley = [...buildPublicSourceIndex().values()].find((s) =>
-      s.title.includes("Ley 11/2022"),
-    );
+    const ley = [...buildPublicSourceIndex().values()].find((s) => s.title.includes("Ley 11/2022"));
     expect(ley).toBeDefined();
     expect(ley!.relevantSection).not.toContain("102.2");
     expect(ley!.relevantSection).toContain("Art. 67.7");

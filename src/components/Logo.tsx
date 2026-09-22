@@ -48,7 +48,9 @@ export function Logo({ linked = true, size = "md", variant = "default" }: LogoPr
 
   const content = (
     <span className={`inline-flex items-center ${cfg.gap}`}>
-      <LinkIcon className={`${cfg.icon} ${isLight ? "text-white" : "text-[var(--color-accent)]"}`} />
+      <LinkIcon
+        className={`${cfg.icon} ${isLight ? "text-white" : "text-[var(--color-accent)]"}`}
+      />
       <span
         className={`font-medium tracking-tight ${cfg.text} ${
           isLight ? "text-white" : "text-[var(--color-ink)]"

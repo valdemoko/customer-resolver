@@ -13,6 +13,7 @@ The system now allows users to describe their problem freely in natural language
 ## 2. Files Created
 
 ### Core Module (7 files)
+
 - `src/core/intake/types.ts` — Domain types (IntakeInterpretation, ModuleCandidate, IntakeFactCandidate, RoutingDecision, etc.)
 - `src/core/intake/schemas.ts` — Zod schemas for strict AI output validation
 - `src/core/intake/catalogue.ts` — AI-safe module catalogue generator from ProblemRegistry
@@ -24,6 +25,7 @@ The system now allows users to describe their problem freely in natural language
 - `src/core/intake/index.ts` — Public surface
 
 ### Tests (1 file)
+
 - `tests/unit/intake/intake.test.ts` — 44 comprehensive tests
 
 ## 3. Files Modified
@@ -34,6 +36,7 @@ The system now allows users to describe their problem freely in natural language
 ## 4. Architecture Integration
 
 ### Reused Existing Components
+
 - **ProblemRegistry** — Module catalogue auto-generated from registry
 - **Fact system** — IntakeFactCandidate uses same FactKey/FactValue types
 - **AI Router** — Uses existing AIRouter for structured output
@@ -42,6 +45,7 @@ The system now allows users to describe their problem freely in natural language
 - **assembleUserMessage** — Reuses F6 message assembly
 
 ### No Changes To
+
 - Case Engine
 - Rule Engine
 - Source Registry
@@ -58,11 +62,13 @@ The system now allows users to describe their problem freely in natural language
 ## 5. AI Integration
 
 ### New AI Task
+
 - `PROBLEM_INTERPRETATION` added to AITaskType union
 - Prompt registered in BUILT_IN_PROMPTS with version 1
 - Schema version: `intake-interpretation@1`
 
 ### AI Output Validation
+
 - Strict Zod schema with `.strict()` (rejects unknown fields)
 - Fact keys validated against registered module catalogue at runtime
 - Invalid enums rejected
@@ -71,7 +77,9 @@ The system now allows users to describe their problem freely in natural language
 ## 6. Routing
 
 ### Multi-Signal Deterministic Policy
+
 Routing combines:
+
 1. AI classification confidence (HIGH=3, MEDIUM=1, LOW=0)
 2. Structural signals present (min 2 required)
 3. Matched required facts (+2 each)
@@ -80,23 +88,28 @@ Routing combines:
 6. No blocking contradictions (+2 / -3)
 
 ### Routing Gate
+
 All conditions must be met:
+
 - Score >= ROUTING_THRESHOLD (8)
 - At least MIN_STRUCTURAL_SIGNALS (2)
 - Jurisdiction compatible
 - No blocking contradictions
 
 ### Key Rule
+
 AI confidence HIGH but no structural signals → DO NOT ROUTE
 
 ## 7. Jurisdiction
 
 ### No Default Jurisdiction
+
 - Language alone does NOT confirm jurisdiction
 - Spanish text ≠ Spain jurisdiction
 - Without explicit geographic hints → NEEDS_CLARIFICATION
 
 ### Jurisdiction Hints
+
 - AI provides HINTS only
 - Jurisdiction Engine has final word
 - Incompatible jurisdiction → UNSUPPORTED_JURISDICTION
@@ -104,12 +117,14 @@ AI confidence HIGH but no structural signals → DO NOT ROUTE
 ## 8. Fact Confirmation
 
 ### Hierarchy Enforced
+
 - **CONFIRMED** fact → satisfies question
 - **UNCONFIRMED** AI candidate (any certainty) → does NOT satisfy question
 - **EXPLICIT** certainty ≠ CONFIRMED
 - **INFERRED** certainty ≠ CONFIRMED
 
 ### Question Selection
+
 - Deterministic: same facts + same module → same question
 - Only CONFIRMED facts skip questions
 - askIf conditions evaluated against confirmed facts
@@ -137,6 +152,7 @@ AI confidence HIGH but no structural signals → DO NOT ROUTE
 ## 12. Security
 
 ### Prompt Injection Defense (10 layers)
+
 1. Content treated as data
 2. Sanitization (reuse F6)
 3. Delimitation
@@ -151,17 +167,20 @@ AI confidence HIGH but no structural signals → DO NOT ROUTE
 ## 13. Privacy
 
 ### What Goes to AI
+
 - User text (sanitized)
 - Module catalogue (public metadata)
 - Previously confirmed facts (factKey + value)
 
 ### What Does NOT Go to AI
+
 - API keys, credentials
 - Other users' data
 - Full case history
 - Document file contents (unless processing)
 
 ### Logging
+
 - IDs, hashes, metrics only
 - No user content in logs
 - No document content in logs
@@ -176,7 +195,9 @@ AI confidence HIGH but no structural signals → DO NOT ROUTE
 ## 15. Persistence
 
 ### No New DB Tables
+
 All F8.3 data fits existing entities:
+
 - User text → Evidence (type: MESSAGE)
 - AI interpretation → AIRequestRecord
 - Fact candidates → Fact (status: UNCONFIRMED)
@@ -185,6 +206,7 @@ All F8.3 data fits existing entities:
 ## 16. Tests
 
 ### 58 Tests Covering
+
 - Schema validation (6 tests)
 - Module catalogue (5 tests)
 - Routing (10 tests)
@@ -201,6 +223,7 @@ All F8.3 data fits existing entities:
 - Adversarial: Question selection invariants (3 tests)
 
 ### Test Results
+
 ```
 Typecheck:   ✅ CLEAN
 Tests:       ✅ 504/504 (58 new + 446 existing — zero regressions)
@@ -209,6 +232,7 @@ Tests:       ✅ 504/504 (58 new + 446 existing — zero regressions)
 ## 17. Stress Test Results
 
 All 80 scenarios from specification are addressed by the implementation:
+
 - Routing integrity: HIGH confidence without signals does NOT route
 - Fact hierarchy: UNCONFIRMED candidates do NOT satisfy questions
 - Document evidence: No latest-wins policy

@@ -353,7 +353,12 @@ function buildTypedValue(
       return Number.isFinite(value) ? { type: "number", value } : null;
     }
     case "money": {
-      const value = Number(raw.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+      const value = Number(
+        raw
+          .replace(/\./g, "")
+          .replace(",", ".")
+          .replace(/[^\d.-]/g, ""),
+      );
       if (!Number.isFinite(value)) return null;
       return { type: "money", value: { amountMinor: Math.round(value * 100), currency: "EUR" } };
     }
@@ -615,10 +620,20 @@ function AnswerRow({
 
           {kind === "boolean" && (
             <div className="flex gap-2">
-              <button type="button" onClick={() => void save("sí")} disabled={busy} className="btn-primary text-xs">
+              <button
+                type="button"
+                onClick={() => void save("sí")}
+                disabled={busy}
+                className="btn-primary text-xs"
+              >
                 Sí
               </button>
-              <button type="button" onClick={() => void save("no")} disabled={busy} className="btn-secondary text-xs">
+              <button
+                type="button"
+                onClick={() => void save("no")}
+                disabled={busy}
+                className="btn-secondary text-xs"
+              >
                 No
               </button>
             </div>
@@ -726,12 +741,17 @@ function CompanyContact({ company }: { company: CaseCompany }) {
       {company.known ? (
         <div className="mt-3 space-y-3">
           {company.channels.map((channel, index) => (
-            <div key={`${channel.kind}-${index}`} className="border-l-2 border-[var(--border-light)] pl-3">
+            <div
+              key={`${channel.kind}-${index}`}
+              className="border-l-2 border-[var(--border-light)] pl-3"
+            >
               <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-faint)]">
                 {CHANNEL_LABELS[channel.kind] ?? "Contacto"} · {channel.label}
               </p>
               {channel.value && (
-                <p className="text-sm font-medium text-[var(--color-ink)] mt-0.5">{channel.value}</p>
+                <p className="text-sm font-medium text-[var(--color-ink)] mt-0.5">
+                  {channel.value}
+                </p>
               )}
               {channel.hours && (
                 <p className="text-xs text-[var(--color-ink-muted)] mt-1">{channel.hours}</p>
@@ -757,9 +777,8 @@ function CompanyContact({ company }: { company: CaseCompany }) {
       ) : (
         <div className="mt-3 space-y-2">
           <p className="text-xs text-[var(--color-ink-soft)] leading-relaxed">
-            No tenemos verificados los canales de atención al cliente de esta empresa, así que no
-            te damos ningún teléfono para no darte un dato equivocado. Encontrar el correcto es
-            rápido:
+            No tenemos verificados los canales de atención al cliente de esta empresa, así que no te
+            damos ningún teléfono para no darte un dato equivocado. Encontrar el correcto es rápido:
           </p>
           <ol className="space-y-2 list-decimal list-inside">
             {COMPANY_CONTACT_TIPS.map((tip) => (
@@ -825,9 +844,7 @@ function CompanyQuestionCard({
 
   return (
     <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)] mt-3">
-      <p className="text-sm font-medium text-[var(--color-ink)] leading-relaxed">
-        {question.text}
-      </p>
+      <p className="text-sm font-medium text-[var(--color-ink)] leading-relaxed">{question.text}</p>
       <input
         type="text"
         value={value}
@@ -852,9 +869,7 @@ function CompanyQuestionCard({
           Empresa guardada. El informe se ha actualizado con su atención al cliente.
         </p>
       )}
-      {localError && (
-        <p className="text-xs text-[var(--color-contradicted)] mt-3">{localError}</p>
-      )}
+      {localError && <p className="text-xs text-[var(--color-contradicted)] mt-3">{localError}</p>}
     </div>
   );
 }
@@ -915,7 +930,10 @@ function CaseReport({
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded"
             style={{ backgroundColor: `${statusCfg.color}10`, color: statusCfg.color }}
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusCfg.color }} />
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: statusCfg.color }}
+            />
             <span className="text-xs font-medium">{statusCfg.label}</span>
           </div>
         </div>
@@ -939,9 +957,7 @@ function CaseReport({
                   <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-faint)]">
                     {item.label}
                   </p>
-                  <p className="text-base font-medium text-[var(--color-ink)] mt-1">
-                    {item.value}
-                  </p>
+                  <p className="text-base font-medium text-[var(--color-ink)] mt-1">{item.value}</p>
                 </div>
               ))}
             </div>
@@ -959,8 +975,8 @@ function CaseReport({
             </p>
             {uncomputable.length > 0 && actionable.length > 0 && (
               <p className="text-xs text-[var(--color-ink-faint)] leading-relaxed mb-3">
-                Los que no se pueden responder aquí quedan explicados igualmente, para que sepas
-                qué comprobar por tu cuenta.
+                Los que no se pueden responder aquí quedan explicados igualmente, para que sepas qué
+                comprobar por tu cuenta.
               </p>
             )}
             <div className="space-y-3">
@@ -978,9 +994,7 @@ function CaseReport({
                 Actualizando el informe con los datos nuevos…
               </p>
             )}
-            {error && (
-              <p className="text-xs text-[var(--color-contradicted)] mt-3">{error}</p>
-            )}
+            {error && <p className="text-xs text-[var(--color-contradicted)] mt-3">{error}</p>}
           </section>
         )}
 
@@ -1014,7 +1028,9 @@ function CaseReport({
                     {(() => {
                       const basis = (claim.supportingFacts ?? [])
                         .map((fact) => factLabels[fact.factKey])
-                        .filter((label): label is string => typeof label === "string" && label.length > 0);
+                        .filter(
+                          (label): label is string => typeof label === "string" && label.length > 0,
+                        );
                       if (basis.length === 0) return null;
                       return (
                         <p className="text-xs text-[var(--color-ink-muted)] mt-2 leading-relaxed">
@@ -1025,7 +1041,9 @@ function CaseReport({
                     {claim.missingFacts.length > 0 && (
                       <p className="text-xs text-[var(--color-insufficient)] mt-2">
                         Datos que faltan para esta conclusión:{" "}
-                        {claim.missingFacts.map((key) => describeMissingFact(result, key)).join("; ")}
+                        {claim.missingFacts
+                          .map((key) => describeMissingFact(result, key))
+                          .join("; ")}
                       </p>
                     )}
                   </div>
@@ -1082,7 +1100,11 @@ function CaseReport({
               </div>
             )}
             {!result.company && companyQuestion && (
-              <CompanyQuestionCard question={companyQuestion} busy={busy} onSubmit={onCompleteMissing} />
+              <CompanyQuestionCard
+                question={companyQuestion}
+                busy={busy}
+                onSubmit={onCompleteMissing}
+              />
             )}
           </section>
         )}
@@ -1196,11 +1218,7 @@ function CaseReport({
           >
             Descargar informe en PDF
           </a>
-          <a
-            href={`/api/cases/${caseId}/export?format=txt`}
-            className="btn-ghost text-sm"
-            download
-          >
+          <a href={`/api/cases/${caseId}/export?format=txt`} className="btn-ghost text-sm" download>
             Versión de texto
           </a>
           <Link href="/" className="btn-ghost text-sm">
@@ -1348,9 +1366,7 @@ export function ResolverClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(
-          analysisErrorMessage(data?.error?.code, data?.error?.message),
-        );
+        throw new Error(analysisErrorMessage(data?.error?.code, data?.error?.message));
       }
       if (typeof data?.caseId !== "string" || data.caseId.length === 0) {
         throw new Error("No pudimos preparar el caso. Vuelve a intentarlo.");
@@ -1378,8 +1394,7 @@ export function ResolverClient({
         phase: "error",
         bootstrapTitle: null,
         error:
-          networkErrorMessage(err) ??
-          (err instanceof Error ? err.message : "Error inesperado"),
+          networkErrorMessage(err) ?? (err instanceof Error ? err.message : "Error inesperado"),
       }));
     }
   }, []);
@@ -1482,8 +1497,7 @@ export function ResolverClient({
         ...prev,
         phase: "error",
         error:
-          networkErrorMessage(err) ??
-          (err instanceof Error ? err.message : "Error inesperado"),
+          networkErrorMessage(err) ?? (err instanceof Error ? err.message : "Error inesperado"),
       }));
     } finally {
       setSubmitting(false);
@@ -1498,74 +1512,77 @@ export function ResolverClient({
 
   // ── Phase 3: Confirm answer ────────────────────────────────────
 
-  const handleConfirmAnswer = useCallback(async (rawOverride?: string) => {
-    const raw = (rawOverride ?? answer).trim();
-    if (!state.caseId || !state.nextQuestion || !raw) return;
+  const handleConfirmAnswer = useCallback(
+    async (rawOverride?: string) => {
+      const raw = (rawOverride ?? answer).trim();
+      if (!state.caseId || !state.nextQuestion || !raw) return;
 
-    const typedValue = buildTypedValue(state.nextQuestion, raw);
-    if (!typedValue) {
-      setState((prev) => ({
-        ...prev,
-        error: "La respuesta no encaja con el tipo de dato esperado.",
-      }));
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const value = typedValue;
-      const res = await fetch("/api/intake/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          caseId: state.caseId,
-          candidateId: `intake-${state.nextQuestion.factKey}`,
-          factKey: state.nextQuestion.factKey,
-          decision: "confirm",
-          value,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        if (res.status === 409) {
-          // Reload case status
-          await loadCaseStatus(state.caseId);
-          return;
-        }
-        throw new Error(err.error?.message || "No se pudo confirmar");
-      }
-
-      // Add to confirmed facts
-      const newFact = { key: state.nextQuestion.factKey, value: value.value };
-
-      // Load next question
-      setAnswer("");
-      const intakeRes = await fetch(intakeUrl(state.caseId, state.skippedFacts));
-      if (intakeRes.ok) {
-        const intakeData = await intakeRes.json();
+      const typedValue = buildTypedValue(state.nextQuestion, raw);
+      if (!typedValue) {
         setState((prev) => ({
           ...prev,
-          confirmedFacts: [...prev.confirmedFacts, newFact],
-          phase: intakeData.allRequiredConfirmed ? "evidence" : "questioning",
-          nextQuestion: intakeData.nextQuestion,
-          allRequiredConfirmed: intakeData.allRequiredConfirmed,
-          questionTotal: Math.max(
-            prev.questionTotal ?? 0,
-            intakeData.nextQuestion?.totalApplicable ?? 0,
-          ),
-          error: null,
+          error: "La respuesta no encaja con el tipo de dato esperado.",
         }));
+        return;
       }
-    } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        error: err instanceof Error ? err.message : "Error al confirmar",
-      }));
-    } finally {
-      setSubmitting(false);
-    }
-  }, [state.caseId, state.nextQuestion, answer]);
+
+      setSubmitting(true);
+      try {
+        const value = typedValue;
+        const res = await fetch("/api/intake/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            caseId: state.caseId,
+            candidateId: `intake-${state.nextQuestion.factKey}`,
+            factKey: state.nextQuestion.factKey,
+            decision: "confirm",
+            value,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          if (res.status === 409) {
+            // Reload case status
+            await loadCaseStatus(state.caseId);
+            return;
+          }
+          throw new Error(err.error?.message || "No se pudo confirmar");
+        }
+
+        // Add to confirmed facts
+        const newFact = { key: state.nextQuestion.factKey, value: value.value };
+
+        // Load next question
+        setAnswer("");
+        const intakeRes = await fetch(intakeUrl(state.caseId, state.skippedFacts));
+        if (intakeRes.ok) {
+          const intakeData = await intakeRes.json();
+          setState((prev) => ({
+            ...prev,
+            confirmedFacts: [...prev.confirmedFacts, newFact],
+            phase: intakeData.allRequiredConfirmed ? "evidence" : "questioning",
+            nextQuestion: intakeData.nextQuestion,
+            allRequiredConfirmed: intakeData.allRequiredConfirmed,
+            questionTotal: Math.max(
+              prev.questionTotal ?? 0,
+              intakeData.nextQuestion?.totalApplicable ?? 0,
+            ),
+            error: null,
+          }));
+        }
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : "Error al confirmar",
+        }));
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [state.caseId, state.nextQuestion, answer],
+  );
 
   // ── Phase 3b: Skip question ────────────────────────────────────
 
@@ -1578,7 +1595,8 @@ export function ResolverClient({
    * with the rest of the pending data.
    */
   const handleSkipQuestion = useCallback(async () => {
-    if (!state.caseId || !state.nextQuestion) return;      const skippedKey = state.nextQuestion.factKey;
+    if (!state.caseId || !state.nextQuestion) return;
+    const skippedKey = state.nextQuestion.factKey;
     setSubmitting(true);
     try {
       await fetch("/api/intake/confirm", {
@@ -1756,7 +1774,9 @@ export function ResolverClient({
         setState((prev) => ({
           ...prev,
           documentCandidates: prev.documentCandidates.map((c) =>
-            c.candidateId === candidate.candidateId ? { ...c, confirmed: true, rejected: false } : c,
+            c.candidateId === candidate.candidateId
+              ? { ...c, confirmed: true, rejected: false }
+              : c,
           ),
         }));
       } catch {
@@ -1952,8 +1972,8 @@ export function ResolverClient({
             <p className="label mb-4">Resolver problema</p>
             <h1 className="mb-3">¿Qué problema quieres resolver?</h1>
             <p className="text-[var(--color-ink-muted)] max-w-md mx-auto leading-relaxed">
-              Explícanos qué ha ocurrido. Resolveo analizará la situación y te pedirá
-              únicamente la información necesaria.
+              Explícanos qué ha ocurrido. Resolveo analizará la situación y te pedirá únicamente la
+              información necesaria.
             </p>
           </div>
 
@@ -1981,7 +2001,10 @@ export function ResolverClient({
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-ink)] text-white text-xs font-medium rounded hover:bg-[var(--color-ink-soft)] transition-colors disabled:opacity-40"
               >
                 {state.phase === "interpreting" ? (
-                  <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analizando...</>
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />{" "}
+                    Analizando...
+                  </>
                 ) : (
                   <>Analizar</>
                 )}
@@ -2014,9 +2037,20 @@ export function ResolverClient({
 
           {state.phase === "interpreting" && (
             <div className="mt-8 space-y-3 anim-fade-in">
-              {["Interpretando tu descripción", "Identificando el problema", "Detectando datos relevantes"].map((step, i) => (
-                <div key={step} className="flex items-center gap-3 text-sm text-[var(--color-ink-muted)]" style={{ animationDelay: `${i * 400}ms` }}>
-                  <div className="w-4 h-4 rounded-full border border-[var(--border-default)] flex items-center justify-center anim-fade-in" style={{ animationDelay: `${i * 400 + 300}ms` }}>
+              {[
+                "Interpretando tu descripción",
+                "Identificando el problema",
+                "Detectando datos relevantes",
+              ].map((step, i) => (
+                <div
+                  key={step}
+                  className="flex items-center gap-3 text-sm text-[var(--color-ink-muted)]"
+                  style={{ animationDelay: `${i * 400}ms` }}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full border border-[var(--border-default)] flex items-center justify-center anim-fade-in"
+                    style={{ animationDelay: `${i * 400 + 300}ms` }}
+                  >
                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
                   </div>
                   {step}
@@ -2057,8 +2091,18 @@ export function ResolverClient({
             onClick={() => setState((prev) => ({ ...prev, phase: "intake" }))}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] transition-colors mb-8"
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
             </svg>
             Volver
           </button>
@@ -2074,10 +2118,14 @@ export function ResolverClient({
                   {routing?.moduleTitle ? "Problema detectado" : "Aviso"}
                 </p>
                 {routing?.moduleTitle && (
-                  <p className="text-base font-medium text-[var(--color-ink)]">{routing.moduleTitle}</p>
+                  <p className="text-base font-medium text-[var(--color-ink)]">
+                    {routing.moduleTitle}
+                  </p>
                 )}
                 {routing?.userExplanation && (
-                  <p className="text-sm text-[var(--color-ink-muted)] mt-1">{routing.userExplanation}</p>
+                  <p className="text-sm text-[var(--color-ink-muted)] mt-1">
+                    {routing.userExplanation}
+                  </p>
                 )}
               </div>
             )}
@@ -2086,7 +2134,9 @@ export function ResolverClient({
             {interp.summary && (
               <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-5">
                 <p className="label mb-1">Resumen</p>
-                <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">{interp.summary}</p>
+                <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                  {interp.summary}
+                </p>
               </div>
             )}
 
@@ -2099,7 +2149,9 @@ export function ResolverClient({
                     <div key={fact.candidateId} className="flex items-center gap-3 text-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] flex-shrink-0" />
                       <span className="font-medium text-[var(--color-ink)]">{fact.factKey}:</span>
-                      <span className="text-[var(--color-ink-muted)]">{String(fact.proposedValue.value)}</span>
+                      <span className="text-[var(--color-ink-muted)]">
+                        {String(fact.proposedValue.value)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -2129,16 +2181,18 @@ export function ResolverClient({
                   <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
                     <p className="label mb-3">Preparando orientación</p>
                     <div className="space-y-3">
-                      {["Situación detectada", "Qué puedes hacer", "Dónde reclamar"].map((step, i) => (
-                        <div
-                          key={step}
-                          className="flex items-center gap-3 text-sm text-[var(--color-ink-faint)] anim-fade-in"
-                          style={{ animationDelay: `${i * 250}ms` }}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] flex-shrink-0" />
-                          {step}
-                        </div>
-                      ))}
+                      {["Situación detectada", "Qué puedes hacer", "Dónde reclamar"].map(
+                        (step, i) => (
+                          <div
+                            key={step}
+                            className="flex items-center gap-3 text-sm text-[var(--color-ink-faint)] anim-fade-in"
+                            style={{ animationDelay: `${i * 250}ms` }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] flex-shrink-0" />
+                            {step}
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
                 )}
@@ -2163,7 +2217,9 @@ export function ResolverClient({
                                 {i + 1}
                               </span>
                               <div>
-                                <p className="text-sm font-medium text-[var(--color-ink)]">{step.title}</p>
+                                <p className="text-sm font-medium text-[var(--color-ink)]">
+                                  {step.title}
+                                </p>
                                 <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mt-1">
                                   {step.detail}
                                 </p>
@@ -2182,9 +2238,13 @@ export function ResolverClient({
                             <div key={channel.target} className="flex items-start gap-3">
                               <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] mt-2 flex-shrink-0" />
                               <div>
-                                <p className="text-sm font-medium text-[var(--color-ink)]">{channel.target}</p>
+                                <p className="text-sm font-medium text-[var(--color-ink)]">
+                                  {channel.target}
+                                </p>
                                 {channel.channel && (
-                                  <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">{channel.channel}</p>
+                                  <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">
+                                    {channel.channel}
+                                  </p>
                                 )}
                                 <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mt-1">
                                   {channel.why}
@@ -2256,8 +2316,18 @@ export function ResolverClient({
                 <div className="flex gap-3 mt-8">
                   <button onClick={handleStartQuestioning} className="btn-primary">
                     Completar datos
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                      />
                     </svg>
                   </button>
                   <button
@@ -2269,7 +2339,8 @@ export function ResolverClient({
                 </div>
 
                 <p className="text-xs text-[var(--color-ink-faint)] mt-6">
-                  La información detectada es orientativa. Necesitamos confirmarla antes de analizar.
+                  La información detectada es orientativa. Necesitamos confirmarla antes de
+                  analizar.
                 </p>
               </>
             )}
@@ -2284,7 +2355,9 @@ export function ResolverClient({
   if (state.phase === "questioning") {
     const currentQuestion = state.nextQuestion;
     const questionControl = currentQuestion?.questionType ?? "string";
-    const isSkipped = currentQuestion ? state.skippedFacts.includes(currentQuestion.factKey) : false;
+    const isSkipped = currentQuestion
+      ? state.skippedFacts.includes(currentQuestion.factKey)
+      : false;
     const totalQuestions = Math.max(
       state.questionTotal ?? 0,
       currentQuestion?.totalApplicable ?? 0,
@@ -2488,8 +2561,13 @@ export function ResolverClient({
             </div>
           ) : (
             <div className="text-center py-12 anim-fade-in">
-              <p className="text-[var(--color-ink-muted)] mb-4">No hay más preguntas en este momento.</p>
-              <button onClick={() => setState((prev) => ({ ...prev, phase: "evidence" }))} className="btn-primary">
+              <p className="text-[var(--color-ink-muted)] mb-4">
+                No hay más preguntas en este momento.
+              </p>
+              <button
+                onClick={() => setState((prev) => ({ ...prev, phase: "evidence" }))}
+                className="btn-primary"
+              >
                 Continuar
               </button>
             </div>
@@ -2528,10 +2606,22 @@ export function ResolverClient({
             onClick={() => fileInputRef.current?.click()}
             className="w-full p-8 bg-[var(--surface-paper)] border border-dashed border-[var(--border-default)] text-center mb-4 hover:border-[var(--color-accent)]/30 transition-colors cursor-pointer"
           >
-            <svg className="w-8 h-8 text-[var(--color-ink-faint)] mx-auto mb-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+            <svg
+              className="w-8 h-8 text-[var(--color-ink-faint)] mx-auto mb-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
+              />
             </svg>
-            <p className="text-sm text-[var(--color-ink-muted)] mb-1">Haz clic para seleccionar archivos</p>
+            <p className="text-sm text-[var(--color-ink-muted)] mb-1">
+              Haz clic para seleccionar archivos
+            </p>
             <p className="text-xs text-[var(--color-ink-faint)]">PDF, TXT, JPG, PNG</p>
           </button>
 
@@ -2539,14 +2629,40 @@ export function ResolverClient({
           {selectedFiles.length > 0 && (
             <div className="space-y-2 mb-6">
               {selectedFiles.map((file, i) => (
-                <div key={`${file.name}-${i}`} className="flex items-center gap-3 p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]">
-                  <svg className="w-4 h-4 text-[var(--color-ink-faint)] flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                <div
+                  key={`${file.name}-${i}`}
+                  className="flex items-center gap-3 p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                >
+                  <svg
+                    className="w-4 h-4 text-[var(--color-ink-faint)] flex-shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                    />
                   </svg>
-                  <span className="text-sm text-[var(--color-ink)] flex-1 truncate">{file.name}</span>
-                  <span className="text-xs text-[var(--color-ink-faint)]">{(file.size / 1024).toFixed(0)} KB</span>
-                  <button onClick={() => handleRemoveFile(i)} className="text-[var(--color-ink-faint)] hover:text-[var(--color-contradicted)] transition-colors">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <span className="text-sm text-[var(--color-ink)] flex-1 truncate">
+                    {file.name}
+                  </span>
+                  <span className="text-xs text-[var(--color-ink-faint)]">
+                    {(file.size / 1024).toFixed(0)} KB
+                  </span>
+                  <button
+                    onClick={() => handleRemoveFile(i)}
+                    className="text-[var(--color-ink-faint)] hover:text-[var(--color-contradicted)] transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -2668,7 +2784,9 @@ export function ResolverClient({
       <div className="min-h-[80vh] flex items-center justify-center bg-[var(--surface-page)]">
         <div className="max-w-[400px] mx-auto px-5 text-center">
           <div className="w-8 h-8 border-2 border-[var(--border-default)] border-t-[var(--color-accent)] rounded-full animate-spin mx-auto mb-6" />
-          <h2 className="text-xl mb-3" style={{ fontFamily: "var(--font-display)" }}>Revisando la información</h2>
+          <h2 className="text-xl mb-3" style={{ fontFamily: "var(--font-display)" }}>
+            Revisando la información
+          </h2>
           <div className="space-y-2.5 mt-6 text-left max-w-xs mx-auto">
             {[
               "Organizando los hechos",
@@ -2676,8 +2794,15 @@ export function ResolverClient({
               "Consultando las fuentes relevantes",
               "Preparando el resultado",
             ].map((step, i) => (
-              <div key={step} className="flex items-center gap-3 text-sm text-[var(--color-ink-muted)] anim-fade-in" style={{ animationDelay: `${i * 600}ms` }}>
-                <div className="w-4 h-4 rounded-full border border-[var(--border-default)] flex items-center justify-center anim-fade-in" style={{ animationDelay: `${i * 600 + 500}ms` }}>
+              <div
+                key={step}
+                className="flex items-center gap-3 text-sm text-[var(--color-ink-muted)] anim-fade-in"
+                style={{ animationDelay: `${i * 600}ms` }}
+              >
+                <div
+                  className="w-4 h-4 rounded-full border border-[var(--border-default)] flex items-center justify-center anim-fade-in"
+                  style={{ animationDelay: `${i * 600 + 500}ms` }}
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
                 </div>
                 {step}
@@ -2719,8 +2844,18 @@ export function ResolverClient({
         <div className="max-w-[640px] mx-auto px-5 md:px-8 py-12 md:py-16">
           <div className="text-center mb-8">
             <div className="w-12 h-12 rounded bg-[var(--color-contradicted-bg)] flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-[var(--color-contradicted)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              <svg
+                className="w-6 h-6 text-[var(--color-contradicted)]"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                />
               </svg>
             </div>
             <h1 className="mb-3">No hemos podido completar el análisis</h1>
@@ -2732,7 +2867,11 @@ export function ResolverClient({
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
             {canRetry ? (
-              <button onClick={() => void handleIntake()} disabled={submitting} className="btn-primary">
+              <button
+                onClick={() => void handleIntake()}
+                disabled={submitting}
+                className="btn-primary"
+              >
                 Volver a intentarlo
               </button>
             ) : (
@@ -2756,8 +2895,8 @@ export function ResolverClient({
             <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
               <p className="label mb-3">Continuar sin análisis automático</p>
               <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mb-4">
-                Estos problemas no dependen de ningún servicio externo: creamos el caso y
-                empezamos por las preguntas.
+                Estos problemas no dependen de ningún servicio externo: creamos el caso y empezamos
+                por las preguntas.
               </p>
               <div className="flex flex-wrap gap-2">
                 {availableProblems.map((problem) => (

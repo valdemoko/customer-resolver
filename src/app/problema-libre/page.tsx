@@ -1,11 +1,12 @@
 /**
  * Problema Libre — REDIRECT to /resolver.
  *
- * This page now redirects to the canonical resolution flow.
- * The legacy ticket/feedback form has been replaced.
+ * This route is the legacy entry point; it now points permanently (308) to the
+ * canonical resolution flow, so crawlers transfer any signals to /resolver
+ * instead of keeping a temporary redirect alive forever.
  */
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export default function FreeProblemPage() {
-  redirect("/resolver");
+  permanentRedirect("/resolver");
 }

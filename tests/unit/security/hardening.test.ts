@@ -126,15 +126,11 @@ describe("sanitizeErrorMessage", () => {
   });
 
   it("truncates very long messages", () => {
-    expect(sanitizeErrorMessage(new Error("x".repeat(300)))).toBe(
-      "An unexpected error occurred.",
-    );
+    expect(sanitizeErrorMessage(new Error("x".repeat(300)))).toBe("An unexpected error occurred.");
   });
 
   it("passes through short safe messages", () => {
-    expect(sanitizeErrorMessage(new Error("Connection timeout"))).toBe(
-      "Connection timeout",
-    );
+    expect(sanitizeErrorMessage(new Error("Connection timeout"))).toBe("Connection timeout");
   });
 });
 
@@ -220,9 +216,9 @@ describe("Fact provenance invariants (F1)", () => {
 describe("Fact value validation (F1)", () => {
   it("rejects non-finite numbers", async () => {
     const { validateFactValue } = await import("@/core/case/facts");
-    expect(() =>
-      validateFactValue("test.field" as never, { type: "number", value: NaN }),
-    ).toThrow("must be finite");
+    expect(() => validateFactValue("test.field" as never, { type: "number", value: NaN })).toThrow(
+      "must be finite",
+    );
   });
 
   it("rejects non-integer money amounts", async () => {
@@ -248,8 +244,8 @@ describe("Fact value validation (F1)", () => {
 
   it("rejects empty fact keys without namespace", async () => {
     const { validateFactValue } = await import("@/core/case/facts");
-    expect(() =>
-      validateFactValue("" as never, { type: "string", value: "test" }),
-    ).toThrow("namespaced");
+    expect(() => validateFactValue("" as never, { type: "string", value: "test" })).toThrow(
+      "namespaced",
+    );
   });
 });

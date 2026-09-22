@@ -44,10 +44,7 @@ const PRIVATE_CACHE_HEADERS = {
   Pragma: "no-cache",
 } as const;
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ caseId: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   try {
     const { caseId } = await params;
 
@@ -115,10 +112,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ caseId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   try {
     const { caseId } = await params;
 
@@ -143,11 +137,7 @@ export async function POST(
     const db = createNeonDb(env.DATABASE_URL!);
 
     // Verify case exists
-    const [caseRow] = await db
-      .select()
-      .from(cases)
-      .where(eq(cases.id, caseId))
-      .limit(1);
+    const [caseRow] = await db.select().from(cases).where(eq(cases.id, caseId)).limit(1);
 
     if (!caseRow) {
       return NextResponse.json(

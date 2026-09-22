@@ -50,8 +50,20 @@ function evaluation(
 }
 
 const QUESTIONS = [
-  { id: "q-dep", text: "¿De qué aeropuerto salía tu vuelo?", factKey: "flight.departure_airport", required: true, type: "string" },
-  { id: "q-extra", text: "¿La aerolínea alegó circunstancias extraordinarias?", factKey: "airline.reason_is_extraordinary", required: false, type: "boolean" },
+  {
+    id: "q-dep",
+    text: "¿De qué aeropuerto salía tu vuelo?",
+    factKey: "flight.departure_airport",
+    required: true,
+    type: "string",
+  },
+  {
+    id: "q-extra",
+    text: "¿La aerolínea alegó circunstancias extraordinarias?",
+    factKey: "airline.reason_is_extraordinary",
+    required: false,
+    type: "boolean",
+  },
 ];
 
 function build(missing: readonly string[], facts: readonly Fact[] = []) {
@@ -104,14 +116,19 @@ describe("missing information", () => {
       problemKey: "flight-cancel",
       evaluatedAt: "2026-09-01T00:00:00.000Z",
       engineVersion: "test",
-      facts: [
-        fact("flight.scheduled_date", "2026-08-10"),
-        fact("cancellation.date", "2026-08-08"),
+      facts: [fact("flight.scheduled_date", "2026-08-10"), fact("cancellation.date", "2026-08-08")],
+      evaluations: [
+        evaluation("flight-cancel.notice-period-insufficient", ["cancellation.notice_days"]),
       ],
-      evaluations: [evaluation("flight-cancel.notice-period-insufficient", ["cancellation.notice_days"])],
       sources: [],
       questions: [
-        { id: "q-sched", text: "¿Cuál era la fecha programada del vuelo?", factKey: "flight.scheduled_date", required: true, type: "date" },
+        {
+          id: "q-sched",
+          text: "¿Cuál era la fecha programada del vuelo?",
+          factKey: "flight.scheduled_date",
+          required: true,
+          type: "date",
+        },
       ],
       intakeComplete: false,
     });

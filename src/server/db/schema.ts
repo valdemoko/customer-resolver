@@ -480,9 +480,7 @@ export const researchSessions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
   },
-  (t) => [
-    index("idx_research_sessions_case_idx").on(t.caseId, t.createdAt),
-  ],
+  (t) => [index("idx_research_sessions_case_idx").on(t.caseId, t.createdAt)],
 );
 
 /**
@@ -504,9 +502,7 @@ export const researchFindings = pgTable(
     researchVersion: text("research_version").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },
-  (t) => [
-    index("idx_research_findings_research_idx").on(t.researchId),
-  ],
+  (t) => [index("idx_research_findings_research_idx").on(t.researchId)],
 );
 
 /**
@@ -566,9 +562,7 @@ export const researchConflicts = pgTable(
     resolutionNotes: text("resolution_notes"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },
-  (t) => [
-    index("idx_research_conflicts_research_idx").on(t.researchId),
-  ],
+  (t) => [index("idx_research_conflicts_research_idx").on(t.researchId)],
 );
 
 export const caseCommunications = pgTable(

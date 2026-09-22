@@ -31,7 +31,10 @@ const VALID_GUIDANCE: GeneralGuidanceOutput = {
   understanding: "Te siguen cobrando una factura que ya habías dado de baja.",
   generalSteps: [
     { title: "Reúne las pruebas", detail: "Guarda la factura, el contrato y el escrito de baja." },
-    { title: "Reclama por escrito", detail: "Escribe al servicio de atención al cliente y guarda copia." },
+    {
+      title: "Reclama por escrito",
+      detail: "Escribe al servicio de atención al cliente y guarda copia.",
+    },
   ],
   whereToComplain: [
     {
@@ -51,10 +54,7 @@ interface CapturedRun {
   caseId?: string;
 }
 
-function makeRouter(
-  response: unknown,
-  capture?: (run: CapturedRun) => void,
-): AIRouter {
+function makeRouter(response: unknown, capture?: (run: CapturedRun) => void): AIRouter {
   return {
     run: async (input: CapturedRun) => {
       capture?.(input);

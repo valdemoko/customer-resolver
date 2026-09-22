@@ -4,6 +4,7 @@ import { Logo } from "@/components/Logo";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { GoogleConsentCmp } from "@/components/GoogleConsentCmp";
+import { GoogleAdSense, isValidAdSenseClient } from "@/components/GoogleAdSense";
 import { PlausibleLoader } from "@/components/PlausibleLoader";
 import "./globals.css";
 
@@ -15,6 +16,13 @@ const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
  * the real state, instead of shipping a placeholder that never loads.
  */
 const googleCmpSrc = process.env.NEXT_PUBLIC_GOOGLE_CMP_SRC;
+/**
+ * AdSense client (`ca-pub-…`), unset until ads are deliberately enabled.
+ * ads.txt identifies the domain; nothing is loaded until this is configured —
+ * and it must only be configured once the certified CMP above is in place.
+ */
+const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim();
+const adsenseEnabled = Boolean(adsenseClient && isValidAdSenseClient(adsenseClient));
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -32,8 +40,25 @@ export const metadata: Metadata = {
     title: "Resolveo",
     description:
       "Entiende tu problema de consumo. Analizamos tu caso con normativa verificable y te mostramos qué puedes hacer.",
+    url: siteUrl,
+    siteName: "Resolveo",
     type: "website",
     locale: "es_ES",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Resolveo — Entiende tu problema. Resuélvelo.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Resolveo",
+    description:
+      "Entiende tu problema de consumo. Analizamos tu caso con normativa verificable y te mostramos qué puedes hacer.",
+    images: ["/og.png"],
   },
 };
 
@@ -47,8 +72,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${siteUrl}/#organization`,
     name: "Resolveo",
     url: siteUrl,
+    logo: `${siteUrl}/favicon.svg`,
+    sameAs: ["https://www.linkedin.com/in/miguel-iglesias-valenzuela-14069b367/"],
     description:
       "Entiende tu problema de consumo. Analizamos tu caso con normativa verificable y te mostramos qué puedes hacer.",
   };
@@ -56,6 +84,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${siteUrl}/#website`,
     name: "Resolveo",
     url: siteUrl,
   };
@@ -81,6 +110,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Do NOT build that URL by hand: it carries a publisher-specific path.
         */}
         <GoogleConsentCmp src={googleCmpSrc} />
+        {/* AdSense loader: absent until NEXT_PUBLIC_ADSENSE_CLIENT is set, and
+            then only alongside the certified CMP configured above. */}
+        <GoogleAdSense client={adsenseEnabled ? adsenseClient : null} />
+        {adsenseEnabled && adsenseClient && (
+          <meta name="google-adsense-account" content={adsenseClient} />
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
@@ -92,7 +127,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen bg-[var(--surface-page)] text-[var(--color-ink)] antialiased">
         <div className="min-h-screen flex flex-col">
-
           {/* ── Header ───────────────────────────────────────────── */}
           <header className="sticky top-0 z-50 bg-[var(--surface-page)]/90 backdrop-blur-md border-b border-[var(--border-light)]">
             <div className="max-w-[1200px] mx-auto px-5 md:px-8 h-14 flex items-center justify-between">

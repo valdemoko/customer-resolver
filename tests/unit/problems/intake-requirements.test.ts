@@ -45,7 +45,9 @@ describe("module registration", () => {
 
       const codeKeys = new Set(codeRules.map((r) => r.key));
       for (const declared of problemModule.ruleKeys) {
-        expect(codeKeys.has(declared), `${problemModule.key}: ${declared} is not defined`).toBe(true);
+        expect(codeKeys.has(declared), `${problemModule.key}: ${declared} is not defined`).toBe(
+          true,
+        );
       }
 
       // A rule that is PUBLISHED in code but not declared would be published
@@ -188,12 +190,7 @@ describe("intake requirements", () => {
       status: "CONFIRMED",
     }));
 
-    const next = selectNextQuestion(
-      problemModule,
-      known,
-      factValueMap(facts),
-      neededFactKeys,
-    );
+    const next = selectNextQuestion(problemModule, known, factValueMap(facts), neededFactKeys);
     expect(next?.factKey).toBe("seller.offered_repair");
   });
 
@@ -218,7 +215,11 @@ describe("intake requirements", () => {
         status: "CONFIRMED",
       },
       { key: "seller.rejection", value: { type: "boolean", value: false }, status: "CONFIRMED" },
-      { key: "purchase.delivery_date", value: { type: "date", value: "2026-05-01" }, status: "CONFIRMED" },
+      {
+        key: "purchase.delivery_date",
+        value: { type: "date", value: "2026-05-01" },
+        status: "CONFIRMED",
+      },
       { key: "repair.completed", value: { type: "boolean", value: false }, status: "CONFIRMED" },
       // The company looked into is always collected (the report shows its
       // customer service), so a complete questionnaire includes it.
@@ -229,9 +230,9 @@ describe("intake requirements", () => {
       status: "CONFIRMED",
     }));
 
-    expect(intakeRequirementsSatisfied(problemModule, known, factValueMap(facts), neededFactKeys)).toBe(
-      true,
-    );
+    expect(
+      intakeRequirementsSatisfied(problemModule, known, factValueMap(facts), neededFactKeys),
+    ).toBe(true);
   });
 });
 
@@ -248,7 +249,9 @@ describe("derived fact table", () => {
   }
 
   it("computes the warranty deadlines from the delivery date", () => {
-    const produced = expectDerived("warranty-rejection", [["purchase.delivery_date", "2026-05-01"]]);
+    const produced = expectDerived("warranty-rejection", [
+      ["purchase.delivery_date", "2026-05-01"],
+    ]);
     expect(produced).toContain("compliance.responsibility_deadline");
     expect(produced).toContain("compliance.presumption_deadline");
   });
@@ -262,7 +265,9 @@ describe("derived fact table", () => {
   });
 
   it("computes the applicable delivery deadline (Art. 66 bis)", () => {
-    const promised = expectDerived("no-delivery-refund", [["delivery.promised_date", "2026-05-01"]]);
+    const promised = expectDerived("no-delivery-refund", [
+      ["delivery.promised_date", "2026-05-01"],
+    ]);
     expect(promised).toContain("delivery.applicable_deadline");
 
     const fromPurchase = expectDerived("no-delivery-refund", [["purchase.date", "2026-04-01"]]);
