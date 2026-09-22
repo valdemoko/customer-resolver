@@ -409,6 +409,43 @@ export function computeDerivedFacts(
       });
     }
 
+    // ── Alternative transport: what a "no" already settles ─────────
+    //
+    // If the airline offered no alternative flight, then nothing was accepted,
+    // nothing can be "compliant" with Art. 5.1.c(ii)/(iii), and the Art. 7.2
+    // reduction cannot apply. These are logical consequences of the answer the
+    // passenger already gave — not new data — yet without them every rule about
+    // re-routing stayed "missing data", and the report asked for an answer that
+    // could not exist ("did you accept the alternative flight?" after saying
+    // none was offered). Only derived when the fact is genuinely absent.
+    const reRoutingOffered = primitiveFactValue(factMap.get("airline.re_routing_offered"));
+    if (reRoutingOffered === false) {
+      if (!factMap.has("airline.re_routing.accepted")) {
+        derived.push({
+          key: "airline.re_routing.accepted",
+          value: false,
+          status: "CONFIRMED",
+          provenance: "DERIVED",
+        });
+      }
+      if (!factMap.has("airline.alternative_transport_compliant")) {
+        derived.push({
+          key: "airline.alternative_transport_compliant",
+          value: false,
+          status: "CONFIRMED",
+          provenance: "DERIVED",
+        });
+      }
+      if (!factMap.has("passenger.compensation_reduction_eligible")) {
+        derived.push({
+          key: "passenger.compensation_reduction_eligible",
+          value: false,
+          status: "CONFIRMED",
+          provenance: "DERIVED",
+        });
+      }
+    }
+
     // Compute flight.distance_km from IATA codes
     const depAirport = primitiveFactValue(factMap.get("flight.departure_airport"));
     const arrAirport = primitiveFactValue(factMap.get("flight.arrival_airport"));

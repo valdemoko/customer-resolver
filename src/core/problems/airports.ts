@@ -179,11 +179,17 @@ function toCoordinate(entry: AirportEntry): AirportCoordinate {
   return { code: entry.code, lat: entry.lat, lon: entry.lon };
 }
 
-/** Names/aliases accepted for autocomplete, in stable order. */
+/**
+ * Suggestions for the airport question: the code plus the name people know,
+ * written the way it is displayed ("MAD — Madrid"). They are suggestions, not a
+ * closed list: the answer is resolved by code, city or airport name.
+ */
 export function airportOptions(): readonly string[] {
   const options = new Set<string>();
   for (const airport of AIRPORTS) {
-    options.add(`${airport.code} — ${airport.aliases[0] ?? airport.code}`);
+    const name = airport.aliases[0] ?? airport.code;
+    const display = name.charAt(0).toUpperCase() + name.slice(1);
+    options.add(`${airport.code} — ${display}`);
   }
   return [...options];
 }

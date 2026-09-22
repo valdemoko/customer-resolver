@@ -16,8 +16,8 @@ import {
 import type { ProblemModuleDefinition } from "@core/problems/contract";
 import type { FactKey } from "@core/types";
 
-const module = {
-  key: "test-module",
+const testModule = {
+  key: "test-testModule",
   title: "Test",
   intake: [
     { id: "q1", text: "¿A?", type: "boolean", factKey: "a", required: true },
@@ -37,30 +37,30 @@ const valuesOf = (facts: Record<string, unknown>) =>
 
 describe("declined questions", () => {
   it("returns the same question while it stays unanswered", () => {
-    const next = selectNextQuestion(module, [], valuesOf({}), needed);
+    const next = selectNextQuestion(testModule, [], valuesOf({}), needed);
     expect(next?.factKey).toBe("a");
   });
 
   it("moves on to the next question once one is declined", () => {
-    const next = selectNextQuestion(module, [], valuesOf({}), needed, new Set(["a"]));
+    const next = selectNextQuestion(testModule, [], valuesOf({}), needed, new Set(["a"]));
     expect(next?.factKey).toBe("b");
   });
 
   it("finishes the questionnaire when everything left is declined", () => {
     const declined = new Set(["a", "b", "c"]);
-    expect(selectNextQuestion(module, [], valuesOf({}), needed, declined)).toBeNull();
-    expect(intakeRequirementsSatisfied(module, [], valuesOf({}), needed, declined)).toBe(true);
+    expect(selectNextQuestion(testModule, [], valuesOf({}), needed, declined)).toBeNull();
+    expect(intakeRequirementsSatisfied(testModule, [], valuesOf({}), needed, declined)).toBe(true);
   });
 
   it("does not treat a declined fact as confirmed data", () => {
     // The rules still miss it: declining only stops the question.
     expect(
-      intakeRequirementsSatisfied(module, [], valuesOf({}), needed, new Set(["a"])),
+      intakeRequirementsSatisfied(testModule, [], valuesOf({}), needed, new Set(["a"])),
     ).toBe(false);
   });
 
   it("still asks a question whose fact was not declined", () => {
-    const next = selectNextQuestion(module, [], valuesOf({}), needed, new Set(["c"]));
+    const next = selectNextQuestion(testModule, [], valuesOf({}), needed, new Set(["c"]));
     expect(next?.factKey).toBe("a");
   });
 });
