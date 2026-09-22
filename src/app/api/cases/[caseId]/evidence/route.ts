@@ -1,0 +1,209 @@
+/**
+ * API Route: POST /api/cases/:caseId/evidence
+ *
+ * Accepts a document (multipart/form-data, field `file`), extracts its text and
+ * returns the fact candidates found in it.
+ *
+ * Security / privacy posture:
+ *  - The uploaded bytes are validated (type + size) before anything else.
+ *  - Text is extracted in-process; nothing is sent anywhere but our own AI layer.
+ *  - Nothing derived from the document is CONFIRMED: every candidate must be
+ *    confirmed by the user through /api/intake/confirm, which is the only path
+ *    that turns document data into facts the rule engine can use.
+ *  - Binary retention requires object storage. When R2 is configured the file is
+ *    stored there; otherwise the bytes are used for extraction and discarded
+ *    (the extracted data and its provenance stay in the database).
+ */
+import { NextResponse } from "next/server";
+import { CaseService } from "@core/case/service";
+import { EvidenceService } from "@core/evidence/service";
+import { DocumentProcessingService } from "@core/document/processing-service";
+import { createNeonDb } from "@server/db/client";
+import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
+import { InMemoryObjectStorage } from "@server/adapters/storage/in-memory-object-storage";
+import { LocalTextExtractorAdapter } from "@server/adapters/document/local-text-extractor";
+import { UploadValidatorAdapter } from "@server/adapters/document/upload-validator";
+import { getServerEnv } from "@/lib/env";
+import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
+
+export const dynamic = "force-dynamic";
+
+/** 15 MB — larger documents are rejected before being read into memory. */
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+type Repo = ConstructorParameters<typeof DrizzleCaseRepository>[0];
+
+async function createStorage() {
+  const env = getServerEnv();
+  if (
+    env.R2_ACCOUNT_ID &&
+    env.R2_BUCKET_DOCUMENTS &&
+    env.R2_ACCESS_KEY_ID &&
+    env.R2_SECRET_ACCESS_KEY
+  ) {
+    const { R2ObjectStorage } = await import("@server/adapters/storage/r2-object-storage");
+    return new R2ObjectStorage({
+      accountId: env.R2_ACCOUNT_ID,
+      bucketName: env.R2_BUCKET_DOCUMENTS,
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    });
+  }
+  // No object storage configured: extract now, keep nothing.
+  return new InMemoryObjectStorage();
+}
+
+function compositionRoot() {
+  const { DATABASE_URL } = getServerEnv();
+  if (!DATABASE_URL) {
+    throw new Error("DATABASE_URL is required (503 until configured)");
+  }
+  const db = createNeonDb(DATABASE_URL) as unknown as Repo;
+  const repo = new DrizzleCaseRepository(db);
+  return {
+    repo,
+    caseService: new CaseService(repo),
+    evidenceService: new EvidenceService(repo),
+  };
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
+  const { caseId } = await params;
+
+  if (!isValidCaseId(caseId)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Invalid case ID format" } },
+      { status: 400 },
+    );
+  }
+
+  // 1. Read the upload
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Expected multipart/form-data" } },
+      { status: 400 },
+    );
+  }
+
+  const uploaded = form.get("file");
+  if (!(uploaded instanceof File)) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Missing 'file' field" } },
+      { status: 400 },
+    );
+  }
+
+  if (uploaded.size === 0) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Empty file" } },
+      { status: 400 },
+    );
+  }
+
+  if (uploaded.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "FILE_TOO_LARGE",
+          message: `El archivo supera el límite de ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB`,
+        },
+      },
+      { status: 413 },
+    );
+  }
+
+  const filename = uploaded.name || "documento";
+  const mimeType = uploaded.type || "application/octet-stream";
+  const buffer = new Uint8Array(await uploaded.arrayBuffer());
+
+  // 2. Services
+  let services: ReturnType<typeof compositionRoot>;
+  try {
+    services = compositionRoot();
+  } catch {
+    return NextResponse.json(
+      { error: { code: "SERVICE_UNAVAILABLE", message: "Service not configured" } },
+      { status: 503 },
+    );
+  }
+
+  // 3. The case must exist before anything is attached to it.
+  try {
+    await services.caseService.loadCase(caseId);
+  } catch {
+    return NextResponse.json(
+      { error: { code: "NOT_FOUND", message: "Case not found" } },
+      { status: 404 },
+    );
+  }
+
+  // 4. Register the evidence container, then process the document.
+  try {
+    const { evidence } = await services.evidenceService.addEvidence(caseId, {
+      type: "DOCUMENT",
+      source: "USER",
+      content: { kind: "text", text: `Documento aportado por el usuario: ${filename}` },
+      label: filename,
+    });
+
+    const processing = new DocumentProcessingService(
+      services.repo,
+      await createStorage(),
+      new LocalTextExtractorAdapter(),
+      new UploadValidatorAdapter(),
+    );
+
+    const result = await processing.uploadAndProcess({
+      caseId,
+      evidenceId: evidence.id,
+      buffer,
+      mimeType,
+      filename,
+    });
+
+    const extractedText = result.processingRun.result?.text?.fullText ?? "";
+
+    return NextResponse.json({
+      evidenceId: evidence.id,
+      processingRunId: result.processingRun.id,
+      status: result.processingRun.status,
+      extractorType: result.processingRun.extractorType,
+      extractedCharacters: extractedText.length,
+      usedOcr: result.processingRun.result?.text?.usedOcr ?? false,
+      extractionError: result.processingRun.result?.error ?? null,
+      // Candidates are NOT facts: the user confirms them (only then do they
+      // reach the rule engine).
+      candidates: result.factCandidates.map((candidate) => ({
+        candidateId: candidate.id,
+        factKey: candidate.factKey,
+        proposedValue: candidate.proposedValue,
+      })),
+    });
+  } catch (error) {
+    const message = sanitizeErrorMessage(error);
+    console.error(
+      "[evidence] upload failed:",
+      JSON.stringify({
+        caseId,
+        name: error instanceof Error ? error.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+      }),
+    );
+
+    const rejected = /Upload rejected|not supported|Empty file/i.test(message);
+    return NextResponse.json(
+      {
+        error: {
+          code: rejected ? "UPLOAD_REJECTED" : "PROCESSING_FAILED",
+          message: rejected
+            ? "El documento no es válido o su formato no está soportado."
+            : "No se pudo procesar el documento.",
+        },
+      },
+      { status: rejected ? 422 : 500 },
+    );
+  }
+}

@@ -142,6 +142,30 @@ interface AppState {
   guidanceError: string | null;
   /** Highest question count seen in this session — used for honest progress. */
   questionTotal: number | null;
+  /** Data found in uploaded documents. Unconfirmed candidates are NOT analysed. */
+  documentCandidates: DocumentCandidate[];
+  uploading: boolean;
+  uploadError: string | null;
+  uploadSummary: string | null;
+}
+
+/** A fact candidate extracted from a document (never a fact until confirmed). */
+interface DocumentCandidate {
+  candidateId: string;
+  factKey: string;
+  proposedValue: unknown;
+  confirmed: boolean;
+  rejected: boolean;
+}
+
+/** Only values already shaped as a fact value can be confirmed by the server. */
+function isFactValueShaped(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof (value as { type: unknown }).type === "string"
+  );
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -235,6 +259,10 @@ const INITIAL_STATE: AppState = {
   guidanceLoading: false,
   guidanceError: null,
   questionTotal: null,
+  documentCandidates: [],
+  uploading: false,
+  uploadError: null,
+  uploadSummary: null,
 };
 
 export function ResolverClient() {
@@ -488,25 +516,116 @@ export function ResolverClient() {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handleUploadEvidence = useCallback(async (files: File[]) => {
-    if (!state.caseId) return;
+  /**
+   * Upload each document to the evidence endpoint, which extracts its text and
+   * returns the fact candidates it found. A failure is REPORTED, never hidden:
+   * analysing without a document the user believes was read would be a lie.
+   */
+  const handleUploadEvidence = useCallback(
+    async (files: File[]) => {
+      if (!state.caseId) return;
 
-    // Upload files if any
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
-      try {
-        await fetch(`/api/cases/${state.caseId}/documents`, {
-          method: "POST",
-          body: formData,
-        });
-      } catch {
-        // Continue even if upload fails — analysis can proceed without documents
+      if (files.length === 0) {
+        setState((prev) => ({ ...prev, phase: "analyzing" }));
+        return;
       }
-    }
 
-    setState((prev) => ({ ...prev, phase: "analyzing" }));
-  }, [state.caseId]);
+      setState((prev) => ({ ...prev, uploading: true, uploadError: null }));
+
+      const failures: string[] = [];
+      const found: DocumentCandidate[] = [];
+      let totalCharacters = 0;
+      let processedDocuments = 0;
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          const res = await fetch(`/api/cases/${state.caseId}/evidence`, {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            failures.push(`${file.name}: ${data.error?.message ?? "no se pudo procesar"}`);
+            continue;
+          }
+
+          processedDocuments += 1;
+          totalCharacters += data.extractedCharacters ?? 0;
+          for (const candidate of data.candidates ?? []) {
+            if (found.some((c) => c.candidateId === candidate.candidateId)) continue;
+            found.push({
+              candidateId: candidate.candidateId,
+              factKey: candidate.factKey,
+              proposedValue: candidate.proposedValue,
+              confirmed: false,
+              rejected: false,
+            });
+          }
+        } catch {
+          failures.push(`${file.name}: error de conexión`);
+        }
+      }
+
+      setState((prev) => ({
+        ...prev,
+        uploading: false,
+        documentCandidates: found,
+        uploadError: failures.length > 0 ? failures.join(" · ") : null,
+        uploadSummary:
+          processedDocuments > 0
+            ? `${processedDocuments} documento${processedDocuments > 1 ? "s" : ""} leído${
+                processedDocuments > 1 ? "s" : ""
+              } · ${totalCharacters} caracteres extraídos · ${found.length} dato${
+                found.length === 1 ? "" : "s"
+              } encontrado${found.length === 1 ? "" : "s"}`
+            : null,
+      }));
+    },
+    [state.caseId],
+  );
+
+  /** Confirm ONE document-derived candidate. Only confirmed data is analysed. */
+  const handleConfirmCandidate = useCallback(
+    async (candidate: DocumentCandidate) => {
+      if (!state.caseId) return;
+
+      setState((prev) => ({ ...prev, error: null }));
+      try {
+        const res = await fetch("/api/intake/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            caseId: state.caseId,
+            candidateId: candidate.candidateId,
+            factKey: candidate.factKey,
+            decision: "confirm",
+            value: candidate.proposedValue,
+          }),
+        });
+        if (!res.ok) {
+          setState((prev) => ({
+            ...prev,
+            error: "No pudimos registrar ese dato del documento. Puedes continuar sin él.",
+          }));
+          return;
+        }
+        setState((prev) => ({
+          ...prev,
+          documentCandidates: prev.documentCandidates.map((c) =>
+            c.candidateId === candidate.candidateId ? { ...c, confirmed: true, rejected: false } : c,
+          ),
+        }));
+      } catch {
+        setState((prev) => ({
+          ...prev,
+          error: "No pudimos registrar ese dato del documento. Puedes continuar sin él.",
+        }));
+      }
+    },
+    [state.caseId],
+  );
 
   // ── Phase 5: Load result ───────────────────────────────────────
 
@@ -1103,8 +1222,8 @@ export function ResolverClient() {
           <p className="label mb-3">Documentos</p>
           <h1 className="mb-3">¿Tienes algún documento?</h1>
           <p className="text-[var(--color-ink-muted)] leading-relaxed mb-8">
-            Puedes subir una factura, contrato, correo o confirmación. Esto es opcional pero puede
-            ayudar a verificar los datos.
+            Puedes subir una factura, contrato, correo o confirmación. Leemos el documento y te
+            mostramos los datos que encontremos: solo se usan en el análisis los que tú confirmes.
           </p>
 
           {/* Hidden file input */}
@@ -1150,12 +1269,105 @@ export function ResolverClient() {
             </div>
           )}
 
+          {/* Upload feedback — never silent */}
+          {state.uploading && (
+            <p className="text-sm text-[var(--color-ink-muted)] mb-4">Leyendo los documentos…</p>
+          )}
+
+          {state.uploadSummary && !state.uploading && (
+            <div className="p-4 bg-[var(--color-supported-bg)] border border-[var(--color-accent-border)] text-sm text-[var(--color-ink-soft)] mb-4">
+              {state.uploadSummary}
+            </div>
+          )}
+
+          {state.uploadError && !state.uploading && (
+            <div className="p-4 bg-[var(--color-potentially-bg)] border border-[var(--color-potentially)]/20 text-sm text-[var(--color-potentially)] mb-4">
+              No pudimos procesar: {state.uploadError}. Puedes continuar sin esos documentos.
+            </div>
+          )}
+
+          {/* Data found in the documents: confirm or discard, one by one */}
+          {state.documentCandidates.length > 0 && (
+            <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-6">
+              <p className="label mb-3">Datos encontrados en tus documentos</p>
+              <div className="space-y-3">
+                {state.documentCandidates.map((candidate) => (
+                  <div
+                    key={candidate.candidateId}
+                    className="flex flex-wrap items-center gap-3 justify-between"
+                  >
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium text-[var(--color-ink)]">
+                        {candidate.factKey}:
+                      </span>{" "}
+                      <span className="text-sm text-[var(--color-ink-muted)]">
+                        {isFactValueShaped(candidate.proposedValue)
+                          ? String(
+                              (candidate.proposedValue as { value: unknown }).value ?? "",
+                            ).slice(0, 120)
+                          : "valor no interpretable"}
+                      </span>
+                    </div>
+
+                    {candidate.confirmed ? (
+                      <span className="text-xs text-[var(--color-supported)]">Confirmado</span>
+                    ) : candidate.rejected ? (
+                      <span className="text-xs text-[var(--color-ink-faint)]">Descartado</span>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleConfirmCandidate(candidate)}
+                          disabled={!isFactValueShaped(candidate.proposedValue)}
+                          className="btn-secondary text-xs"
+                        >
+                          Es correcto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setState((prev) => ({
+                              ...prev,
+                              documentCandidates: prev.documentCandidates.map((c) =>
+                                c.candidateId === candidate.candidateId
+                                  ? { ...c, rejected: true, confirmed: false }
+                                  : c,
+                              ),
+                            }))
+                          }
+                          className="btn-ghost text-xs"
+                        >
+                          No
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {state.error && (
+                <p className="text-sm text-[var(--color-contradicted)] mt-3">{state.error}</p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3">
-            <button onClick={() => handleUploadEvidence(selectedFiles)} className="btn-primary">
-              {selectedFiles.length > 0 ? `Analizar con ${selectedFiles.length} documento${selectedFiles.length > 1 ? "s" : ""}` : "Analizar mi caso"}
+            <button
+              onClick={() => void handleUploadEvidence(selectedFiles)}
+              disabled={state.uploading}
+              className="btn-primary"
+            >
+              {state.uploading
+                ? "Leyendo documentos…"
+                : selectedFiles.length > 0
+                  ? `Leer ${selectedFiles.length} documento${selectedFiles.length > 1 ? "s" : ""}`
+                  : "Analizar mi caso"}
             </button>
-            <button onClick={handleSkipEvidence} className="btn-secondary">
-              Sin documentos
+            <button
+              onClick={handleSkipEvidence}
+              disabled={state.uploading}
+              className="btn-secondary"
+            >
+              {state.documentCandidates.length > 0 ? "Analizar sin documentos" : "Sin documentos"}
             </button>
           </div>
         </div>
