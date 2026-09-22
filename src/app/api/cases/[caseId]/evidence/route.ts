@@ -204,7 +204,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
         } catch (error) {
           // Nothing was produced for the user: give the slot back so a retry is possible.
           await budgetStore.releaseBudget(id);
-          throw error;
+          // Carry the AI error's own detail: without it a failure here is
+          // indistinguishable from "the document had nothing in it".
+          const message = error instanceof Error ? error.message : String(error);
+          const cause =
+            error instanceof Error && "causeDetail" in error
+              ? String((error as Record<string, unknown>).causeDetail)
+              : "";
+          throw new Error(cause ? `${message} — ${cause}` : message);
         }
       },
     };

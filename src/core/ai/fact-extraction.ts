@@ -27,23 +27,40 @@ import type { DocumentLocation } from "../document/types";
 export const FACT_EXTRACTION_SCHEMA_VERSION = "document-fact-extraction@1";
 
 export const modelFactSchema = z.object({
+  // The list must be present — an answer without it is malformed, not empty —
+  // but an explicit null means "nothing found".
   facts: z
     .array(
       z.object({
         factKey: z.string().min(1),
         value: z.unknown(),
-        sourceQuote: z.string().min(1).optional(),
+        sourceQuote: z
+          .string()
+          .min(1)
+          .nullish()
+          .transform((v) => v ?? undefined)
+          .optional(),
         sourceLocation: z
           .object({
             page: z.number().int().positive().optional(),
             startOffset: z.number().int().nonnegative(),
             endOffset: z.number().int().nonnegative(),
           })
+          .nullish()
+          .transform((v) => v ?? undefined)
           .optional(),
-        certainty: z.enum(["EXPLICIT", "INFERRED", "AMBIGUOUS"]),
+        // A model that does not state its confidence is read as AMBIGUOUS —
+        // the one value that never upgrades a value to a confident extraction.
+        // Requiring the field rejected otherwise usable answers outright.
+        certainty: z
+          .enum(["EXPLICIT", "INFERRED", "AMBIGUOUS"])
+          .nullish()
+          .transform((v) => v ?? "AMBIGUOUS"),
       }),
     )
-    .max(50),
+    .max(50)
+    .nullable()
+    .transform((v) => v ?? []),
 });
 
 export type ModelFactExtraction = z.infer<typeof modelFactSchema>;
@@ -102,8 +119,20 @@ export interface FactExtractionInput {
 }
 
 const INSTRUCTION = `Extract every fact whose factKey appears in the REQUIRED FACT KEYS list.
-Return ONLY JSON: {"facts":[{"factKey":"...","value":...,"sourceQuote":"...","sourceLocation":{"startOffset":0,"endOffset":0},"certainty":"EXPLICIT|INFERRED|AMBIGUOUS"}]}
-Omit facts that are not in the document. Do not resolve contradictions.`;
+
+Return ONLY this JSON object, with no prose and no code fences:
+{
+  "facts": [
+    {
+      "factKey": "one of the REQUIRED FACT KEYS, copied exactly",
+      "value": "the value as it appears (a string, number or boolean)",
+      "sourceQuote": "the exact fragment of the document this value comes from",
+      "certainty": "EXPLICIT | INFERRED | AMBIGUOUS"
+    }
+  ]
+}
+
+Rules: every field above is required for each fact; write {"facts": []} when the document contains none of the required facts; omit facts that are not in the document; use "EXPLICIT" only when the document states the value literally; do not resolve contradictions.`;
 
 /** Build the full user message (sanitized document + required fact keys). */
 export function assembleExtractionPrompt(
