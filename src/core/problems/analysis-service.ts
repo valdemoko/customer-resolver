@@ -28,6 +28,43 @@ export interface PublishedRulesProvider {
   getPublishedRules(keys: readonly string[]): Promise<readonly Rule[]>;
 }
 
+/**
+ * Is this the optimistic-lock conflict of two analyses of the same case?
+ *
+ * Matched by code/name first (the infrastructure error carries
+ * `CONCURRENT_CASE_UPDATE`) and by message as a fallback, so the retry also
+ * covers the core-level error without importing infrastructure types here.
+ */
+export function isConcurrentUpdateError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = (error as { code?: unknown }).code;
+  if (code === "CONCURRENT_CASE_UPDATE" || code === "CONCURRENT_UPDATE") return true;
+  if (error.name === "ConcurrentCaseUpdateDbError") return true;
+  if (error.name === "ConcurrentCaseUpdateError") return true;
+  return /version conflict|case was modified concurrently/i.test(error.message);
+}
+
+/**
+ * Retry an operation that lost a concurrency race, leaving other errors alone.
+ *
+ * Only the losing side of an optimistic lock is retried: it means "the data
+ * moved, read it again", not "something is broken".
+ */
+export async function withConcurrentRetry<T>(
+  run: () => Promise<T>,
+  maxAttempts = 3,
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      if (attempt >= maxAttempts || !isConcurrentUpdateError(error)) throw error;
+      // Brief, growing pause: the competing run finishes long before this.
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
+    }
+  }
+}
+
 /** Thrown when the requested problem module is not registered. */
 export class UnknownProblemError extends Error {
   readonly code = "UNKNOWN_PROBLEM";
@@ -123,8 +160,22 @@ export class ProblemAnalysisService {
    * load aggregate → validate module/jurisdiction → build evaluation context
    * (facts + contradicted keys + evidence refs) → evaluate each PUBLISHED rule
    * of the module → persist evaluations + analysis snapshot atomically.
+   *
+   * The analysis appends a snapshot, so it bumps the case version. Two analyses
+   * of the same case running at once (the report reads `/result` and `/actions`,
+   * and a second browser tab does it too) therefore collide on the optimistic
+   * lock: one of them used to fail with a bare "version conflict", which the UI
+   * could only show as an analysis error. A conflict means simply "the case moved
+   * under us, read it again": the run is retried against the fresh version.
    */
   async runProblemAnalysis(caseId: string, options?: RunAnalysisOptions): Promise<ProblemAnalysis> {
+    return withConcurrentRetry(() => this.runProblemAnalysisOnce(caseId, options));
+  }
+
+  private async runProblemAnalysisOnce(
+    caseId: string,
+    options?: RunAnalysisOptions,
+  ): Promise<ProblemAnalysis> {
     const loaded = await this.repo.loadCase(caseId);
     if (!loaded) throw new CaseNotFoundError(caseId);
     const problemKey = loaded.case.problemSlug as string;
