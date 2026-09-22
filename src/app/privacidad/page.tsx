@@ -1,17 +1,19 @@
 /**
  * Política de Privacidad — Resolveo.
  *
- * Last updated to reflect:
- * - Plausible Analytics (cookieless, no consent required)
- * - AdSense not yet active
- * - No tracking cookies
+ * Rewritten in the 2026-09-22 post-audit pass. The previous version omitted
+ * the controller, said the data "is not shared with other third parties" while
+ * the code sends case text to AI providers, and did not mention retention. All
+ * statements here describe what the code actually does.
  */
 import type { Metadata } from "next";
+
+const CONTACT_EMAIL = "contacto.webproyectos@gmail.com";
 
 export const metadata: Metadata = {
   title: "Privacidad",
   description:
-    "Política de privacidad de Resolveo. Qué datos recopilamos, cómo los utilizamos y qué control tienes sobre ellos.",
+    "Política de privacidad de Resolveo: qué datos recopilamos, quién los trata, dónde se procesan, cuánto se conservan y qué control tienes sobre ellos.",
   alternates: { canonical: "/privacidad" },
 };
 
@@ -30,7 +32,36 @@ export default function PrivacyPage() {
       </p>
 
       <div className="space-y-8 text-slate-600 leading-relaxed">
-        {/* ── 1. Datos que recopilamos ──────────────────────────── */}
+        {/* ── 1. Responsable ────────────────────────────────────── */}
+        <section>
+          <h2
+            className="text-lg font-semibold text-slate-900 mb-3"
+            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+          >
+            Quién trata tus datos
+          </h2>
+          <p className="mb-3">
+            Resolveo es un proyecto independiente que mantiene el sitio{" "}
+            <span className="font-medium text-slate-800">resolveo.site</span>. La
+            persona responsable del tratamiento de los datos de este sitio es
+            quien lo mantiene y puede ser contactada en{" "}
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=Privacidad`}
+              className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
+            >
+              {CONTACT_EMAIL}
+            </a>
+            , que es también el canal para ejercer los derechos descritos más
+            abajo.
+          </p>
+          <p>
+            Resolveo no es un despacho jurídico, no presta servicios legales y
+            no dispone de cuentas de usuario: un caso se consulta con su
+            identificador único.
+          </p>
+        </section>
+
+        {/* ── 2. Datos que recopilamos ──────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
@@ -39,17 +70,129 @@ export default function PrivacyPage() {
             Qué datos recopilamos
           </h2>
           <p className="mb-3">
-            Resolveo recopila únicamente la información que proporcionas
-            voluntariamente al crear un caso:
+            Únicamente la información que proporcionas voluntariamente al crear
+            un caso:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li>Datos del caso (fechas, importes, descripciones).</li>
-            <li>Documentos que subas como evidencia.</li>
-            <li>Datos de contacto si nos escribes por correo electrónico.</li>
+            <li>
+              <strong>Datos del caso:</strong> fechas, importes, empresa
+              implicada, descripción del problema y las respuestas que das al
+              cuestionario.
+            </li>
+            <li>
+              <strong>Documentos:</strong> los archivos que subes como
+              evidencia y el texto que se extrae de ellos.
+            </li>
+            <li>
+              <strong>Correo de contacto:</strong> si nos escribes, la dirección
+              desde la que lo haces y el contenido del mensaje.
+            </li>
           </ul>
+          <p className="mt-3">
+            No pedimos nombre, DNI, dirección postal ni datos de pago, y el
+            cuestionario no los solicita. Si en la descripción incluyes datos
+            personales por iniciativa propia, se tratarán con la misma finalidad
+            y las mismas garantías que el resto del caso.
+          </p>
         </section>
 
-        {/* ── 2. Analítica web ──────────────────────────────────── */}
+        {/* ── 3. Quién más interviene ───────────────────────────── */}
+        <section>
+          <h2
+            className="text-lg font-semibold text-slate-900 mb-3"
+            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+          >
+            Qué proveedores técnicos intervienen
+          </h2>
+          <p className="mb-3">
+            Para que el servicio funcione, el contenido que envías pasa por
+            proveedores que actúan como encargados del tratamiento, cada uno con
+            una función concreta:
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>
+              <strong>Alojamiento:</strong> el sitio y sus funciones se ejecutan
+              en infraestructura de Vercel, que puede procesar peticiones en
+              centros de datos de la Unión Europea y de Estados Unidos.
+            </li>
+            <li>
+              <strong>Base de datos:</strong> los casos se almacenan en una base
+              de datos PostgreSQL gestionada por Neon, alojada en la Unión
+              Europea (región de Fráncfort).
+            </li>
+            <li>
+              <strong>Modelos de lenguaje:</strong> el texto de tu caso, tus
+              respuestas y el texto extraído de los documentos se envían a
+              proveedores de modelos de lenguaje (Groq y OpenAI) para
+              interpretar el problema y extraer los datos que faltan. No se
+              envían a esos proveedores tu dirección de correo ni tu
+              identificador de caso como tal.
+            </li>
+            <li>
+              <strong>Almacenamiento de archivos:</strong> si envías documentos,
+              el archivo original se guarda en almacenamiento de objetos de
+              Cloudflare (R2) cuando esa función está activa; el análisis del
+              texto se realiza igualmente aunque el guardado del binario no esté
+              disponible.
+            </li>
+            <li>
+              <strong>Analítica:</strong> Plausible Analytics (Estonia, Unión
+              Europea), con métricas agregadas y sin cookies.
+            </li>
+            <li>
+              <strong>Correo:</strong> si escribes a la dirección de contacto, el
+              proveedor de correo utilizado para gestionarla.
+            </li>
+          </ul>
+          <p className="mt-3">
+            Tus datos no se venden ni se ceden con fines publicitarios. La
+            comunicación a estos proveedores se limita a lo necesario para
+            prestar el servicio y se ampara en los contratos de encargo
+            correspondientes. Cuando un proveedor está fuera del Espacio
+            Económico Europeo, la transferencia se realiza con las garantías
+            previstas en el RGPD (cláusulas contractuales tipo).
+          </p>
+        </section>
+
+        {/* ── 4. Base jurídica ──────────────────────────────────── */}
+        <section>
+          <h2
+            className="text-lg font-semibold text-slate-900 mb-3"
+            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+          >
+            Con qué base tratamos los datos
+          </h2>
+          <p>
+            La base jurídica es tu consentimiento, que otorgas al enviar la
+            información para que se analice tu caso (art. 6.1.a del RGPD).
+            Puedes retirarlo en cualquier momento solicitando la eliminación del
+            caso, sin que ello afecte a la licitud del tratamiento realizado
+            antes. Para las métricas de audiencia, la base es el interés
+            legítimo en conocer de forma agregada cómo se usa el sitio, sin
+            identificar a nadie.
+          </p>
+        </section>
+
+        {/* ── 5. Aviso sobre el análisis ────────────────────────── */}
+        <section>
+          <h2
+            className="text-lg font-semibold text-slate-900 mb-3"
+            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+          >
+            Cómo se elabora el análisis
+          </h2>
+          <p>
+            El informe no se redacta a mano para cada persona: se compone a
+            partir de reglas vinculadas a normativa oficial y de la información
+            que facilitas, y utiliza modelos de lenguaje para interpretar tu
+            descripción y extraer datos de los documentos. Las conclusiones
+            indican qué artículo y qué datos las sustentan, y el sistema declara
+            expresamente los puntos que no puede determinar en lugar de
+            completarlos. No constituye asesoramiento jurídico individualizado.
+          </p>
+        </section>
+
+        {/* ── 6. Analítica web ──────────────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
@@ -87,7 +230,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        {/* ── 3. Cookies ────────────────────────────────────────── */}
+        {/* ── 7. Cookies ────────────────────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
@@ -97,7 +240,11 @@ export default function PrivacyPage() {
           </h2>
           <p>
             Resolveo <strong>no utiliza cookies</strong>. Ni cookies propias ni
-            de terceros. Para más detalles, consulta nuestra{" "}
+            de terceros. Para más detalles, incluido el uso puntual de{" "}
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
+              sessionStorage
+            </code>{" "}
+            para el funcionamiento del cuestionario, consulta nuestra{" "}
             <a
               href="/cookies"
               className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
@@ -108,25 +255,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        {/* ── 4. Cómo utilizamos los datos ──────────────────────── */}
-        <section>
-          <h2
-            className="text-lg font-semibold text-slate-900 mb-3"
-            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
-          >
-            Cómo utilizamos los datos
-          </h2>
-          <p>
-            Los datos de los casos se utilizan exclusivamente para procesar tu
-            consulta: evaluar la información según las normativas aplicables,
-            generar un informe estructurado y proponer acciones. Los datos de
-            analytics se utilizan exclusivamente para entender el uso del
-            servicio de forma agregada. No se utilizan para fines publicitarios
-            ni se comparten con otros terceros.
-          </p>
-        </section>
-
-        {/* ── 5. Anuncios ───────────────────────────────────────── */}
+        {/* ── 8. Anuncios ───────────────────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
@@ -136,31 +265,44 @@ export default function PrivacyPage() {
           </h2>
           <p>
             Actualmente el sitio no muestra anuncios ni utiliza Google AdSense.
-            Si en el futuro se activa la monetización mediante anuncios, se
-            utilizará el sistema de consentimiento de Google (Privacy &amp;
-            Messaging) para gestionar el consentimiento del usuario conforme a
-            la normativa europea. En ese caso, esta política se actualizará
-            para reflejar los nuevos proveedores y los datos que estos puedan
-            procesar.
+            No hay scripts de publicidad de terceros. Si en el futuro se activa
+            la monetización mediante anuncios, se utilizará el sistema de
+            consentimiento de Google (Privacy &amp; Messaging) para gestionar la
+            decisión del usuario conforme a la normativa europea, y esta política
+            se actualizará antes de activarla para identificar a los proveedores
+            y detallar qué datos pueden tratar.
           </p>
         </section>
 
-        {/* ── 6. Almacenamiento ──────────────────────────────────── */}
+        {/* ── 9. Conservación ───────────────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
             style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
           >
-            Almacenamiento de casos
+            Cuánto tiempo se conservan los datos
           </h2>
+          <p className="mb-3">
+            Los datos del caso se conservan mientras sean necesarios para que
+            puedas consultar el informe y sus documentos asociados. No existe un
+            sistema de cuentas que los mantenga indefinidamente vinculados a ti:
+            el acceso requiere conocer el identificador del caso.
+          </p>
           <p>
-            Los casos se almacenan de forma segura. Actualmente no existe un
-            sistema de cuentas de usuario. El acceso a un caso se realiza
-            mediante su identificador único.
+            Puedes solicitar la eliminación anticipada de un caso escribiendo a{" "}
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=Eliminación de caso`}
+              className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
+            >
+              {CONTACT_EMAIL}
+            </a>{" "}
+            e indicando su identificador. Si enviaste un correo al canal de
+            contacto, se conserva únicamente mientras sea necesario para
+            atenderlo.
           </p>
         </section>
 
-        {/* ── 7. Tus derechos ───────────────────────────────────── */}
+        {/* ── 10. Tus derechos ──────────────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
@@ -168,20 +310,36 @@ export default function PrivacyPage() {
           >
             Tus derechos
           </h2>
-          <p>
-            Puedes solicitar acceso, rectificación o eliminación de tus datos
-            escribiendo a{" "}
+          <p className="mb-3">
+            Puedes solicitar el acceso, la rectificación, la supresión, la
+            limitación del tratamiento, la portabilidad de tus datos y oponerte
+            al tratamiento escribiendo a{" "}
             <a
-              href="mailto:contacto.webproyectos@gmail.com?subject=Consulta de privacidad"
+              href={`mailto:${CONTACT_EMAIL}?subject=Consulta de privacidad`}
               className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
             >
-              contacto.webproyectos@gmail.com
+              {CONTACT_EMAIL}
             </a>
-            .
+            . Para localizar un caso necesitamos su identificador; no podemos
+            buscar por nombre porque no lo pedimos.
+          </p>
+          <p>
+            Si consideras que no hemos atendido correctamente tu solicitud,
+            puedes presentar una reclamación ante la Agencia Española de
+            Protección de Datos (
+            <a
+              href="https://www.aepd.es"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"
+            >
+              aepd.es
+            </a>
+            ).
           </p>
         </section>
 
-        {/* ── 8. Cambios en esta política ────────────────────────── */}
+        {/* ── 11. Cambios ───────────────────────────────────────── */}
         <section>
           <h2
             className="text-lg font-semibold text-slate-900 mb-3"
@@ -191,9 +349,8 @@ export default function PrivacyPage() {
           </h2>
           <p>
             Esta política puede actualizarse cuando cambien las herramientas
-            utilizadas o se modifiquen las prácticas de tratamiento de datos.
-            La fecha de última actualización indica cuándo se revisó por última
-            vez.
+            utilizadas o se modifiquen las prácticas de tratamiento de datos. La
+            fecha de última actualización indica cuándo se revisó por última vez.
           </p>
         </section>
       </div>

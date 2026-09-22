@@ -1,86 +1,32 @@
 /**
  * Fuentes — Resolveo.
  *
- * Explains the source philosophy and lists the actual official
- * sources used by each problem module.
- *
- * ALL sources listed here are real and verified against the project's
- * Source Registry (rules.ts in each module).
+ * Lists the official sources the analysis actually uses. The list is derived
+ * from the module rule sets (see `src/lib/source-catalogue.ts`), not from a
+ * hand-written copy, so it cannot drift from what the engine evaluates.
  */
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { formatConsultedAt, getSourceGroups } from "@/lib/source-catalogue";
+
 export const metadata: Metadata = {
   title: "Fuentes normativas",
   description:
-    "Fuentes oficiales que utiliza Resolveo para cada análisis: TRLGDCU, Reglamento 261/2004, Código Civil y Ley General de Telecomunicaciones.",
+    "Fuentes oficiales que utiliza Resolveo para cada análisis: TRLGDCU, Reglamento 261/2004, Código Civil y Ley General de Telecomunicaciones, con artículo, versión consultada y fecha.",
   alternates: { canonical: "/fuentes" },
   openGraph: {
     title: "Fuentes normativas — Resolveo",
     description:
-      "Fuentes oficiales verificadas que sustentan cada análisis de Resolveo.",
+      "Fuentes oficiales verificadas que sustentan cada análisis de Resolveo, con artículo, versión y fecha de consulta.",
     type: "website",
     locale: "es_ES",
   },
 };
 
-interface SourceEntry {
-  name: string;
-  type: string;
-  scope: string;
-  modules: string[];
-  keyArticles: string[];
-}
-
-const SOURCES: SourceEntry[] = [
-  {
-    name: "Real Decreto Legislativo 1/2007, de 16 de noviembre, por el que se aprueba el texto refundido de la Ley General para la Defensa de los Consumidores y Usuarios (TRLGDCU)",
-    type: "Legislación nacional",
-    scope: "España",
-    modules: ["cancellation-charge", "no-delivery-refund", "warranty-rejection"],
-    keyArticles: [
-      "Art. 66 bis — Entrega de bienes y plazos",
-      "Art. 97 — Información precontractual",
-      "Art. 109 — Ejecución del contrato a distancia",
-      "Arts. 114-125 — Conformidad de bienes (garantía)",
-      "Art. 121 — Carga de la prueba (presunción de 2 años)",
-      "Art. 122 — Suspensión de plazos",
-      "Art. 120 — Plazos para manifestar la falta de conformidad",
-    ],
-  },
-  {
-    name: "Reglamento (CE) n.º 261/2004 del Parlamento Europeo y del Consejo",
-    type: "Reglamento europeo",
-    scope: "Unión Europea (directamente aplicable en España)",
-    modules: ["flight-cancel"],
-    keyArticles: [
-      "Art. 5 — Cancelación del vuelo y excepciones",
-      "Art. 7 — Derecho a compensación (250/400/600 EUR)",
-      "Art. 8 — Reembolso y transporte alternativo",
-      "Art. 9 — Derecho a asistencia",
-    ],
-  },
-  {
-    name: "Ley 11/2022, de 28 de junio, General de Telecomunicaciones",
-    type: "Legislación nacional",
-    scope: "España",
-    modules: ["cancellation-charge"],
-    keyArticles: [
-      "Art. 102.2 — Penalización por cobro tras desistimiento",
-    ],
-  },
-  {
-    name: "Código Civil (Real Decreto de 24 de julio de 1889)",
-    type: "Legislación nacional",
-    scope: "España",
-    modules: ["no-delivery-refund"],
-    keyArticles: [
-      "Art. 1124 — Resolución por incumplimiento recíproco",
-    ],
-  },
-];
-
 export default function SourcesPage() {
+  const groups = getSourceGroups();
+
   return (
     <div className="mx-auto max-w-3xl px-5 md:px-8 py-12 md:py-16">
       {/* Header */}
@@ -95,9 +41,10 @@ export default function SourcesPage() {
           Fuentes normativas
         </h1>
         <p className="text-lg text-slate-500 leading-relaxed">
-          Cada análisis de Resolveo se apoya en fuentes oficiales
-          verificadas. No utilizamos blogs jurídicos como fuente primaria ni
-          inventamos normativa.
+          Esta página no es un resumen de la normativa: es el registro de las
+          fuentes que el análisis usa realmente, con el artículo concreto, la
+          versión consultada y la fecha en que se consultó. Las fuentes que
+          aparecen aquí son las mismas que el sistema cita al concluir un caso.
         </p>
       </header>
 
@@ -111,10 +58,10 @@ export default function SourcesPage() {
         </h2>
         <div className="space-y-3 text-sm text-slate-500 leading-relaxed">
           <p>
-            Resolveo utiliza exclusivamente fuentes con autoridad
-            normativa: legislación nacional publicada en el BOE, reglamentos
-            europeos publicados en EUR-Lex y normativa consolidada de organismos
-            oficiales.
+            Resolveo utiliza exclusivamente fuentes con autoridad normativa:
+            legislación nacional publicada en el BOE, reglamentos europeos
+            publicados en EUR-Lex y el texto oficial en español de la normativa
+            europea cuando el BOE lo reproduce.
           </p>
           <p>
             Cada regla de análisis referencia una fuente concreta con artículo,
@@ -124,84 +71,97 @@ export default function SourcesPage() {
             en lugar de inventar una respuesta.
           </p>
           <p>
-            Las fuentes se verifican periódicamente y cada entrada incluye el
-            estado de verificación: si la normativa sigue vigente, si ha sido
-            modificada o si existen interpretaciones relevantes del Tribunal de
-            Justicia de la UE.
+            No se utilizan blogs jurídicos, foros ni opiniones como fuente
+            primaria. Cuando un artículo se cita, el registro conserva el
+            fragmento del texto oficial que la regla utiliza, para que puedas
+            comprobarlo en la publicación original enlazada.
           </p>
         </div>
       </section>
 
-      {/* Sources list */}
+      {/* Sources by module */}
       <section className="mb-12">
         <h2
           className="text-xl font-semibold text-slate-900 mb-6"
           style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
         >
-          Fuentes registradas
+          Fuentes registradas, por tipo de problema
         </h2>
-        <div className="space-y-6">
-          {SOURCES.map((source) => (
-            <div key={source.name} className="cr-surface p-6">
-              <div className="flex items-start gap-3 mb-3">
-                <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                  <svg
-                    className="w-4 h-4 text-slate-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                    />
-                  </svg>
-                </span>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 text-sm leading-snug mb-1">
-                    {source.name}
-                  </h3>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <span className="text-[11px] text-slate-400 bg-slate-50 rounded px-2 py-0.5">
-                      {source.type}
-                    </span>
-                    <span className="text-[11px] text-slate-400 bg-slate-50 rounded px-2 py-0.5">
-                      {source.scope}
-                    </span>
-                  </div>
-                </div>
+
+        <div className="space-y-10">
+          {groups.map((group) => (
+            <div key={group.key}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+                <h3 className="text-base font-semibold text-slate-900">
+                  {group.title}
+                </h3>
+                <Link
+                  href={`/problemas/${group.slug}`}
+                  className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors"
+                >
+                  Ver el problema →
+                </Link>
               </div>
 
-              {/* Key articles */}
-              <div className="ml-11">
-                <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
-                  Artículos utilizados
-                </p>
-                <ul className="space-y-1.5">
-                  {source.keyArticles.map((article) => (
-                    <li
-                      key={article}
-                      className="text-sm text-slate-600 flex items-start gap-2"
-                    >
-                      <span className="text-slate-300 mt-0.5">•</span>
-                      {article}
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-4">
+                {group.sources.map((source) => (
+                  <div key={source.id} className="cr-surface p-6">
+                    <h4 className="font-semibold text-slate-900 text-sm leading-snug mb-2">
+                      {source.title}
+                    </h4>
 
-                {/* Modules using this source */}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {source.modules.map((mod) => (
-                    <span
-                      key={mod}
-                      className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 rounded px-2 py-0.5"
-                    >
-                      {mod}
-                    </span>
-                  ))}
-                </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="text-[11px] text-slate-400 bg-slate-50 rounded px-2 py-0.5">
+                        {source.typeLabel}
+                      </span>
+                      <span className="text-[11px] text-slate-400 bg-slate-50 rounded px-2 py-0.5">
+                        {source.scopeLabel}
+                      </span>
+                      <span className="text-[11px] text-slate-400 bg-slate-50 rounded px-2 py-0.5">
+                        {source.statusLabel}
+                      </span>
+                    </div>
+
+                    <dl className="text-xs text-slate-500 space-y-1 mb-3">
+                      <div className="flex flex-wrap gap-x-2">
+                        <dt className="text-slate-400">Identificador:</dt>
+                        <dd className="font-mono">{source.externalId}</dd>
+                      </div>
+                      <div className="flex flex-wrap gap-x-2">
+                        <dt className="text-slate-400">Versión consultada:</dt>
+                        <dd>{source.versionIdentifier}</dd>
+                      </div>
+                      <div className="flex flex-wrap gap-x-2">
+                        <dt className="text-slate-400">Consultada el:</dt>
+                        <dd>{formatConsultedAt(source.retrievedAt)}</dd>
+                      </div>
+                      <div className="flex flex-wrap gap-x-2">
+                        <dt className="text-slate-400">Publicación oficial:</dt>
+                        <dd>
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2 hover:text-slate-700 transition-colors break-all"
+                          >
+                            {source.publisher}
+                          </a>
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {source.relevantSection && (
+                      <details className="mt-3">
+                        <summary className="text-xs font-medium text-slate-600 cursor-pointer hover:text-slate-800 transition-colors">
+                          Texto del artículo utilizado por el análisis
+                        </summary>
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed whitespace-pre-line">
+                          {source.relevantSection}
+                        </p>
+                      </details>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -214,35 +174,66 @@ export default function SourcesPage() {
           className="text-xl font-semibold text-slate-900 mb-3"
           style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
         >
-          Proceso de verificación
+          Cómo se verifica una fuente
         </h2>
         <div className="space-y-3 text-sm text-slate-500 leading-relaxed">
           <p>
-            Cada fuente registrada incluye:
+            Una regla de análisis{" "}
+            <strong className="text-slate-700">
+              no puede publicarse sin al menos una fuente verificada
+            </strong>
+            . El sistema bloquea la publicación si la fuente no está verificada
+            o si le falta la nota de revisión. Las fuentes pasan por un ciclo de
+            estados (borrador → revisada → verificada → publicada) y una regla
+            ya publicada no puede modificarse en su lugar: hay que crear una
+            versión nueva.
           </p>
+          <p>Cada entrada de este registro conserva:</p>
           <ul className="space-y-2 ml-4">
             <li className="flex items-start gap-2">
               <span className="text-slate-300 mt-0.5">•</span>
-              <strong className="text-slate-700">Identificador único</strong> —
-              para referencia interna y trazabilidad.
+              <span>
+                <strong className="text-slate-700">Identificador único</strong> —
+                referencia estable para trazabilidad.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-slate-300 mt-0.5">•</span>
-              <strong className="text-slate-700">Jurisdicción</strong> — país o
-              ámbito de aplicación.
+              <span>
+                <strong className="text-slate-700">Jurisdicción</strong> — país
+                o ámbito de aplicación.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-slate-300 mt-0.5">•</span>
-              <strong className="text-slate-700">Fecha de publicación y
-              vigencia</strong> — para confirmar que la normativa sigue en
-              vigor.
+              <span>
+                <strong className="text-slate-700">Versión y fecha de consulta</strong>{" "}
+                — qué texto consolidado se leyó y cuándo.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-slate-300 mt-0.5">•</span>
-              <strong className="text-slate-700">Estado de verificación</strong>{" "}
-              — revisada y verificada por equipo humano.
+              <span>
+                <strong className="text-slate-700">Registro de verificación</strong>{" "}
+                — nota de revisión con la fecha. El identificador del revisor es
+                hoy un identificador interno del proyecto, no el nombre de una
+                persona: mientras no existan cuentas de usuario no se publica
+                una identidad que no podamos respaldar.
+              </span>
             </li>
           </ul>
+          <p>
+            Si detectas que una fuente ha cambiado, que un artículo se cita
+            incorrectamente o que una versión está desactualizada, puedes
+            señalarlo desde la página de{" "}
+            <Link
+              href="/contacto"
+              className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+            >
+              contacto
+            </Link>
+            .
+          </p>
         </div>
       </section>
 

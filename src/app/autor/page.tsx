@@ -123,11 +123,62 @@ export default function AuthorPage() {
                 <strong>Reglas de análisis:</strong> cada módulo de problema
                 tiene reglas vinculadas a normativa oficial concreta (BOE,
                 EUR-Lex). Las reglas se documentan con su fuente, versión y
-                lógica de evaluación. Los 995 tests del proyecto verifican
-                que las reglas se comportan como se espera.
+                lógica de evaluación, y se cubren con pruebas automatizadas
+                que se ejecutan en cada cambio del proyecto.
               </span>
             </li>
           </ul>
+        </div>
+      </section>
+
+      {/* Automated vs human review */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Qué se comprueba automáticamente y qué revisa una persona
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            Merece la pena distinguir dos cosas, porque no se revisan igual:
+          </p>
+          <ul className="space-y-3 ml-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              <span>
+                <strong className="text-slate-700">Automático:</strong> el
+                código impide publicar una regla sin fuente verificada, una
+                regla publicada no puede modificarse sin crear una versión
+                nueva, y las pruebas comprueban en cada cambio que cada regla
+                concluye lo que debe concluir con cada combinación de datos.
+                Si una regla publicada cambia de comportamiento, el proyecto no
+                compila.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              <span>
+                <strong className="text-slate-700">Revisión humana:</strong>
+                interpretar un artículo y decidir qué consecuencias tiene para
+                un caso no es algo que una prueba automática pueda resolver. La
+                verificación de las fuentes exige una nota de revisión fechada,
+                y las reglas que todavía no han pasado esa revisión permanecen
+                fuera del conjunto publicado en lugar de aplicarse igualmente.
+              </span>
+            </li>
+          </ul>
+          <p>
+            Las fuentes que el sistema utiliza están publicadas, con artículo y
+            fecha de consulta, en{" "}
+            <Link
+              href="/fuentes"
+              className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+            >
+              Fuentes normativas
+            </Link>
+            .
+          </p>
         </div>
       </section>
 

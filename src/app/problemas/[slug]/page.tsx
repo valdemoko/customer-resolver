@@ -7,7 +7,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PROBLEM_CATALOGUE, getProblemBySlug } from "@/lib/problem-catalogue";
+import {
+  PROBLEM_CATALOGUE,
+  getProblemBySlug,
+  type ProblemCatalogueEntry,
+} from "@/lib/problem-catalogue";
 
 
 /* ── Problem images ─────────────────────────────────────────────── */
@@ -17,6 +21,15 @@ const PROBLEM_IMAGES: Record<string, string> = {
   "warranty-rejection": "/images/garantia.jpg",
   "flight-cancel": "/images/vuelo-cancelado.png",
 } as const;
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+
+/** `2026-09-22` → `22/09/2026`. */
+function formatDate(iso: string): string {
+  const [year, month, day] = iso.split("-");
+  if (!year || !month || !day) return iso;
+  return `${day}/${month}/${year}`;
+}
 
 /* ── Static params ──────────────────────────────────────────────── */
 export function generateStaticParams() {
@@ -51,6 +64,9 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
   }
 
   const imageUrl = PROBLEM_IMAGES[problem.key];
+  const related = problem.relatedSlugs
+    .map((relatedSlug) => getProblemBySlug(relatedSlug))
+    .filter((entry): entry is ProblemCatalogueEntry => Boolean(entry));
 
   return (
     <div>
@@ -84,6 +100,16 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
           <h1 className="mb-4">{problem.title}</h1>
           <p className="text-lg text-[var(--color-ink-muted)] leading-relaxed max-w-2xl">
             {problem.description}
+          </p>
+
+          <p className="mt-5 text-xs text-[var(--color-ink-faint)]">
+            Última revisión del contenido: {formatDate(problem.updatedAt)} ·{" "}
+            <Link
+              href="/fuentes"
+              className="underline underline-offset-2 hover:text-[var(--color-ink-muted)] transition-colors"
+            >
+              Ver las fuentes que utiliza el análisis
+            </Link>
           </p>
         </div>
       </section>
@@ -188,6 +214,19 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
                   ))}
                 </ul>
               </div>
+
+              {/* What cannot be determined */}
+              <div>
+                <h3 className="text-lg mb-3" style={{ fontFamily: "var(--font-display)" }}>Qué no podemos determinar</h3>
+                <ul className="space-y-2">
+                  {problem.saberMas.whatCannotBeDetermined.map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-sm text-[var(--color-ink-muted)] leading-relaxed">
+                      <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-contradicted)] mt-2" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -214,6 +253,85 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
               ))}
             </ul>
           </div>
+
+          {/* ── Ejemplo ───────────────────────────────────────── */}
+          <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
+            <p className="label mb-4">Ejemplo de caso</p>
+            <div className="p-5 bg-[var(--surface-warm)] border border-[var(--border-light)]">
+              <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed mb-4">
+                {problem.example.scenario}
+              </p>
+              <p className="text-xs font-medium text-[var(--color-ink-faint)] uppercase tracking-wider mb-2">
+                Qué saldría en el informe
+              </p>
+              <ul className="space-y-2">
+                {problem.example.outcome.map((line) => (
+                  <li key={line} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-accent)] mt-2" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* ── Cómo reclamar ─────────────────────────────────── */}
+          <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
+            <p className="label mb-4">Cómo reclamar, paso a paso</p>
+            <ol className="space-y-4">
+              {problem.steps.map((step, index) => (
+                <li key={step} className="flex items-start gap-4">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--color-ink)] text-[var(--surface-paper)] text-xs font-medium flex items-center justify-center mt-0.5">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm text-[var(--color-ink-soft)] leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-5 text-xs text-[var(--color-ink-muted)] leading-relaxed">
+              El análisis de tu caso concreto te indica en qué paso estás y qué te falta.
+            </p>
+          </div>
+
+          {/* ── Preguntas frecuentes ──────────────────────────── */}
+          <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
+            <p className="label mb-4">Preguntas frecuentes</p>
+            <div className="space-y-5">
+              {problem.faq.map((item) => (
+                <div key={item.question}>
+                  <h3 className="text-sm font-semibold text-[var(--color-ink)] mb-1.5">
+                    {item.question}
+                  </h3>
+                  <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                    {item.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Problemas relacionados ────────────────────────── */}
+          {related.length > 0 && (
+            <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
+              <p className="label mb-4">Problemas relacionados</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {related.map((entry) => (
+                  <Link
+                    key={entry.slug}
+                    href={`/problemas/${entry.slug}`}
+                    className="block p-4 bg-[var(--surface-warm)] border border-[var(--border-light)] hover:border-[var(--color-ink-faint)] transition-colors"
+                  >
+                    <span className="block text-sm font-medium text-[var(--color-ink)] mb-1">
+                      {entry.title}
+                    </span>
+                    <span className="block text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                      {entry.description}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── CTA ───────────────────────────────────────────── */}
           <div className="mt-10 flex flex-col sm:flex-row gap-3">

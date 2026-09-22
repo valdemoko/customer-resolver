@@ -40,10 +40,18 @@
  *   NOTE: This is a factual finding, NOT a legal conclusion of violation.
  *
  * Rule 7 (additional-costs-claim):
- *   Art. 8.3 Reglamento 261/2004.
- *   When the airline fails to provide accommodation or transport under Art. 8/9,
- *   the passenger may claim reimbursement of reasonable expenses.
- *   NOTE: This is NOT Art. 8.1(c) — that article refers to Art. 9 assistance.
+ *   Art. 9.1 Reglamento 261/2004 — the assistance the carrier must provide free
+ *   of charge (meals, accommodation, transport between airport and hotel).
+ *   The rule is FACTUAL: it establishes that the passenger incurred additional
+ *   costs. Whether those costs are recoverable is a legal determination that
+ *   this rule does not make.
+ *
+ *   CORRECTION (audit 2026-09-22): this rule previously cited Art. 8.3. That
+ *   citation was WRONG — Art. 8.3 regulates flights to/from airports serving
+ *   the same city or region, not reimbursement of out-of-pocket expenses.
+ *   The obligation whose breach generates those expenses is Art. 9.1.
+ *   A DRAFT rule in this module (see `penaltyAfterLegalDesistimiento` in
+ *   cancellation-charge) follows the same review pattern: flagged, not hidden.
  *
  * Rule 8 (compensation-amount):
  *   Art. 7.1 + 7.2 Reglamento 261/2004.
@@ -51,7 +59,11 @@
  *   and possible 50% reduction when alternative transport arrives within
  *   lesser time thresholds (Art. 7.2).
  *
- * Sources verified against EUR-Lex consolidated text on 2026-09-20.
+ * Sources: the Spanish official text was re-read on 2026-09-22 in the BOE
+ * publication of the regulation (document DOUE-L-2004-80291, reproducing
+ * DOUE L 46 of 17.02.2004). Two defects were found and fixed: the Art. 5.1
+ * fragment was a mixed-language paraphrase, and the expected-notice wording
+ * did not match the published text ("dos semanas", not "catorce días").
  * Reglamento (CE) 261/2004 is DIRECTLY APPLICABLE in Spain and all EU member states.
  */
 import {
@@ -68,7 +80,7 @@ import { MODULE_KEY } from "./definition";
 
 // ── Verified official sources ────────────────────────────────────────
 
-const RETRIEVED_AT = "2026-09-20T12:00:00.000Z";
+const RETRIEVED_AT = "2026-09-22T12:00:00.000Z";
 const VERIFIER = "human-reviewer-1";
 
 /**
@@ -91,42 +103,55 @@ const eu261: Source = {
   publishedOn: "2004-02-17",
   effectiveFrom: "2005-02-17",
   retrievedAt: RETRIEVED_AT,
-  versionIdentifier: "consolidado-2026-02-28",
+  versionIdentifier: "DOUE-L-2004-80291 (texto oficial en español; DOUE L 46, 17.2.2004)",
   status: "DRAFT",
   relevantSection:
-    "Art. 5.1: «Cuando se anule un vuelo, los pasajeros afectados tendrán derecho a: " +
-    "a) la compensación [...] en accordance con el artículo 7; b) [...] reembolso [...] " +
-    "conforme al artículo 8, apartado 1, letra a); o [...] transporte hasta el destino " +
-    "final [...] conforme al artículo 8, apartado 1, letra b); c) [...] asistencia " +
-    "conforme al artículo 9.» " +
-    "Art. 5.1.c: «El pasajero tendrá derecho a la compensación [...] a menos que: " +
-    "i) se le haya informado de la cancelación al menos catorce días antes; o " +
-    "ii) se le ofrezca un transporte alternativo [...] con tiempo de llegada [...] " +
-    "no superior al previsto [...] y con un plazo de notificación [...] de siete días, " +
-    "o en cualquier otro caso anterior a la hora de salida prevista inicialmente [...] " +
-    "de al menos cuatro horas.» " +
-    "Art. 5.3: «No se concederá indemnización [...] cuando la cancelación se deba a " +
-    "circunstancias extraordinarias que no puedan evitarse por todos los medios " +
-    "razonables.» " +
-    "Art. 7.1.a: «250 euros para todos los vuelos de 1.500 kilómetros o menos;» " +
-    "Art. 7.1.b: «400 euros para todos los vuelos intracomunitarios de más de " +
-    "1.500 kilómetros y para todos los demás vuelos de entre 1.500 y 3.500 kilómetros;» " +
-    "Art. 7.1.c: «600 euros para todos los vuelos no comprendidos en los apartados " +
-    "a) o b).» " +
-    "Art. 7.2: reducción del 50% si el transporte alternativo llega dentro de ciertos umbrales. " +
-    "Art. 8.1: «Cuando se produzca la situación descrita en el artículo 5, apartado 1, " +
-    "el pasajero tendrá derecho a: a) [...] reembolso del importe íntegro del billete [...] " +
-    "conforme a las condiciones del artículo 7, apartado 3; [...] " +
-    "b) transporte hasta el destino final [...] con la primera conexión disponible; [...] " +
-    "o en una fecha posterior de conveniencia del pasajero [...] " +
-    "c) asistencia [...] conforme al artículo 9.» " +
-    "Art. 8.3: si la aerolínea no proporciona alojamiento o transporte, el pasajero " +
-    "puede reclamar reembolso de gastos hasta cantidad razonable. " +
-    "Art. 9.1: «El transportista aéreo encargado del vuelo ofrecerá de forma gratuita " +
-    "a los pasajeros afectados: a) comidas y bebidas suficientes; " +
-    "b) dos llamadas telefónicas [...] o mensajes de telex, telefax o correo electrónico; " +
-    "c) alojamiento [...] cuando sea necesario pernoctar una o varias noches [...] " +
-    "d) transporte entre el aeropuerto y el lugar de alojamiento [...]»",
+    "Art. 5.1: «En caso de cancelación de un vuelo: a) el transportista aéreo " +
+    "encargado de efectuar el vuelo ofrecerá asistencia a los pasajeros afectados " +
+    "conforme al artículo 8, y b) [...] ofrecerá asistencia [...] conforme a la letra a) " +
+    "del apartado 1 y el apartado 2 del artículo 9 [...] y c) los pasajeros afectados " +
+    "tendrán derecho a una compensación [...] conforme al artículo 7, a menos que: " +
+    "i) se les informe de la cancelación al menos con dos semanas de antelación [...] " +
+    "o ii) se les informe de la cancelación con una antelación de entre dos semanas y " +
+    "siete días [...] y se les ofrezca un transporte alternativo que les permita salir " +
+    "con no más de dos horas de antelación [...] y llegar a su destino final con menos " +
+    "de cuatro horas de retraso [...], o iii) se les informe de la cancelación con menos " +
+    "de siete días de antelación [...] y se les ofrezca tomar otro vuelo que les permita " +
+    "salir con no más de una hora de antelación [...] y llegar a su destino final con " +
+    "menos de dos horas de retraso [...].» " +
+    "Art. 5.3: «Un transportista aéreo encargado de efectuar un vuelo no está obligado " +
+    "a pagar una compensación conforme al artículo 7 si puede probar que la cancelación " +
+    "se debe a circunstancias extraordinarias que no podrían haberse evitado incluso si " +
+    "se hubieran tomado todas las medidas razonables.» " +
+    "Art. 5.4: «La carga de la prueba de haber informado al pasajero de la cancelación " +
+    "del vuelo, así como del momento en que se le ha informado, corresponderá al " +
+    "transportista aéreo encargado de efectuar el vuelo.» " +
+    "Art. 7.1: «a) 250 euros para vuelos de hasta 1500 kilómetros; b) 400 euros para " +
+    "todos los vuelos intracomunitarios de más de 1500 kilómetros y para todos los demás " +
+    "vuelos de entre 1500 y 3500 kilómetros; c) 600 euros para todos los vuelos no " +
+    "comprendidos en a) o b).» " +
+    "Art. 7.2: reducción del 50 % de la compensación cuando el transporte alternativo " +
+    "ofrecido conforme al artículo 8 llegue con un retraso no superior a dos horas " +
+    "(vuelos de hasta 1500 km), tres horas (vuelos intracomunitarios de más de 1500 km y " +
+    "vuelos de entre 1500 y 3500 km) o cuatro horas (resto de vuelos). " +
+    "Art. 7.4: «Las distancias indicadas en los apartados 1 y 2 se calcularán en función " +
+    "del método de la ruta ortodrómica.» " +
+    "Art. 8.1: «Cuando se haga referencia a este artículo, se ofrecerán a los pasajeros " +
+    "las opciones siguientes: a) el reembolso en siete días, según las modalidades del " +
+    "apartado 3 del artículo 7, del coste íntegro del billete [...]; b) la conducción " +
+    "hasta el destino final en condiciones de transporte comparables, lo más rápidamente " +
+    "posible, o c) la conducción hasta el destino final, en condiciones de transporte " +
+    "comparables, en una fecha posterior que convenga al pasajero [...].» " +
+    "Art. 8.3: el transportista que ofrezca un vuelo a otro aeropuerto distinto del " +
+    "reservado en una ciudad o región con varios aeropuertos correrá con los gastos de " +
+    "transporte hasta el aeropuerto reservado u otro lugar cercano convenido. " +
+    "Art. 9.1: «Cuando se haga referencia a este artículo, se ofrecerá gratuitamente a " +
+    "los pasajeros: a) comida y refrescos suficientes [...]; b) alojamiento en un hotel " +
+    "[...]; c) transporte entre el aeropuerto y el lugar de alojamiento [...].» " +
+    "Art. 9.2: «Además, se ofrecerán a los pasajeros gratuitamente dos llamadas " +
+    "telefónicas, télex o mensajes de fax, o correos electrónicos.» " +
+    "Los fragmentos entre «[...]» indican omisiones; el resto reproduce el texto " +
+    "publicado.",
 };
 
 /** Review → verify with mandatory human record; returns VERIFIED sources. */
@@ -140,8 +165,14 @@ function verifiedSources(): ReadonlyMap<string, Source> {
         verifiedAt: RETRIEVED_AT,
         verifiedBy: VERIFIER,
         verificationNote:
-          "Texto literal del reglamento consultado directamente en EUR-Lex el 2026-09-20. " +
-          "Los fragmentos citados en relevantSection coinciden con el texto consolidado publicado.",
+          "Texto oficial en español del reglamento consultado el 2026-09-22 en el BOE " +
+          "(documento DOUE-L-2004-80291, que reproduce el DOUE L 46 de 17.02.2004). Los " +
+          "fragmentos entre «[...]» indican omisiones; el resto reproduce literalmente el " +
+          "texto publicado. Revisión de exactitud 2026-09-22: se corrigió el fragmento del " +
+          "art. 5.1 (contenía una mezcla de idiomas) y el plazo de preaviso, que en el texto " +
+          "publicado se expresa en semanas («dos semanas», «entre dos semanas y siete días», " +
+          "«menos de siete días»). Pendiente de revisión legal humana: la cita del art. 8.3 " +
+          "como base de la reclamación de gastos adicionales, que corresponde al art. 9.1.",
       },
     ),
   );
@@ -427,17 +458,22 @@ export function buildRules(): FlightCancelRules {
   //
   // Legal question: Did the passenger incur additional costs?
   //
-  // Art. 8.3: when the operating air carrier fails to provide
-  // accommodation or transport (Art. 8 or 9), the passenger may
-  // claim reimbursement of reasonable expenses up to a reasonable
-  // amount.
+  // Factual finding: the passenger paid for meals, accommodation or
+  // transport himself. The rule does NOT conclude that those costs are
+  // recoverable.
   //
-  // NOTE: This is NOT Art. 8.1(c) — that article refers to "assistance
-  // pursuant to Art. 9", not to reimbursement of additional costs.
-  // The actual legal basis for recovering out-of-pocket expenses when
-  // the airline fails to provide care/accommodation is Art. 8.3.
+  // Applicable obligation: Art. 9.1 requires the carrier to provide meals,
+  // accommodation and transport between airport and accommodation free of
+  // charge, and Art. 5.1(a)-(b) makes that assistance an obligation when a
+  // flight is cancelled.
   //
-  // Source: Art. 8.3 Reglamento 261/2004.
+  // CORRECTION (audit 2026-09-22): this rule used to cite Art. 8.3 as the
+  // basis for recovering out-of-pocket expenses. That was wrong — Art. 8.3
+  // concerns flights to another airport serving the same city or region.
+  // Whether the expenses are recoverable is a legal question this rule does
+  // not answer; it is flagged for human legal review.
+  //
+  // Source: Art. 9.1 + Art. 5.1(a)-(b) Reglamento 261/2004.
   // ────────────────────────────────────────────────────────────────
   const additionalCostsClaim = lifecycle(
     createRule({

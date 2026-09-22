@@ -319,3 +319,92 @@ $ npx vitest run
 $ npx next build
 # Result: PASS (23 pages generated, 0 errors)
 ```
+
+> **AVISO (2026-09-22): esta sección describe un sistema que ya no existe.**
+> `src/lib/consent-store.ts`, la lectura de `__tcfapi`, la interpretación de
+> Purpose 1/9 y la clave `resolveo-analytics-consent` se eliminaron por
+> completo. El sistema vigente está descrito en «Post-Audit Corrections».
+> Se conserva esta sección como registro histórico de la decisión.
+
+---
+
+## Post-Audit Corrections — 2026-09-22
+
+Correcciones derivadas de la auditoría de calidad y preparación para AdSense.
+Alcance: exactitud de las fuentes, información legal y de contacto, profundidad
+real de las fichas de problema y enlazado interno. **No** se crearon páginas
+nuevas de contenido ni contenido programático.
+
+### 1. Exactitud de las fuentes (defectos reales encontrados)
+
+| Defecto | Evidencia | Corrección |
+|---|---|---|
+| Cita del art. 5.1 del Reglamento 261/2004 con un fragmento en inglés («en accordance con el artículo 7») y plazos que no coincidían con el texto publicado | `src/problems/flight-cancel/rules.ts`, `relevantSection` | Reescrita con el texto oficial en español consultado en el BOE (documento `DOUE-L-2004-80291`, DOUE L 46 de 17.02.2004): art. 5.1, 5.3, 5.4, 7.1, 7.2, 7.4, 8.1, 8.3, 9.1 y 9.2 |
+| Art. 8.3 citado como base para reclamar gastos adicionales (el art. 8.3 regula los aeropuertos de una misma ciudad o región) | `src/problems/flight-cancel/rules.ts` (comentarios y registro) | Corregido a art. 9.1 (asistencia obligatoria) + art. 5.1(a)-(b); la regla sigue siendo factual y el supuesto queda marcado para revisión legal humana |
+| `/fuentes` atribuía el art. 102.2 del TRLGDCU (nulidad de cláusulas que penalizan el desistimiento) a la **Ley 11/2022** | `src/app/fuentes/page.tsx` vs `src/problems/cancellation-charge/rules.ts` | La página ya no mantiene una lista propia: se genera desde los módulos (`src/lib/source-catalogue.ts`) |
+| `/fuentes` prometía «estado de verificación» por entrada sin mostrar versión, fecha ni enlace | `src/app/fuentes/page.tsx` | Cada fuente publica identificador, versión consultada, fecha de consulta, enlace oficial y el artículo que el análisis usa |
+| Plazo «3 meses» para reclamar, sin ninguna fuente registrada que lo respalde | `src/lib/problem-catalogue.ts` (garantía y pedido no entregado) | Reemplazado por los plazos que sí constan en las fuentes: 3 años (art. 120.1), 2 años de presunción (art. 121.1), 30 días naturales (art. 66 bis.1) |
+| Plazo «2 años para reclamar (Reglamento 261/2004)» | `src/lib/problem-catalogue.ts` (vuelo) | El Reglamento no fija plazo propio: la página lo dice así y recomienda reclamar por escrito y conservar el acuse |
+| `/autor` afirmaba «los 995 tests del proyecto» | `src/app/autor/page.tsx` | Sustituido por una formulación que no caduca + sección nueva «Qué se comprueba automáticamente y qué revisa una persona» |
+| `/cookies` afirmaba que el navegador no almacena nada más allá de la caché | `src/app/cookies/page.tsx` vs `src/app/case/[caseId]/intake/page.tsx`, `src/components/SearchBar.tsx` | Tabla real de `sessionStorage` (`intake-<id-de-caso>`, se borra al leerse) |
+
+### 2. Privacidad y contacto
+
+- `/privacidad` (437 → ~1.070 palabras visibles): identifica al responsable y su canal, enumera los **encargados del tratamiento reales** (alojamiento, base de datos PostgreSQL en la UE, proveedores de modelos de lenguaje Groq y OpenAI, almacenamiento de objetos, analítica, correo), explica transferencias internacionales, base jurídica, cómo se elabora el análisis con modelos de lenguaje, conservación y derechos con referencia a la AEPD. Se elimina la afirmación «no se comparten con otros terceros», que el código contradecía.
+- `/contacto` (131 → ~345 palabras visibles): qué incluir según el tipo de mensaje (corrección de fuente con publicación oficial y artículo, incidencia técnica, derechos de privacidad), y qué no se puede atender.
+
+### 3. Profundidad de las fichas de problema
+
+Cada una de las 4 páginas de problema incorpora, con contenido derivado de sus
+propias reglas y de las fuentes que citan:
+
+- **Ejemplo de caso trabajado** (escenario + qué saldría en el informe).
+- **Cómo reclamar, paso a paso** (4–5 pasos: escrito al obligado, acuse, autoridad competente —AESA para el Reglamento 261/2004, consumo para el resto—, pruebas y vía judicial).
+- **Preguntas frecuentes** (4–5 por página) con la respuesta apoyada en el artículo concreto.
+- **«Qué no podemos determinar»** (el campo existía en el catálogo y no se renderizaba).
+- **Fecha de última revisión** visible y enlace a `/fuentes`.
+- **Problemas relacionados** (enlazado interno entre módulos).
+
+Palabras visibles por página (texto renderizado, script aparte):
+
+| Página | Antes | Ahora |
+|---|---:|---:|
+| `/problemas/vuelo-cancelado` | ~349 | 1.121 |
+| `/problemas/garantia-rechazada` | ~351 | 1.077 |
+| `/problemas/pedido-no-llega` | ~347 | 1.065 |
+| `/problemas/cancelacion-cargo-posterior` | ~344 | 1.075 |
+| `/fuentes` | ~404 | 2.576 |
+| `/privacidad` | ~437 | 1.068 |
+| `/contacto` | 131 | 345 |
+| `/autor` | ~464 | 642 |
+| `/cookies` | ~293 | 396 |
+
+### 4. Arquitectura de contenido (verificado, sin cambios)
+
+- El sitemap sigue conteniendo las mismas 14 URLs indexables; `/resolver`, `/case/*`, `/casos` y `/problema-libre` siguen fuera del índice.
+- Añadir un problema nuevo sigue siendo: registrar el módulo (`src/server/problems/registry.ts`), añadir sus reglas (`src/server/rules/publish-module-rules.ts`) y su entrada de catálogo. La nueva guarda de tests obliga a que toda entrada tenga fuentes y contenido completo.
+- Volumen de contenido: sigue siendo reducido y se documenta como **expansión futura** (módulos nuevos con el mismo rigor), sin generar páginas artificiales.
+
+### 5. Estado de `ads.txt`
+
+Contiene el publisher ID real: `google.com, pub-1097809642955447, DIRECT, f08c47fec0942fa0`. No requiere acción manual. AdSense sigue sin activarse en el código: no hay script de publicidad ni CMP, y esa configuración se hará con el snippet oficial que genere Google Privacy & Messaging.
+
+### 6. Verificación
+
+```bash
+$ npx tsc --noEmit
+# Result: PASS (0 errores)
+
+$ npx eslint src/
+# Result: PASS (0 errores, 0 warnings)
+
+$ npx vitest run
+# Result: 66 archivos, 1124 tests pasan (+19 nuevos: catálogo de fuentes y contenido de fichas)
+
+$ npx next build
+# Result: PASS (todas las páginas estáticas/SSG)
+```
+
+Cada afirmación de esta sección se comprobó sobre el HTML generado en `.next/`,
+no sólo sobre el código fuente.
+```

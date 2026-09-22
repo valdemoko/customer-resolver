@@ -3,7 +3,10 @@
  *
  * Documents that Resolveo does not use cookies.
  * Plausible Analytics is cookieless.
- * No localStorage is used for tracking or consent.
+ * sessionStorage is documented because the site does use it: it carries the
+ * interpretation from the search bar to the questionnaire and is deleted as
+ * soon as it is read (audit 2026-09-22 — the page claimed no browser storage
+ * was used beyond the HTTP cache).
  */
 import type { Metadata } from "next";
 
@@ -105,20 +108,54 @@ export default function CookiesPage() {
             className="text-lg font-semibold text-slate-900 mb-3"
             style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
           >
-            Almacenamiento local
+            Almacenamiento en el navegador
           </h2>
-          <p>
+          <p className="mb-4">
             Resolveo no utiliza{" "}
             <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
               localStorage
             </code>{" "}
-            ni{" "}
+            ni cookies. Sí utiliza{" "}
             <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
               sessionStorage
-            </code>{" "}
-            para fines de analytics, tracking o consentimiento. El navegador no
-            almacena datos de Resolveo más allá de la caché normal del
-            navegador.
+            </code>
+            {" "}
+            para una única función técnica: transportar los datos del análisis
+            entre la búsqueda y el cuestionario sin volver a consultarlos. No se
+            usa para identificarte, medir audiencia ni mostrar publicidad.
+          </p>
+
+          <div className="border border-slate-200/70 rounded overflow-hidden">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Clave</th>
+                  <th className="px-3 py-2 font-medium">Contenido</th>
+                  <th className="px-3 py-2 font-medium">Duración</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-600">
+                <tr className="border-t border-slate-200/70">
+                  <td className="px-3 py-2 font-mono whitespace-nowrap">
+                    intake-&lt;id-de-caso&gt;
+                  </td>
+                  <td className="px-3 py-2">
+                    El análisis y las preguntas del caso, para no repetir la
+                    consulta. Se elimina en cuanto el cuestionario lo lee.
+                  </td>
+                  <td className="px-3 py-2">
+                    Hasta cerrar la pestaña; se borra al leerse
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-4">
+            Puedes borrarlo en cualquier momento cerrando la pestaña o limpiando
+            los datos del sitio desde tu navegador. Como no hay cookies, no
+            existe un banner de cookies: no hay nada que aceptar o rechazar por
+            navegar.
           </p>
         </section>
       </div>
