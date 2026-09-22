@@ -30,14 +30,28 @@ export const entityTypeSchema = z.enum([
 
 // ── Module candidate schema ──────────────────────────────────────────
 
+/**
+ * A list the model may omit OR set to `null` — both mean "empty".
+ *
+ * Smaller models write `"signals": null` for anything not applicable, while the
+ * schema expresses "empty" as an omitted field. Zod rejects `null` for an
+ * optional field, so a valid interpretation used to be discarded as an invalid
+ * structured output (503). Normalising here keeps the meaning and never accepts
+ * an invalid element.
+ */
+function nullishList<T extends z.ZodTypeAny>(element: T, max: number) {
+  return z
+    .array(element)
+    .max(max)
+    .nullish()
+    .transform((value) => value ?? []);
+}
+
 export const moduleCandidateSchema = z.object({
   problemKey: z.string().min(1),
-  // Array fields default to empty: smaller models frequently omit them, and an
-  // omitted list carries the same meaning as an empty one. Rejecting the whole
-  // response for that reason would turn a valid interpretation into a 503.
-  signals: z.array(z.string()).max(10).default([]),
-  matchedRequiredFacts: z.array(z.string()).default([]),
-  missingRequiredFacts: z.array(z.string()).default([]),
+  signals: nullishList(z.string(), 10),
+  matchedRequiredFacts: nullishList(z.string(), 50),
+  missingRequiredFacts: nullishList(z.string(), 50),
   confidence: classificationConfidenceSchema,
 });
 
@@ -71,8 +85,9 @@ export const intakeFactCandidateSchema = z.object({
   sourceText: z.string().min(1).max(2000),
   aiInterpretation: z.string().max(1000).default(""),
   certainty: factCertaintySchema,
-  // Empty when the fact does not belong to any candidate module (out-of-scope problem).
-  problemKey: z.string().optional(),
+  // Empty when the fact does not belong to any candidate module (out-of-scope
+  // problem). Accepts an explicit null as well: models use null for "none".
+  problemKey: z.string().nullish(),
 });
 
 // ── Detected entity schema ───────────────────────────────────────────
@@ -80,11 +95,15 @@ export const intakeFactCandidateSchema = z.object({
 export const detectedEntitySchema = z.object({
   type: entityTypeSchema,
   rawText: z.string().min(1).max(500),
-  normalizedValue: z.string().optional(),
+  normalizedValue: z
+    .string()
+    .nullish()
+    .transform((v) => v ?? undefined)
+    .optional(),
   confidence: factCertaintySchema,
 });
 
-export const emptyStringArray = z.array(z.string()).default([]);
+export const emptyStringArray = nullishList(z.string(), 50);
 
 // ── Missing info hint schema ─────────────────────────────────────────
 
@@ -131,16 +150,20 @@ export const jurisdictionHintSchema = z.object({
 
 export const intakeInterpretationSchema = z
   .object({
-    summary: z.string().max(1000).default(""),
+    summary: z
+      .string()
+      .max(1000)
+      .nullish()
+      .transform((v) => v ?? ""),
     // Empty is valid: it means the problem matches none of the registered modules,
     // which the deterministic routing layer turns into UNSUPPORTED (never a 503).
-    candidateModules: z.array(moduleCandidateSchema).max(5).default([]),
-    factCandidates: z.array(intakeFactCandidateSchema).max(20).default([]),
-    missingInformation: z.array(missingInfoHintSchema).max(10).default([]),
-    ambiguities: z.array(ambiguitySchema).max(10).default([]),
-    contradictions: z.array(apparentContradictionSchema).max(5).default([]),
-    entities: z.array(detectedEntitySchema).max(20).default([]),
-    jurisdictionHints: z.array(jurisdictionHintSchema).max(3).default([]),
+    candidateModules: nullishList(moduleCandidateSchema, 5),
+    factCandidates: nullishList(intakeFactCandidateSchema, 20),
+    missingInformation: nullishList(missingInfoHintSchema, 10),
+    ambiguities: nullishList(ambiguitySchema, 10),
+    contradictions: nullishList(apparentContradictionSchema, 5),
+    entities: nullishList(detectedEntitySchema, 20),
+    jurisdictionHints: nullishList(jurisdictionHintSchema, 3),
     classificationConfidence: classificationConfidenceSchema,
   })
   .strict();
@@ -165,19 +188,25 @@ export const guidanceStepSchema = z.object({
 
 export const guidanceChannelSchema = z.object({
   target: z.string().min(1).max(200),
-  channel: z.string().max(400).default(""),
+  channel: z
+    .string()
+    .max(400)
+    .nullish()
+    .transform((v) => v ?? ""),
   why: z.string().min(1).max(600),
 });
 
 export const generalGuidanceSchema = z
   .object({
+    // Required and non-empty: an orientation with no restated situation is
+    // useless, and the caller degrades gracefully when the answer is rejected.
     understanding: z.string().min(1).max(1200),
-    // Omitted lists default to empty: a missing list means the same as an empty
-    // one, and rejecting the whole answer for that would be a false negative.
-    generalSteps: z.array(guidanceStepSchema).max(8).default([]),
-    whereToComplain: z.array(guidanceChannelSchema).max(5).default([]),
-    documentsToGather: z.array(z.string().min(1).max(400)).max(12).default([]),
-    whatWeCannotDo: z.array(z.string().min(1).max(400)).max(8).default([]),
+    // Omitted OR null lists mean "empty" — the model uses both interchangeably,
+    // and rejecting the whole answer over that would be a false negative.
+    generalSteps: nullishList(guidanceStepSchema, 8),
+    whereToComplain: nullishList(guidanceChannelSchema, 5),
+    documentsToGather: nullishList(z.string().min(1).max(400), 12),
+    whatWeCannotDo: nullishList(z.string().min(1).max(400), 8),
   })
   .strict();
 

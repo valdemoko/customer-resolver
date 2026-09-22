@@ -304,6 +304,49 @@ describe("F8.3 Schema Validation", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts explicit nulls where the model means 'not applicable'", () => {
+    // Models write `null` instead of omitting a key. Rejecting that discarded a
+    // perfectly good interpretation as AI_INVALID_STRUCTURED_OUTPUT (503),
+    // reported in production as `entities.1.normalizedValue` and
+    // `factCandidates.0.problemKey`.
+    const withNulls = {
+      ...validOutput,
+      candidateModules: [
+        {
+          problemKey: "cancellation-charge",
+          signals: ["cancelación"],
+          matchedRequiredFacts: null,
+          missingRequiredFacts: null,
+          confidence: "HIGH",
+        },
+      ],
+      factCandidates: [
+        {
+          candidateId: "c-null",
+          factKey: "charge.amount",
+          proposedValue: { type: "number", value: 30 },
+          sourceText: "me cobraron 30 euros",
+          aiInterpretation: "Cargo de 30 euros",
+          certainty: "EXPLICIT",
+          problemKey: null,
+        },
+      ],
+      entities: [
+        { type: "COMPANY", rawText: "Movistar", normalizedValue: null, confidence: "EXPLICIT" },
+      ],
+      ambiguities: null,
+      contradictions: null,
+      jurisdictionHints: null,
+    };
+
+    const result = intakeInterpretationSchema.safeParse(withNulls);
+    expect(result.success).toBe(true);
+    expect(result.data?.candidateModules[0]?.matchedRequiredFacts).toEqual([]);
+    expect(result.data?.ambiguities).toEqual([]);
+    expect(result.data?.factCandidates[0]?.problemKey).toBeFalsy();
+    expect(result.data?.entities[0]?.normalizedValue).toBeUndefined();
+  });
+
   it("rejects output with invalid confidence enum", () => {
     const invalid = {
       ...validOutput,
