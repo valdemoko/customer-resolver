@@ -66,6 +66,7 @@ function makeResult(overrides: Partial<Result> = {}): Result {
     channels: [],
     intakeComplete: true,
     ...overrides,
+    company: overrides.company ?? null,
   };
 }
 

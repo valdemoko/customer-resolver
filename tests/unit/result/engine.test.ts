@@ -202,6 +202,45 @@ describe("Result Engine — buildResult", () => {
     expect(result.claims[0]?.supportingSources).toHaveLength(0);
   });
 
+  it("reads the facts a rule actually used from its traces", () => {
+    // Only the facts named in the traces belong to this conclusion; listing
+    // every fact of the case made "en qué se basa" meaningless.
+    const evaluation = makeEvaluation({
+      status: "SUPPORTED",
+      traces: [
+        {
+          kind: "FACT_EXISTS",
+          key: "cancellation.date" as Fact["key"],
+          matched: true,
+          reason: "MATCHED",
+        },
+      ],
+    });
+
+    const result = buildResult({
+      ...BASE_INPUT,
+      facts: [
+        makeFact({}),
+        makeFact({ id: "fact-2" as Fact["id"], key: "charge.amount" as Fact["key"] }),
+      ],
+      evaluations: [evaluation],
+    });
+
+    expect(result.claims[0]?.supportingFacts.map((f) => f.factKey)).toEqual(["cancellation.date"]);
+  });
+
+  it("names the company the claim is against, with its contacts when known", () => {
+    const withCompany = buildResult({
+      ...BASE_INPUT,
+      facts: [makeFact({ key: "seller.name" as Fact["key"], value: { type: "string", value: "Vueling" } })],
+    });
+    expect(withCompany.company?.name).toBe("Vueling");
+    expect(withCompany.company?.known).toBe(true);
+
+    const withoutCompany = buildResult(BASE_INPUT);
+    expect(withoutCompany.company).toBeNull();
+  });
+
   it("preserves fact traceability", () => {
     const fact = makeFact({});
     const evaluation = makeEvaluation({ status: "SUPPORTED" });

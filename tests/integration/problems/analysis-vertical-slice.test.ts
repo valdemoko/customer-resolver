@@ -114,6 +114,13 @@ describe("F4 vertical slice: cancellation-charge over real persistence", () => {
       value: { type: "boolean", value: false } as never,
       provenance: "USER_PROVIDED",
     });
+    // The company is always asked too: the report names it and shows its
+    // official customer service, so the questionnaire is not complete without it.
+    await caseService.addFact(created.id, {
+      key: "provider.name" as never,
+      value: { type: "string", value: "Movistar" } as never,
+      provenance: "USER_PROVIDED",
+    });
 
     // 3. Evidence metadata + link to the cancellation fact (no OCR in F4).
     const { evidence } = await evidenceService.addEvidence(created.id, {

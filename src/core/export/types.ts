@@ -9,6 +9,7 @@
  */
 import type { Result } from "../result/types";
 import type { ActionPlan } from "../actions/types";
+import type { CaseHighlight } from "./highlights";
 
 // ── Export Format ───────────────────────────────────────────────────
 
@@ -64,6 +65,11 @@ export interface ExportData {
    * could check it against the claim they are about to send.
    */
   readonly answers?: readonly ExportAnswer[];
+  /**
+   * Amounts and dates the claim turns on (see `buildCaseHighlights`).
+   * Shown before everything else so the case can be read in numbers.
+   */
+  readonly highlights?: readonly CaseHighlight[];
 }
 
 /** A fact supplied by the user, already formatted for reading. */

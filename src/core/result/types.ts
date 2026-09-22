@@ -14,6 +14,7 @@
 import type { FactKey, FactValue } from "../types";
 import type { IsoDateTime } from "../shared/temporal";
 import type { ConsumerChannel } from "./channels";
+import type { CaseCompany } from "./company";
 
 // ── Claim Status (vocabulary from ARCHITECTURE.md §18) ──────────────
 
@@ -169,6 +170,13 @@ export interface Result {
    * Always present — even an undecidable case has a competent authority.
    */
   readonly channels: readonly ConsumerChannel[];
+
+  /**
+   * The company the claim is against, with its verified customer-service
+   * channels when we have them. Null until the person tells us which company it
+   * is — the report asks for it instead of guessing.
+   */
+  readonly company: CaseCompany | null;
 
   /** Whether the intake is complete (all required facts provided). */
   readonly intakeComplete: boolean;

@@ -22,6 +22,7 @@ import type {
   ExportResult,
 } from "@core/export/types";
 import type { ClaimStatus } from "@core/result/types";
+import { COMPANY_CONTACT_GUIDANCE } from "@core/result/company-contacts";
 
 // ── Layout constants (A4, points) ───────────────────────────────────
 
@@ -62,6 +63,9 @@ const ORIGIN_LABELS: Record<ExportAnswer["origin"], string> = {
 
 /** Characters the standard PDF fonts cannot encode, mapped to readable ASCII. */
 const TRANSLITERATIONS: Readonly<Record<string, string>> = {
+  // The euro sign is outside WinAnsi's drawable range for the standard fonts:
+  // without this, "249,90 €" would be printed as "249,90".
+  "€": "EUR",
   "→": "->",
   "←": "<-",
   "≤": "<=",
@@ -259,6 +263,62 @@ function claimColor(status: ClaimStatus) {
   return COLORS.muted;
 }
 
+/** Amounts and dates first: the case in numbers before the prose. */
+function buildHighlightsSection(writer: ReportWriter, data: ExportData): void {
+  const highlights = data.highlights ?? [];
+  if (highlights.length === 0) return;
+
+  writer.sectionHeading("Datos clave del caso");
+  for (const item of highlights) {
+    writer.labelled(`${item.label}: ${item.value}`, "", 4);
+  }
+  writer.spacer(2);
+}
+
+/**
+ * The company the claim is against and its official customer service.
+ *
+ * Only channels verified against the company's own page are printed, and the
+ * document always says where they were read so the person can re-check them.
+ */
+function buildCompanySection(writer: ReportWriter, data: ExportData): void {
+  const company = data.result.company;
+  if (!company) return;
+
+  writer.sectionHeading(`Empresa a la que reclamas: ${company.name}`);
+
+  if (!company.known) {
+    writer.paragraph(
+      "Todavía no tenemos verificados los canales oficiales de atención al cliente de esta empresa, así que no reproducimos ningún teléfono ni correo para no darte un dato equivocado. Puedes encontrarlos así:",
+      { size: SMALL_SIZE },
+    );
+    for (const step of COMPANY_CONTACT_GUIDANCE) writer.bullet(step);
+    writer.spacer(2);
+    return;
+  }
+
+  for (const channel of company.channels) {
+    const detail =
+      channel.value !== undefined ? `${channel.value}. ${channel.hours ?? ""}`.trim() : (channel.hours ?? "");
+    writer.labelled(`${channel.label}: ${detail}`, channel.note ?? "", 4);
+    if (channel.url) {
+      writer.paragraph(channel.url, { size: SMALL_SIZE, color: COLORS.accent, indent: 8 });
+    }
+  }
+
+  if (company.note) {
+    writer.spacer(2);
+    writer.paragraph(company.note, { size: SMALL_SIZE, color: COLORS.muted });
+  }
+  if (company.sourceUrl) {
+    writer.paragraph(
+      `Canales verificados el ${company.verifiedAt ?? ""} en la página oficial: ${company.sourceUrl}`,
+      { size: SMALL_SIZE, color: COLORS.muted },
+    );
+  }
+  writer.spacer(2);
+}
+
 function buildAnswersSection(writer: ReportWriter, data: ExportData): void {
   const answers = data.answers ?? [];
   if (answers.length === 0) return;
@@ -332,7 +392,8 @@ function buildSourcesSection(writer: ReportWriter, data: ExportData, includeSour
   if (!includeSources || data.result.sources.length === 0) return;
   writer.sectionHeading("Fuentes consultadas");
   for (const source of data.result.sources) {
-    writer.labelled(source.title, `${source.type}. ${source.url}`, 4);
+    // The claim each source backs is what makes the list checkable.
+    writer.labelled(source.title, `${source.claim}. ${source.url}`, 4);
   }
 }
 
@@ -371,6 +432,8 @@ export class PdfExportAdapter implements ExportPort {
       { color: COLORS.muted },
     );
 
+    buildHighlightsSection(writer, data);
+    buildCompanySection(writer, data);
     buildAnswersSection(writer, data);
     buildResultSection(writer, data);
     buildMissingSection(writer, data);

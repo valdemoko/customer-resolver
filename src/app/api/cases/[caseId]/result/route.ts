@@ -9,6 +9,8 @@ import { CaseService } from "@core/case/service";
 import { ProblemAnalysisService } from "@core/problems/analysis-service";
 import { buildResult } from "@core/result/engine";
 import { buildExportAnswers } from "@core/export/answers";
+import { buildCaseHighlights } from "@core/export/highlights";
+import { COMPANY_FACT_KEYS } from "@core/result/company";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
@@ -122,12 +124,29 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
 
     // What the person answered, formatted once here so the on-screen report and
     // the exported PDF say exactly the same thing.
-    const answers = buildExportAnswers(loaded.facts, {
+    // Question wording wins over the catalogue description: it is what the person
+    // actually read and answered.
+    const factLabelsForClient: Record<string, string> = { ...factLabels };
+    for (const q of questions) factLabelsForClient[q.factKey] = q.text;
+
+    const labels = {
       questions: Object.fromEntries(questions.map((q) => [q.factKey, q.text])),
       factLabels,
-    });
+    };
+    const answers = buildExportAnswers(loaded.facts, labels);
+    const highlights = buildCaseHighlights(loaded.facts, labels);
 
-    return NextResponse.json({ result, answers }, { headers: PRIVATE_CACHE_HEADERS });
+    // Ask the person which company the claim is against only while we do not
+    // know it: the report then names it and shows its official customer service
+    // instead of a vague "el vendedor".
+    const companyQuestion = result.company
+      ? null
+      : (questions.find((q) => COMPANY_FACT_KEYS.includes(q.factKey)) ?? null);
+
+    return NextResponse.json(
+      { result, answers, highlights, companyQuestion, factLabels: factLabelsForClient },
+      { headers: PRIVATE_CACHE_HEADERS },
+    );
   } catch (error) {
     return NextResponse.json(
       {

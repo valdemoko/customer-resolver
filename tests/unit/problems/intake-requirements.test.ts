@@ -220,6 +220,9 @@ describe("intake requirements", () => {
       { key: "seller.rejection", value: { type: "boolean", value: false }, status: "CONFIRMED" },
       { key: "purchase.delivery_date", value: { type: "date", value: "2026-05-01" }, status: "CONFIRMED" },
       { key: "repair.completed", value: { type: "boolean", value: false }, status: "CONFIRMED" },
+      // The company looked into is always collected (the report shows its
+      // customer service), so a complete questionnaire includes it.
+      { key: "seller.name", value: { type: "string", value: "MediaMarkt" }, status: "CONFIRMED" },
     ];
     const known: KnownFact[] = facts.map((f) => ({
       key: f.key as KnownFact["key"],

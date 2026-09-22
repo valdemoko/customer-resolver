@@ -18,6 +18,7 @@
  */
 import type { Rule } from "../rules";
 import { collectRuleFactKeys } from "../rules/fact-keys";
+import { COMPANY_FACT_KEYS } from "../result/company";
 import type { ProblemModuleDefinition } from "./contract";
 
 /**
@@ -74,6 +75,13 @@ export function computeIntakeRequirements(
   for (const key of collectRuleFactKeys(rules)) referenced.add(key as string);
   for (const fact of module.factCatalogue) {
     if (fact.required) referenced.add(fact.key as string);
+  }
+
+  // The company the claim is against. No rule reads it, but the report needs it
+  // to name the company and show its official customer-service channels, so its
+  // question is collected like any other (only when the module declares one).
+  for (const key of COMPANY_FACT_KEYS) {
+    if (askableFactKeys.has(key)) referenced.add(key);
   }
 
   // Expand derivations transitively: a rule reading `flight.distance_km` needs

@@ -199,6 +199,14 @@ export const noDeliveryRefundModule: ProblemModuleDefinition = defineProblemModu
       questionId: "q-trader-informed",
       required: false,
     },
+    {
+      key: "seller.name",
+      type: "string",
+      description:
+        "Empresa a la que se reclama (tienda o plataforma de venta). La usa el informe para mostrar su atención al cliente.",
+      questionId: "q-seller-name",
+      required: false,
+    },
   ],
 
   // ── Adaptive intake ─────────────────────────────────────────────
@@ -351,6 +359,15 @@ export const noDeliveryRefundModule: ProblemModuleDefinition = defineProblemModu
       factKey: "trader.informed_unavailability",
       required: false,
       askIf: [{ factKey: "product.available" as never, equals: false }],
+    },
+    // Which company the claim is against. No rule reads it: it exists so the
+    // report can name the company and show its official customer service.
+    {
+      id: "q-seller-name",
+      text: "¿A qué vendedor o tienda le compraste? Escribe el nombre de la empresa (por ejemplo: Amazon, El Corte Inglés).",
+      type: "string",
+      factKey: "seller.name",
+      required: false,
     },
   ],
 

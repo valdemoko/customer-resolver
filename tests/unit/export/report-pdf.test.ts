@@ -39,6 +39,7 @@ function extractPdfText(bytes: Uint8Array): string {
 
 import { deriveActions } from "@core/actions/engine";
 import { buildExportAnswers, formatFactValue } from "@core/export/answers";
+import { buildCaseHighlights } from "@core/export/highlights";
 import { ExportService } from "@core/export/service";
 import { buildResult } from "@core/result/engine";
 import type { RuleEvaluation } from "@core/rules/types";
@@ -64,6 +65,9 @@ function fact(key: string, value: unknown): Fact {
 
 const FACTS = [
   fact("flight.departure_airport", { type: "string", value: "Madrid" }),
+  // The company the claim is against: the report names it and prints its
+  // verified customer service.
+  fact("airline.name", { type: "string", value: "Vueling" }),
   fact("passenger.additional_costs", {
     type: "money",
     value: { amountMinor: 24990, currency: "EUR" },
@@ -117,6 +121,10 @@ function buildExportData() {
     result,
     actionPlan: deriveActions(result),
     answers: buildExportAnswers(FACTS, {
+      questions: Object.fromEntries(QUESTIONS.map((q) => [q.factKey, q.text])),
+      factLabels: {},
+    }),
+    highlights: buildCaseHighlights(FACTS, {
       questions: Object.fromEntries(QUESTIONS.map((q) => [q.factKey, q.text])),
       factLabels: {},
     }),
@@ -198,6 +206,26 @@ describe("PdfExportAdapter", () => {
     expect(text).toContain("OMIC");
     expect(text).toContain("FUENTES CONSULTADAS");
     expect(text).toContain("Reglamento (CE) 261/2004");
+  });
+
+  it("names the company and prints its verified customer service", async () => {
+    const exported = await new PdfExportAdapter().export(buildExportData());
+    const text = extractPdfText(exported.content as Uint8Array);
+
+    expect(text).toContain("EMPRESA A LA QUE RECLAMAS: VUELING");
+    expect(text).toContain("900 645 000");
+    // Always attributable: where the channels were read and when.
+    expect(text).toContain("help.vueling.com");
+    expect(text).toContain("2026-09-22");
+  });
+
+  it("opens with the amounts and dates of the case", async () => {
+    const exported = await new PdfExportAdapter().export(buildExportData());
+    const text = extractPdfText(exported.content as Uint8Array);
+
+    expect(text).toContain("DATOS CLAVE DEL CASO");
+    expect(text).toContain("249,90 EUR");
+    expect(text).toContain("10/08/2026");
   });
 
   it("never leaves an internal fact key in the document", async () => {

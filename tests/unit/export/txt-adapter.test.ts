@@ -40,6 +40,7 @@ function makeExportData(overrides: Partial<ExportData> = {}): ExportData {
       ],
       missingInformation: [],
       contradictions: [],
+      company: null,
       sources: [
         {
           sourceId: "src:ley-3-2014",

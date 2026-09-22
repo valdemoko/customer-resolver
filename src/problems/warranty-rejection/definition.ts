@@ -406,6 +406,14 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
         "Art. 122.3 TRLGDCU. Solo se computa si repair.completed = true.",
       required: false,
     },
+    {
+      key: "seller.name",
+      type: "string",
+      description:
+        "Empresa a la que se reclama (tienda, fabricante o plataforma). La usa el informe para mostrar su atención al cliente.",
+      questionId: "q-seller-name",
+      required: false,
+    },
   ],
 
   // ── Adaptive intake ─────────────────────────────────────────────
@@ -562,6 +570,15 @@ export const warrantyRejectionModule: ProblemModuleDefinition = defineProblemMod
       text: "¿Tienes un documento de garantía comercial del fabricante o tienda?",
       type: "boolean",
       factKey: "commercial_warranty.exists",
+      required: false,
+    },
+    // Which company the claim is against. No rule reads it: it exists so the
+    // report can name the company and show its official customer service.
+    {
+      id: "q-seller-name",
+      text: "¿A qué tienda o vendedor se lo compraste? Escribe el nombre de la empresa (por ejemplo: MediaMarkt).",
+      type: "string",
+      factKey: "seller.name",
       required: false,
     },
   ],

@@ -16,6 +16,9 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
+// Pure data from the domain: the same guidance the exported PDF prints when we
+// have no verified contacts for the company.
+import { COMPANY_CONTACT_GUIDANCE as COMPANY_CONTACT_TIPS } from "@core/result/company-contacts";
 
 /* ══════════════════════════════════════════════════════════════════════
    TYPES
@@ -85,6 +88,8 @@ interface Claim {
   assertion: string;
   explanation: string;
   missingFacts: string[];
+  /** Facts the rule actually read — what the conclusion is based on. */
+  supportingFacts?: Array<{ factKey: string; value: unknown }>;
 }
 
 interface Source {
@@ -92,6 +97,46 @@ interface Source {
   title: string;
   url: string;
   type: string;
+  /** Which conclusion this source backs — shown so the list is checkable. */
+  claim?: string;
+}
+
+/** Amount or date the claim turns on, already formatted by the server. */
+interface CaseHighlight {
+  label: string;
+  value: string;
+  kind: "money" | "date" | "number";
+  factKey: string;
+}
+
+/** One official way of reaching the company (never invented: see the server). */
+interface CompanyChannel {
+  kind: string;
+  label: string;
+  value?: string;
+  url?: string;
+  hours?: string;
+  note?: string;
+}
+
+/** The company the claim is against, with its verified customer service. */
+interface CaseCompany {
+  name: string;
+  factKey: string;
+  known: boolean;
+  sector?: string;
+  channels: CompanyChannel[];
+  sourceUrl?: string;
+  verifiedAt?: string;
+  note?: string;
+}
+
+/** The module's question that tells us which company the claim is against. */
+interface CompanyQuestion {
+  id: string;
+  text: string;
+  factKey: string;
+  type?: string;
 }
 
 interface Action {
@@ -137,6 +182,8 @@ interface CaseResult {
   missingInformation?: MissingInformation[];
   /** Official bodies where the case can be taken (always present). */
   channels?: ConsumerChannel[];
+  /** Company the claim is against, with its verified customer service. */
+  company?: CaseCompany | null;
 }
 
 /** Answer type the report form must send, derived from what was asked. */
@@ -201,6 +248,12 @@ interface AppState {
   uploadSummary: string | null;
   /** What the person answered, formatted by the server (shared with the PDF). */
   answers: CaseAnswer[];
+  /** Amounts and dates the claim turns on. */
+  highlights: CaseHighlight[];
+  /** Human name per fact key, so a conclusion can say what it is based on. */
+  factLabels: Record<string, string>;
+  /** Asked only while the company is still unknown (fills the contact section). */
+  companyQuestion: CompanyQuestion | null;
   /** Facts the person said they did not know — never asked twice by accident. */
   skippedFacts: string[];
   /** True while completing pending data and re-running the analysis. */
@@ -480,6 +533,169 @@ function PendingFactCard({
    REPORT — full case report
    ══════════════════════════════════════════════════════════════════════ */
 
+const CHANNEL_LABELS: Record<string, string> = {
+  phone: "Teléfono",
+  web: "Web oficial",
+  form: "Formulario",
+  email: "Correo",
+  chat: "Chat",
+  post: "Correo postal",
+};
+
+/**
+ * Official customer service of the company the claim is against.
+ *
+ * Server-side rule: only channels read on the company's own page are listed, and
+ * always with the verification date and the source, because companies change
+ * phone numbers. When we have nothing verified, the report teaches how to find
+ * the official channel instead of inventing one.
+ */
+function CompanyContact({ company }: { company: CaseCompany }) {
+  return (
+    <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+      <p className="text-sm font-medium text-[var(--color-ink)]">{company.name}</p>
+      {company.sector && (
+        <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-faint)] mt-0.5">
+          {company.sector}
+        </p>
+      )}
+
+      {company.known ? (
+        <div className="mt-3 space-y-3">
+          {company.channels.map((channel, index) => (
+            <div key={`${channel.kind}-${index}`} className="border-l-2 border-[var(--border-light)] pl-3">
+              <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-faint)]">
+                {CHANNEL_LABELS[channel.kind] ?? "Contacto"} · {channel.label}
+              </p>
+              {channel.value && (
+                <p className="text-sm font-medium text-[var(--color-ink)] mt-0.5">{channel.value}</p>
+              )}
+              {channel.hours && (
+                <p className="text-xs text-[var(--color-ink-muted)] mt-1">{channel.hours}</p>
+              )}
+              {channel.note && (
+                <p className="text-xs text-[var(--color-ink-soft)] mt-1 leading-relaxed">
+                  {channel.note}
+                </p>
+              )}
+              {channel.url && (
+                <a
+                  href={channel.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline mt-1 inline-block"
+                >
+                  Abrir el canal oficial
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-[var(--color-ink-soft)] leading-relaxed">
+            No tenemos verificados los canales de atención al cliente de esta empresa, así que no
+            te damos ningún teléfono para no darte un dato equivocado. Encontrar el correcto es
+            rápido:
+          </p>
+          <ol className="space-y-2 list-decimal list-inside">
+            {COMPANY_CONTACT_TIPS.map((tip) => (
+              <li key={tip} className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                {tip}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {company.note && company.known && (
+        <p className="text-xs text-[var(--color-ink-muted)] mt-3 leading-relaxed">{company.note}</p>
+      )}
+
+      {company.known && company.sourceUrl && (
+        <p className="text-[11px] text-[var(--color-ink-faint)] mt-3 leading-relaxed">
+          Canales verificados el {company.verifiedAt} en la web oficial:{" "}
+          <a
+            href={company.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            comprobar el dato
+          </a>
+          .
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Asks which company the claim is against, right in the contact section.
+ *
+ * Only rendered while the company is unknown: answering it names the company,
+ * fills the contact section and re-runs the analysis.
+ */
+function CompanyQuestionCard({
+  question,
+  busy,
+  onSubmit,
+}: {
+  question: CompanyQuestion;
+  busy: boolean;
+  onSubmit: (factKey: string, kind: AnswerInputKind, raw: string) => Promise<boolean>;
+}) {
+  const [value, setValue] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setLocalError(null);
+    const ok = await onSubmit(question.factKey, "string", value);
+    if (ok) {
+      setSaved(true);
+      setValue("");
+    } else {
+      setLocalError("No pudimos guardar el nombre de la empresa. Inténtalo de nuevo.");
+    }
+  };
+
+  return (
+    <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)] mt-3">
+      <p className="text-sm font-medium text-[var(--color-ink)] leading-relaxed">
+        {question.text}
+      </p>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && value.trim() && !busy) void submit();
+        }}
+        placeholder="Escribe el nombre de la empresa"
+        className="input-base mt-3"
+        disabled={busy}
+      />
+      <button
+        type="button"
+        onClick={() => void submit()}
+        disabled={!value.trim() || busy}
+        className="btn-primary text-sm mt-3"
+      >
+        {busy ? "Actualizando el informe…" : "Guardar y actualizar el informe"}
+      </button>
+      {saved && (
+        <p className="text-xs text-[var(--color-supported)] mt-3">
+          Empresa guardada. El informe se ha actualizado con su atención al cliente.
+        </p>
+      )}
+      {localError && (
+        <p className="text-xs text-[var(--color-contradicted)] mt-3">{localError}</p>
+      )}
+    </div>
+  );
+}
+
 const CLAIM_GROUPS: readonly { status: string; title: string; note?: string }[] = [
   { status: "SUPPORTED", title: "Lo que hemos podido confirmar" },
   { status: "POTENTIALLY_APPLICABLE", title: "Lo que puede ser aplicable" },
@@ -496,6 +712,9 @@ function CaseReport({
   result,
   actionPlan,
   answers,
+  highlights,
+  factLabels,
+  companyQuestion,
   caseId,
   problemTitle,
   busy,
@@ -505,6 +724,9 @@ function CaseReport({
   result: CaseResult;
   actionPlan: ActionPlan | null;
   answers: CaseAnswer[];
+  highlights: CaseHighlight[];
+  factLabels: Record<string, string>;
+  companyQuestion: CompanyQuestion | null;
   caseId: string;
   problemTitle: string | null;
   busy: boolean;
@@ -540,6 +762,28 @@ function CaseReport({
           <p className="label mb-2">Dictamen</p>
           <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">{result.summary}</p>
         </section>
+
+        {/* Datos clave: el caso en cifras antes que en prosa */}
+        {highlights.length > 0 && (
+          <section className="mb-8">
+            <p className="label mb-3">Datos clave de tu caso</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {highlights.map((item) => (
+                <div
+                  key={item.factKey}
+                  className="p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                >
+                  <p className="text-[10px] uppercase tracking-wide text-[var(--color-ink-faint)]">
+                    {item.label}
+                  </p>
+                  <p className="text-base font-medium text-[var(--color-ink)] mt-1">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Pending data — answerable in place, then re-analysed */}
         {(actionable.length > 0 || uncomputable.length > 0) && (
@@ -598,6 +842,17 @@ function CaseReport({
                     <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
                       {claim.explanation}
                     </p>
+                    {(() => {
+                      const basis = (claim.supportingFacts ?? [])
+                        .map((fact) => factLabels[fact.factKey])
+                        .filter((label): label is string => typeof label === "string" && label.length > 0);
+                      if (basis.length === 0) return null;
+                      return (
+                        <p className="text-xs text-[var(--color-ink-muted)] mt-2 leading-relaxed">
+                          En qué se basa: {basis.join(" · ")}
+                        </p>
+                      );
+                    })()}
                     {claim.missingFacts.length > 0 && (
                       <p className="text-xs text-[var(--color-insufficient)] mt-2">
                         Datos que faltan para esta conclusión:{" "}
@@ -636,6 +891,30 @@ function CaseReport({
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Contact with the company — verified channels only, or how to find them */}
+        {(result.company || companyQuestion) && (
+          <section className="mb-8">
+            <p className="label mb-1">A quién contactar en la empresa</p>
+            <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed mb-3">
+              Antes de escalar la reclamación a un organismo, conviene reclamar por escrito a la
+              propia empresa y guardar la referencia que te den.
+            </p>
+            {result.company ? (
+              <CompanyContact company={result.company} />
+            ) : (
+              <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                  Todavía no sabemos contra qué empresa reclamas, así que no podemos darte su
+                  atención al cliente. Dinos cuál es y el informe la incluirá.
+                </p>
+              </div>
+            )}
+            {!result.company && companyQuestion && (
+              <CompanyQuestionCard question={companyQuestion} busy={busy} onSubmit={onCompleteMissing} />
+            )}
           </section>
         )}
 
@@ -705,6 +984,11 @@ function CaseReport({
                   className="p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]"
                 >
                   <p className="text-sm font-medium text-[var(--color-ink)]">{source.title}</p>
+                  {source.claim && (
+                    <p className="text-xs text-[var(--color-ink-muted)] mt-1 leading-relaxed">
+                      {source.claim}
+                    </p>
+                  )}
                   <a
                     href={source.url}
                     target="_blank"
@@ -754,8 +1038,9 @@ function CaseReport({
           </Link>
         </div>
         <p className="text-[11px] text-[var(--color-ink-faint)] leading-relaxed">
-          El PDF incluye el problema, tus respuestas, las conclusiones, los datos pendientes, los
-          pasos a seguir, los organismos oficiales y las fuentes consultadas.
+          El PDF incluye el problema, los datos clave, tus respuestas, el contacto de la empresa,
+          las conclusiones, los datos pendientes, los pasos a seguir, los organismos oficiales y las
+          fuentes consultadas.
         </p>
       </div>
     </div>
@@ -787,6 +1072,9 @@ const INITIAL_STATE: AppState = {
   uploadError: null,
   uploadSummary: null,
   answers: [],
+  highlights: [],
+  factLabels: {},
+  companyQuestion: null,
   skippedFacts: [],
   reanalyzing: false,
 };
@@ -1186,7 +1474,7 @@ export function ResolverClient() {
     try {
       const res = await fetch(`/api/cases/${caseId}/result`);
       if (res.ok) {
-        const { result, answers } = await res.json();
+        const { result, answers, highlights, companyQuestion, factLabels } = await res.json();
         const actionsRes = await fetch(`/api/cases/${caseId}/actions`);
         let actionPlan = null;
         if (actionsRes.ok) {
@@ -1199,6 +1487,9 @@ export function ResolverClient() {
           result,
           actionPlan,
           answers: answers ?? [],
+          highlights: highlights ?? [],
+          factLabels: factLabels ?? {},
+          companyQuestion: companyQuestion ?? null,
           error: null,
         }));
       } else {
@@ -1212,6 +1503,7 @@ export function ResolverClient() {
             sources: [],
             disclaimers: [],
             channels: [],
+            company: null,
           },
         }));
       }
@@ -1226,6 +1518,7 @@ export function ResolverClient() {
           sources: [],
           disclaimers: [],
           channels: [],
+          company: null,
         },
       }));
     }
@@ -2058,6 +2351,9 @@ export function ResolverClient() {
         result={state.result}
         actionPlan={state.actionPlan}
         answers={state.answers}
+        highlights={state.highlights}
+        factLabels={state.factLabels}
+        companyQuestion={state.companyQuestion}
         caseId={state.caseId}
         problemTitle={state.routing?.moduleTitle ?? null}
         busy={state.reanalyzing}

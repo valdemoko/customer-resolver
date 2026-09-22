@@ -10,6 +10,7 @@
 import type { ExportPort } from "./ports";
 import type { ExportData, ExportFormat, ExportOptions, ExportResult } from "./types";
 import type { ClaimStatus } from "../result/types";
+import { COMPANY_CONTACT_GUIDANCE } from "../result/company-contacts";
 
 // ── Status Labels ───────────────────────────────────────────────────
 
@@ -35,6 +36,67 @@ function buildHeader(data: ExportData): string {
   lines.push(`Fecha de creación: ${data.caseMetadata.createdAt}`);
   lines.push(`Fecha de análisis: ${data.result.evaluatedAt}`);
   lines.push(`Estado general: ${STATUS_LABELS[data.result.overallStatus]}`);
+  lines.push("");
+  return lines.join("\n");
+}
+
+/** Amounts and dates the claim turns on, before the prose. */
+function buildHighlights(data: ExportData): string {
+  const highlights = data.highlights ?? [];
+  if (highlights.length === 0) return "";
+
+  const lines: string[] = [];
+  lines.push("-".repeat(60));
+  lines.push("DATOS CLAVE DEL CASO");
+  lines.push("-".repeat(60));
+  lines.push("");
+
+  for (const item of highlights) {
+    lines.push(`• ${item.label}: ${item.value}`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+/**
+ * The company the claim is against and its official customer service.
+ *
+ * Only verified channels are printed, always with the official page and the
+ * verification date, so the reader can confirm them before calling.
+ */
+function buildCompany(data: ExportData): string {
+  const company = data.result.company;
+  if (!company) return "";
+
+  const lines: string[] = [];
+  lines.push("-".repeat(60));
+  lines.push(`EMPRESA A LA QUE RECLAMAS: ${company.name}`);
+  lines.push("-".repeat(60));
+  lines.push("");
+
+  if (!company.known) {
+    lines.push(
+      "No tenemos verificados los canales oficiales de atención al cliente de esta empresa, así que no reproducimos ningún teléfono ni correo. Puedes encontrarlos así:",
+    );
+    for (const step of COMPANY_CONTACT_GUIDANCE) lines.push(`• ${step}`);
+    lines.push("");
+    return lines.join("\n");
+  }
+
+  for (const channel of company.channels) {
+    lines.push(`• ${channel.label}${channel.value ? `: ${channel.value}` : ""}`);
+    if (channel.hours) lines.push(`   ${channel.hours}`);
+    if (channel.url) lines.push(`   ${channel.url}`);
+    if (channel.note) lines.push(`   ${channel.note}`);
+    lines.push("");
+  }
+
+  if (company.note) lines.push(`${company.note}`);
+  if (company.sourceUrl) {
+    lines.push(
+      `Canales verificados el ${company.verifiedAt ?? ""} en la página oficial: ${company.sourceUrl}`,
+    );
+  }
   lines.push("");
   return lines.join("\n");
 }
@@ -183,6 +245,8 @@ export class TxtExportAdapter implements ExportPort {
 
     const content = [
       buildHeader(data),
+      buildHighlights(data),
+      buildCompany(data),
       buildSummary(data),
       buildClaims(data, includeDetails),
       buildMissingInfo(data),

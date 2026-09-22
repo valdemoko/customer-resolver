@@ -8,9 +8,10 @@
  * overstates certainty. Every claim must be traceable to a rule evaluation.
  */
 import type { Fact, FactKey } from "../types";
-import type { RuleEvaluation } from "../rules/types";
+import type { ConditionTrace, RuleEvaluation } from "../rules/types";
 import { DERIVED_FACT_SOURCES, resolveAnswerableFactKey } from "../problems/requirements";
 import { channelsForProblem } from "./channels";
+import { buildCaseCompany } from "./company";
 import { DERIVED_FACT_HINTS, GENERIC_MISSING_HINT } from "./fact-labels";
 import type {
   Claim,
@@ -307,14 +308,40 @@ function buildFactLookup(facts: readonly Fact[]): Map<string, Fact> {
 
 // ── Supporting Facts ────────────────────────────────────────────────
 
+/**
+ * Fact keys a rule actually looked at, taken from its evaluation traces.
+ *
+ * The traces are the only place recording which facts a rule read, so this is
+ * what makes "en qué se basa esta conclusión" true instead of "these are all the
+ * facts of the case".
+ */
+function factKeysFromTraces(evaluation: RuleEvaluation): Set<string> {
+  const keys = new Set<string>();
+
+  const visit = (traces: readonly ConditionTrace[]): void => {
+    for (const trace of traces) {
+      if (trace.key) keys.add(trace.key as string);
+      if (trace.otherKey) keys.add(trace.otherKey as string);
+      if (trace.children && trace.children.length > 0) visit(trace.children);
+    }
+  };
+
+  visit(evaluation.traces);
+  return keys;
+}
+
 function buildSupportingFacts(
-  _evaluation: RuleEvaluation,
+  evaluation: RuleEvaluation,
   factMap: Map<string, Fact>,
 ): readonly SupportingFact[] {
-  // Return all facts from the factMap — the evaluation context already
-  // filtered to relevant facts (current, non-superseded).
+  const referenced = factKeysFromTraces(evaluation);
+
   const supporting: SupportingFact[] = [];
   for (const fact of factMap.values()) {
+    // With traces, list exactly the facts the rule read. Without them (hand-made
+    // evaluations, older records) keep every case fact so traceability is never
+    // lost — it is only less precise.
+    if (referenced.size > 0 && !referenced.has(fact.key as string)) continue;
     supporting.push({
       factKey: fact.key,
       value: fact.value,
@@ -583,52 +610,49 @@ export function buildResult(input: BuildResultInput): Result {
     // Where to act: official bodies for this problem, always shown — a case
     // with insufficient data still has a competent authority to complain to.
     channels: channelsForProblem(problemKey),
+    company: buildCaseCompany(facts),
     intakeComplete,
   };
 }
 
 // ── Summary Builder ─────────────────────────────────────────────────
 
+/**
+ * Plain-language summary of an analysis.
+ *
+ * Written for the person reading the report, not for a log: how many points we
+ * checked, how many hold up, and what that means for the next step. PURE.
+ */
 function buildSummary(overallStatus: ClaimStatus, claims: readonly Claim[]): string {
+  if (claims.length === 0) return "Análisis completado.";
+
   const supported = claims.filter((c) => c.status === "SUPPORTED").length;
   const potentially = claims.filter((c) => c.status === "POTENTIALLY_APPLICABLE").length;
   const insufficient = claims.filter((c) => c.status === "INSUFFICIENT_DATA").length;
   const contradicted = claims.filter((c) => c.status === "CONTRADICTED").length;
 
   const parts: string[] = [];
-
-  if (supported > 0) {
-    parts.push(
-      `${supported} afirmación${supported > 1 ? "es" : ""} confirmada${supported > 1 ? "s" : ""}`,
-    );
-  }
+  if (supported > 0) parts.push(`${supported} respaldada${supported > 1 ? "s" : ""}`);
   if (potentially > 0) {
-    parts.push(
-      `${potentially} afirmación${potentially > 1 ? "es" : ""} potencialmente aplicable${potentially > 1 ? "s" : ""}`,
-    );
+    parts.push(`${potentially} que puede${potentially > 1 ? "n" : ""} aplicar`);
   }
-  if (insufficient > 0) {
-    parts.push(`${insufficient} afirmación${insufficient > 1 ? "es" : ""} sin datos suficientes`);
-  }
-  if (contradicted > 0) {
-    parts.push(
-      `${contradicted} afirmación${contradicted > 1 ? "es" : ""} contradictoria${contradicted > 1 ? "s" : ""}`,
-    );
-  }
+  if (insufficient > 0) parts.push(`${insufficient} sin datos suficientes`);
+  if (contradicted > 0) parts.push(`${contradicted} con información que no encaja`);
 
-  const base = parts.length > 0 ? `Análisis: ${parts.join("; ")}.` : "Análisis completado.";
+  const total = claims.length;
+  const base = `Hemos comprobado ${total} punto${total > 1 ? "s" : ""} de tu caso: ${parts.join(", ")}.`;
 
   switch (overallStatus) {
     case "SUPPORTED":
-      return `${base} La información disponible respalda las conclusiones.`;
+      return `${base} Con los datos que nos has dado, la normativa que aplicamos respalda las conclusiones que verás a continuación.`;
     case "POTENTIALLY_APPLICABLE":
-      return `${base} Algunas conclusiones son provisionales.`;
+      return `${base} Algunas conclusiones son provisionales: conviene confirmar los datos que faltan antes de reclamar.`;
     case "INSUFFICIENT_DATA":
-      return `${base} Se requiere información adicional para llegar a una conclusión.`;
+      return `${base} Todavía no podemos concluir: faltan datos que puedes añadir en esta misma página y el análisis se rehará solo.`;
     case "CONTRADICTED":
-      return `${base} Se detectaron contradicciones que requieren resolución.`;
+      return `${base} Hay respuestas que no encajan entre sí y conviene revisarlas antes de reclamar.`;
     case "NOT_APPLICABLE":
-      return `${base} Las reglas evaluadas no resultan aplicables.`;
+      return `${base} Con lo que nos has contado, las normas que aplicamos no cubren este caso.`;
     default:
       return base;
   }

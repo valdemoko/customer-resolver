@@ -72,6 +72,14 @@ export const cancellationChargeModule: ProblemModuleDefinition = defineProblemMo
       questionId: "q-confirmation",
       required: false,
     },
+    {
+      key: "provider.name",
+      type: "string",
+      description:
+        "Empresa proveedora del servicio (telecomunicaciones, energía, suscripción). La usa el informe para mostrar su atención al cliente.",
+      questionId: "q-provider-name",
+      required: false,
+    },
   ],
 
   // Adaptive intake: confirmation only asked when relevant (skip logic via askIf).
@@ -120,6 +128,15 @@ export const cancellationChargeModule: ProblemModuleDefinition = defineProblemMo
       // Only meaningful to explore when the user says there was NO commitment:
       // with a commitment the confirmation matters less for the first factual rules.
       askIf: [{ factKey: "contract.commitment_exists", equals: false }],
+    },
+    // Which company the claim is against. No rule reads it: it exists so the
+    // report can name the company and show its official customer service.
+    {
+      id: "q-provider-name",
+      text: "¿Con qué empresa tienes el problema (telefonía, luz, gas, suscripción…)? Escribe su nombre (por ejemplo: Movistar, Iberdrola).",
+      type: "string",
+      factKey: "provider.name",
+      required: false,
     },
   ],
 

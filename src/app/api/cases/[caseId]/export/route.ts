@@ -11,6 +11,7 @@ import { ProblemAnalysisService } from "@core/problems/analysis-service";
 import { buildResult } from "@core/result/engine";
 import { deriveActions } from "@core/actions/engine";
 import { buildExportAnswers } from "@core/export/answers";
+import { buildCaseHighlights } from "@core/export/highlights";
 import { TxtExportAdapter } from "@core/export/txt-adapter";
 import { ExportService } from "@core/export/service";
 import { PdfExportAdapter } from "@server/adapters/export/pdf-adapter";
@@ -130,11 +131,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
 
     const actionPlan = deriveActions(result);
 
-    // What the person answered, in readable form (see `buildExportAnswers`).
-    const answers = buildExportAnswers(loaded.facts, {
+    // What the person answered, in readable form (see `buildExportAnswers`),
+    // plus the amounts and dates the claim turns on.
+    const labels = {
       questions: Object.fromEntries(questions.map((q) => [q.factKey, q.text])),
       factLabels,
-    });
+    };
+    const answers = buildExportAnswers(loaded.facts, labels);
+    const highlights = buildCaseHighlights(loaded.facts, labels);
 
     // Export
     const exportService = new ExportService([new PdfExportAdapter(), new TxtExportAdapter()]);
@@ -143,6 +147,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
         result,
         actionPlan,
         answers,
+        highlights,
         caseMetadata: {
           problemTitle: problemModule?.title ?? "Caso de consumo",
           jurisdiction: loaded.case.jurisdiction,
