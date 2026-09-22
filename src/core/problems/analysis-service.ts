@@ -19,7 +19,7 @@ import { evaluateRule, type Rule, type RuleEvaluation, type RuleEvaluationContex
 import { jurisdictionApplies } from "../rules/jurisdiction";
 import type { ProblemModuleDefinition } from "./contract";
 import { computeIntakeRequirements } from "./requirements";
-import { resolveNextQuestionWithValues } from "./intake";
+import { factPrimitive, resolveNextQuestionWithValues } from "./intake";
 import type { KnownFact } from "./intake";
 
 /** Port: read the current PUBLISHED rules the analysis needs. */
@@ -250,14 +250,9 @@ export class ProblemAnalysisService {
 }
 
 /** Extract the comparable primitive from a FactValue for the evaluator context. */
-function extractPrimitive(value: { type: string; value: unknown }): unknown {
-  // money keeps its structured form (amountMinor/currency) — v1 rules cannot
-  // compare it; enum/object values are passed as-is for FACT_EQUALS on strings.
-  if (value && typeof value === "object" && "amountMinor" in (value as object)) {
-    return value;
-  }
-  return (value as { value?: unknown }).value ?? value;
-}
+// One implementation for the whole core: asking questions and evaluating rules
+// must read a fact value the same way, or `askIf` and the engine disagree.
+const extractPrimitive = factPrimitive;
 
 /** Parse "ES" / "ES-AN" into { country, region? }. */
 function parseJurisdiction(code: string): { country: string; region?: string } {

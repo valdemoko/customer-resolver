@@ -8,6 +8,43 @@
 import type { IntakeQuestion, ProblemModuleDefinition } from "./contract";
 import type { FactKey } from "../types";
 
+/**
+ * Comparable primitive of a stored fact value.
+ *
+ * Facts are persisted as the structured union `{ type: "boolean", value: true }`,
+ * but `askIf` conditions compare the PRIMITIVE (`true === true`). Passing the
+ * wrapper around made every `askIf` evaluate false, so the questions behind
+ * them (seller's response details, repair history, warranty claims) were never
+ * asked and the analysis always reported missing data.
+ *
+ * Money keeps its structure: rules compare `amountMinor`/`currency` as a unit.
+ */
+export function factPrimitive(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  if ("amountMinor" in record) return value;
+  if ("type" in record && "value" in record) return record.value;
+  return value;
+}
+
+/**
+ * Comparable values of a case's CONFIRMED facts, ready for `askIf` evaluation.
+ *
+ * This is the map every question selector must receive. Building it from the raw
+ * stored values (without `factPrimitive`) silently disabled every conditional
+ * question in the form.
+ */
+export function factValueMap(
+  facts: readonly { readonly key: FactKey | string; readonly value: unknown; readonly status: string }[],
+): Map<FactKey, unknown> {
+  const map = new Map<FactKey, unknown>();
+  for (const fact of facts) {
+    if (fact.status !== "CONFIRMED") continue;
+    map.set(fact.key as FactKey, factPrimitive(fact.value));
+  }
+  return map;
+}
+
 export interface KnownFact {
   readonly key: FactKey;
   readonly status: "CONFIRMED" | "UNCONFIRMED" | "CONTRADICTED" | "SUPERSEDED";

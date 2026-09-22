@@ -127,30 +127,27 @@ export function allRequiredFactsConfirmed(
 }
 
 /**
- * Is the intake done? True only when every fact the analysis needs is confirmed.
+ * Is the intake done? True only when no applicable question remains.
  *
  * Distinct from `allRequiredFactsConfirmed`, which reflects the module's minimum
  * viable set: that one is true after three questions for warranty-rejection,
  * while the rules still need the seller's response details, the repair history
  * and the delivery date. Treating it as "done" ended the questionnaire too early.
  *
- * With no requirement set it degrades to the required-facts semantics.
+ * A question whose `askIf` is false will never be asked, so it must NOT block
+ * completion — otherwise a user who answers "no, the seller never responded"
+ * would be stuck in a form that can never finish. With no requirement set this
+ * degrades to the required-facts semantics.
  */
 export function intakeRequirementsSatisfied(
   module: ProblemModuleDefinition,
   confirmedFacts: readonly KnownFact[],
+  factValues: ReadonlyMap<FactKey, unknown>,
   neededFactKeys?: ReadonlySet<string>,
 ): boolean {
   if (!neededFactKeys || neededFactKeys.size === 0) {
     return allRequiredFactsConfirmed(module, confirmedFacts);
   }
 
-  const confirmedKeys = new Set(
-    confirmedFacts.filter((f) => f.status === "CONFIRMED").map((f) => f.key as string),
-  );
-
-  for (const key of neededFactKeys) {
-    if (!confirmedKeys.has(key)) return false;
-  }
-  return true;
+  return selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys) === null;
 }

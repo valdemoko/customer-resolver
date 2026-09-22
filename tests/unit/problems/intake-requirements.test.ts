@@ -11,7 +11,8 @@ import { describe, expect, it } from "vitest";
 import { computeDerivedFacts } from "@core/problems";
 import { computeIntakeRequirements, DERIVED_FACT_SOURCES } from "@core/problems/requirements";
 import { collectRuleFactKeys } from "@core/rules/fact-keys";
-import { intakeRequirementsSatisfied } from "@core/intake/question-selector";
+import { intakeRequirementsSatisfied, selectNextQuestion } from "@core/intake/question-selector";
+import { factValueMap } from "@core/problems/intake";
 import type { KnownFact } from "@core/problems";
 import { createProblemRegistry } from "@server/problems/registry";
 import { moduleCodeRules } from "@server/rules/publish-module-rules";
@@ -122,13 +123,17 @@ describe("intake requirements", () => {
       { key: "seller.response_received" as KnownFact["key"], status: "CONFIRMED" },
       { key: "seller.rejection" as KnownFact["key"], status: "CONFIRMED" },
     ];
-    expect(intakeRequirementsSatisfied(problemModule, partial, neededFactKeys)).toBe(false);
+    expect(intakeRequirementsSatisfied(problemModule, partial, new Map(), neededFactKeys)).toBe(
+      false,
+    );
 
     const complete: KnownFact[] = [...neededFactKeys].map((key) => ({
       key: key as KnownFact["key"],
       status: "CONFIRMED",
     }));
-    expect(intakeRequirementsSatisfied(problemModule, complete, neededFactKeys)).toBe(true);
+    expect(intakeRequirementsSatisfied(problemModule, complete, new Map(), neededFactKeys)).toBe(
+      true,
+    );
   });
 
   it("falls back to the required-facts semantics when no requirement set is given", () => {
@@ -136,7 +141,79 @@ describe("intake requirements", () => {
     const requiredOnly: KnownFact[] = problemModule.factCatalogue
       .filter((f) => f.required)
       .map((f) => ({ key: f.key as KnownFact["key"], status: "CONFIRMED" }));
-    expect(intakeRequirementsSatisfied(problemModule, requiredOnly)).toBe(true);
+    expect(intakeRequirementsSatisfied(problemModule, requiredOnly, new Map())).toBe(true);
+  });
+
+  it("asks the conditional questions once their condition is met", () => {
+    // Regression: facts are stored as { type, value } wrappers. Feeding those
+    // wrappers straight into `askIf` made every comparison false, so the seller
+    // response details, the repair history and the warranty claims were never
+    // asked — the form ended after 5 questions and the rules reported no data.
+    const problemModule = registry.get("warranty-rejection");
+    const { neededFactKeys } = computeIntakeRequirements(
+      problemModule,
+      moduleCodeRules(problemModule.key),
+    );
+
+    const facts = [
+      {
+        key: "nonconformity.description",
+        value: { type: "string", value: "No carga a las tres semanas." },
+        status: "CONFIRMED",
+      },
+      {
+        key: "seller.response_received",
+        value: { type: "boolean", value: true },
+        status: "CONFIRMED",
+      },
+      { key: "seller.rejection", value: { type: "boolean", value: true }, status: "CONFIRMED" },
+    ];
+    const known: KnownFact[] = facts.map((f) => ({
+      key: f.key as KnownFact["key"],
+      status: "CONFIRMED",
+    }));
+
+    const next = selectNextQuestion(
+      problemModule,
+      known,
+      factValueMap(facts),
+      neededFactKeys,
+    );
+    expect(next?.factKey).toBe("seller.offered_repair");
+  });
+
+  it("finishes instead of deadlocking when a condition closes a branch", () => {
+    // "The seller never responded" hides every question behind that condition.
+    // They can never be confirmed, so they must not block completion.
+    const problemModule = registry.get("warranty-rejection");
+    const { neededFactKeys } = computeIntakeRequirements(
+      problemModule,
+      moduleCodeRules(problemModule.key),
+    );
+
+    const facts = [
+      {
+        key: "nonconformity.description",
+        value: { type: "string", value: "No carga." },
+        status: "CONFIRMED",
+      },
+      {
+        key: "seller.response_received",
+        value: { type: "boolean", value: false },
+        status: "CONFIRMED",
+      },
+      { key: "seller.rejection", value: { type: "boolean", value: false }, status: "CONFIRMED" },
+      { key: "purchase.delivery_date", value: { type: "date", value: "2026-05-01" }, status: "CONFIRMED" },
+      { key: "repair.completed", value: { type: "boolean", value: false }, status: "CONFIRMED" },
+    ];
+    const known: KnownFact[] = facts.map((f) => ({
+      key: f.key as KnownFact["key"],
+      status: "CONFIRMED",
+    }));
+
+    expect(intakeRequirementsSatisfied(problemModule, known, factValueMap(facts), neededFactKeys)).toBe(
+      true,
+    );
   });
 });
 

@@ -12,6 +12,7 @@ import { createIntakeServices } from "@server/intake/composition";
 import { moduleIntakeRequirements } from "@server/rules/publish-module-rules";
 import { factValueSchema } from "@core/intake/schemas";
 import type { KnownFact } from "@core/problems";
+import { factValueMap } from "@core/problems/intake";
 import type { QuestionSelection } from "@core/intake/types";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import type { FactKey, FactValue } from "@core/types";
@@ -50,9 +51,7 @@ function resolveIntakeProgress(
       key: f.key,
       status: f.status as KnownFact["status"],
     }));
-    const factValues = new Map<FactKey, unknown>(
-      loaded.facts.filter((f) => f.status === "CONFIRMED").map((f) => [f.key, f.value]),
-    );
+    const factValues = factValueMap(loaded.facts);
 
     return {
       nextQuestion: services.intakeService.selectNextQuestion(
@@ -64,6 +63,7 @@ function resolveIntakeProgress(
       allRequiredConfirmed: services.intakeService.intakeRequirementsSatisfied(
         problemModule,
         knownFacts,
+        factValues,
         requirements.neededFactKeys,
       ),
     };

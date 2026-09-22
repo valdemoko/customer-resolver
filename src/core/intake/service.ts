@@ -287,9 +287,10 @@ export class IntakeService {
   intakeRequirementsSatisfied(
     module: ProblemModuleDefinition,
     confirmedFacts: readonly KnownFact[],
+    factValues: ReadonlyMap<FactKey, unknown>,
     neededFactKeys?: ReadonlySet<string>,
   ): boolean {
-    return intakeRequirementsSatisfied(module, confirmedFacts, neededFactKeys);
+    return intakeRequirementsSatisfied(module, confirmedFacts, factValues, neededFactKeys);
   }
 
   /**

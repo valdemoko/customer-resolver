@@ -10,6 +10,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createIntakeServices } from "@server/intake/composition";
 import { tryReserveBudget, releaseBudget } from "@server/intake/budget-store";
+import { moduleIntakeRequirements } from "@server/rules/publish-module-rules";
+import { factValueMap } from "@core/problems/intake";
 
 export const dynamic = "force-dynamic";
 
@@ -151,10 +153,12 @@ export async function POST(request: Request) {
       const confirmedFacts = loaded.facts
         .filter((f) => f.status === "CONFIRMED")
         .map((f) => ({ key: f.key, status: f.status }));
+      const requirements = moduleIntakeRequirements(routedModule);
       nextQuestion = services.intakeService.selectNextQuestion(
         routedModule,
         confirmedFacts,
-        new Map(),
+        factValueMap(loaded.facts),
+        requirements.neededFactKeys,
       );
     }
 
