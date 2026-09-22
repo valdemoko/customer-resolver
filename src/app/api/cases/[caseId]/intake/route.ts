@@ -9,98 +9,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createIntakeServices } from "@server/intake/composition";
-import { moduleIntakeRequirements } from "@server/rules/publish-module-rules";
+import { parseDeclinedFactKeys, resolveIntakeProgress } from "@server/intake/progress";
 import { factValueSchema } from "@core/intake/schemas";
-import type { KnownFact } from "@core/problems";
-import { factValueMap } from "@core/problems/intake";
-import type { QuestionSelection } from "@core/intake/types";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import type { FactKey, FactValue } from "@core/types";
 
 export const dynamic = "force-dynamic";
-
-// ── Intake progress ──────────────────────────────────────────────────
-
-interface LoadedFactsView {
-  readonly facts: readonly { key: FactKey; value: unknown; status: string }[];
-}
-
-interface IntakeProgressView {
-  readonly nextQuestion: QuestionSelection | null;
-  readonly allRequiredConfirmed: boolean;
-}
-
-/**
- * Deterministic progress for a case: the next fact the analysis still needs, and
- * whether the questionnaire is finished.
- *
- * "Finished" means every fact the module's rules read is confirmed — not "the
- * module's three required facts are present". Using the latter ended the form
- * after three questions, so the rules ran with half their inputs missing and
- * every claim came back INSUFFICIENT_DATA.
- */
-function resolveIntakeProgress(
-  services: ReturnType<typeof createIntakeServices>,
-  loaded: LoadedFactsView,
-  problemKey: string,
-  declinedFactKeys?: ReadonlySet<string>,
-): IntakeProgressView {
-  try {
-    const problemModule = services.registry.get(problemKey);
-    const requirements = moduleIntakeRequirements(problemModule);
-    const knownFacts: KnownFact[] = loaded.facts.map((f) => ({
-      key: f.key,
-      status: f.status as KnownFact["status"],
-    }));
-    const factValues = factValueMap(loaded.facts);
-
-    return {
-      nextQuestion: services.intakeService.selectNextQuestion(
-        problemModule,
-        knownFacts,
-        factValues,
-        requirements.neededFactKeys,
-        declinedFactKeys,
-      ),
-      allRequiredConfirmed: services.intakeService.intakeRequirementsSatisfied(
-        problemModule,
-        knownFacts,
-        factValues,
-        requirements.neededFactKeys,
-        declinedFactKeys,
-      ),
-    };
-  } catch {
-    // Unknown module — the case simply has no next question.
-    return { nextQuestion: null, allRequiredConfirmed: false };
-  }
-}
-
-/**
- * Facts the client reports as "I don't know", taken from `?skipped=a,b`.
- *
- * The questionnaire is stateless per request, so the client tells the server
- * which questions to stop asking. Only keys the module actually declares are
- * accepted; anything else is ignored.
- */
-function parseDeclinedFactKeys(
-  request: Request,
-  services: ReturnType<typeof createIntakeServices>,
-  problemKey: string | null | undefined,
-): ReadonlySet<string> {
-  const raw = new URL(request.url).searchParams.get("skipped");
-  if (!raw || !problemKey || !services.registry.has(problemKey)) return new Set();
-
-  const declared = new Set(
-    services.registry.get(problemKey).intake.map((q) => q.factKey as string),
-  );
-  return new Set(
-    raw
-      .split(",")
-      .map((key) => key.trim())
-      .filter((key) => key.length > 0 && declared.has(key)),
-  );
-}
 
 // ── POST input validation ────────────────────────────────────────────
 

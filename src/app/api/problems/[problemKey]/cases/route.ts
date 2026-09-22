@@ -1,96 +1,129 @@
 /**
- * Internal demo API (Fase 4): create a case for a registered problem module.
- * Calls application services only — never the Drizzle adapter directly.
- * No auth yet (deferred by plan); typed error codes in every response.
+ * POST /api/problems/[problemKey]/cases
  *
- * Requires DATABASE_URL (Neon) — the demo API is server-side only and never
- * touches a test DB. Returns 503 with a typed error when unset.
+ * Deterministic case entry. When the person already chose a problem (from
+ * `/problemas/[slug]`, the problem index or the fallback screen), there is
+ * nothing to interpret: the module is known, so the case is created directly
+ * with that problem key and the first question comes back in the same response.
+ *
+ * Why this exists: the problem page used to send the person to
+ * `/resolver?q=<title>`, which re-entered through the AI interpretation. That
+ * asked an LLM to guess something the site already knew, consumed budget, and
+ * turned every provider outage into a dead end (503) for a flow that needs no
+ * model at all.
+ *
+ * Rules:
+ *  - Only published problems (catalogue `available` + registered module) are
+ *    accepted; anything else is a 404, never a silent empty case.
+ *  - The case is created with the module's own jurisdiction/locale, never a
+ *    hardcoded value, so rules can actually be evaluated against it.
+ *  - No AI call happens here.
  */
 import { NextResponse } from "next/server";
 
-import { CaseService } from "@core/case/service";
-import { ProblemRegistry } from "@core/problems";
-import { createNeonDb } from "@server/db/client";
-import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
-import { getServerEnv } from "@/lib/env";
+import { createIntakeServices } from "@server/intake/composition";
+import { caseDefaultsForModule, resolveIntakeProgress } from "@server/intake/progress";
+import { getAvailableProblems } from "@/lib/problem-catalogue";
 import { isValidProblemKey, sanitizeErrorMessage } from "@/lib/validation";
-import { createProblemRegistry } from "@server/problems/registry";
 
 export const dynamic = "force-dynamic";
 
-type Repo = ConstructorParameters<typeof DrizzleCaseRepository>[0];
+const PRIVATE_CACHE_HEADERS = {
+  "Cache-Control": "private, no-store, no-cache, must-revalidate",
+  Pragma: "no-cache",
+} as const;
 
-/** Composition root for API routes: registry + services over the real adapter. */
-function compositionRoot(): { registry: ProblemRegistry; caseService: CaseService } {
-  const { DATABASE_URL } = getServerEnv();
-  if (!DATABASE_URL) {
-    throw new Error("DATABASE_URL is required for the problems API (503 until configured)");
-  }
-  const registry = createProblemRegistry();
-  const repo = new DrizzleCaseRepository(createNeonDb(DATABASE_URL) as unknown as Repo);
-  return { registry, caseService: new CaseService(repo) };
+function errorResponse(code: string, message: string, status: number) {
+  return NextResponse.json(
+    { error: { code, message } },
+    { status, headers: PRIVATE_CACHE_HEADERS },
+  );
 }
 
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ problemKey: string }> },
 ) {
   const { problemKey } = await params;
 
   if (!isValidProblemKey(problemKey)) {
-    return NextResponse.json(
-      { error: { code: "INVALID_INPUT", message: "Invalid problem key format" } },
-      { status: 400 },
+    return errorResponse("INVALID_INPUT", "Invalid problem key format", 400);
+  }
+
+  const catalogueEntry = getAvailableProblems().find((p) => p.key === problemKey);
+  if (!catalogueEntry) {
+    return errorResponse(
+      "UNKNOWN_PROBLEM",
+      "Ese problema no tiene un análisis disponible todavía.",
+      404,
     );
   }
 
-  let body: { ownerId?: string };
+  // No request body is read on purpose. The old version accepted an `ownerId`
+  // from the caller, which let anyone attribute a case to someone else; with no
+  // authentication to bind an owner to, every case is created as anonymous —
+  // exactly as the interpretation route does.
+  let services: ReturnType<typeof createIntakeServices>;
   try {
-    body = (await request.json()) as { ownerId?: string };
+    services = createIntakeServices();
   } catch {
-    body = {};
-  }
-
-  let services: ReturnType<typeof compositionRoot>;
-  try {
-    services = compositionRoot();
-  } catch {
-    return NextResponse.json(
-      {
-        error: {
-          code: "SERVICE_UNAVAILABLE",
-          message: "Database not configured (DATABASE_URL missing)",
-        },
-      },
-      { status: 503 },
+    return errorResponse(
+      "SERVICE_UNAVAILABLE",
+      "El servicio de análisis no está configurado en este entorno.",
+      503,
     );
   }
 
   if (!services.registry.has(problemKey)) {
-    return NextResponse.json(
-      { error: { code: "UNKNOWN_PROBLEM", message: `Unknown problem: ${problemKey}` } },
-      { status: 404 },
+    return errorResponse(
+      "UNKNOWN_PROBLEM",
+      "Ese problema no tiene un análisis disponible todavía.",
+      404,
     );
   }
 
+  const problemModule = services.registry.get(problemKey);
+  const defaults = caseDefaultsForModule(problemModule);
+
+  let caseId: string;
   try {
     const created = await services.caseService.createCase({
-      problemSlug: problemKey,
-      jurisdiction: "UNKNOWN",
-      locale: "es-ES",
-      currency: "EUR",
-      ownerId: body.ownerId ?? "anonymous",
+      ...defaults,
+      ownerId: "anonymous",
     } as never);
-    return NextResponse.json({ case: created }, { status: 201 });
+    caseId = created.id;
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "CASE_CREATE_FAILED",
-          message: sanitizeErrorMessage(error),
-        },
-      },
-      { status: 500 },
+    console.error(
+      "[problems/cases] Case creation failed:",
+      JSON.stringify({
+        message: error instanceof Error ? error.message : String(error),
+        problemKey,
+      }),
+    );
+    return errorResponse(
+      "CASE_CREATE_FAILED",
+      sanitizeErrorMessage(error),
+      500,
     );
   }
+
+  // First question in the same round trip: no waterfall, no intermediate screen.
+  const loaded = await services.caseService.loadCase(caseId);
+  const { nextQuestion, allRequiredConfirmed } = resolveIntakeProgress(
+    services,
+    loaded,
+    problemKey,
+  );
+
+  return NextResponse.json(
+    {
+      caseId,
+      problemKey,
+      problemTitle: catalogueEntry.title,
+      status: loaded.case.status,
+      nextQuestion,
+      allRequiredConfirmed,
+    },
+    { status: 201, headers: PRIVATE_CACHE_HEADERS },
+  );
 }

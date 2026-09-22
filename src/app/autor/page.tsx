@@ -255,9 +255,119 @@ export default function AuthorPage() {
             </li>
           </ul>
           <p>
-            El proyecto es de código abierto y cualquier persona puede revisar
-            tanto el código como las reglas de análisis que implementa.
+            Las reglas de análisis viven en el repositorio del proyecto junto
+            con las pruebas que las cubren y el registro de fuentes que citan.
           </p>
+          <p>
+            El registro público de correcciones, con fecha y alcance de cada
+            cambio, está en{" "}
+            <Link
+              href="/correcciones"
+              className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+            >
+              Correcciones
+            </Link>
+            .
+          </p>
+        </div>
+      </section>
+
+      {/* How to report an error */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Cómo informar de un error
+        </h2>
+        <div className="space-y-4 text-sm text-slate-500 leading-relaxed">
+          <p>
+            Si una afirmación no coincide con la normativa, o si una fuente ya
+            no está disponible, el canal es la página de contacto. Para poder
+            comprobarlo hace falta el dato concreto:
+          </p>
+          <ul className="space-y-2 ml-4">
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              La página o el problema donde aparece el texto.
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              La norma y el artículo que, según tu criterio, deberían aplicarse.
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+              Si es posible, el enlace a la publicación oficial donde consta.
+            </li>
+          </ul>
+          <p>
+            Cada corrección que se aplica se publica con su fecha en el registro
+            de correcciones. Si una regla de análisis cambia, se publica como una
+            versión nueva en lugar de editarse en silencio.
+          </p>
+          <p>
+            <Link
+              href="/contacto"
+              className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+            >
+              Ir a contacto →
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {/* Scope */}
+      <section className="mb-12">
+        <h2
+          className="text-xl font-semibold text-slate-900 mb-3"
+          style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+        >
+          Qué cubre Resolveo y qué no
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+            <p className="text-xs font-medium tracking-wider uppercase text-[var(--color-ink-faint)] mb-3">
+              Qué cubre
+            </p>
+            <ul className="space-y-2 text-sm text-slate-500 leading-relaxed">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+                Problemas de consumo con normativa estatal o europea
+                directamente aplicable en España.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+                Explicar qué hechos son relevantes, qué reglas pueden aplicarse
+                y qué documentación conviene conservar.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+                Indicar pasos concretos y canales de reclamación verificados.
+              </li>
+            </ul>
+          </div>
+          <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+            <p className="text-xs font-medium tracking-wider uppercase text-[var(--color-ink-faint)] mb-3">
+              Qué no cubre
+            </p>
+            <ul className="space-y-2 text-sm text-slate-500 leading-relaxed">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+                Asesoramiento jurídico personalizado ni representación en
+                reclamaciones.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+                Materias sin normativa registrada: en esos casos el sistema lo
+                declara en lugar de concluir.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 text-slate-300 mt-0.5">—</span>
+                Garantizar un resultado: el análisis indica posiciones
+                defendibles, no resultados de un procedimiento.
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 

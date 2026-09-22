@@ -407,4 +407,103 @@ $ npx next build
 
 Cada afirmación de esta sección se comprobó sobre el HTML generado en `.next/`,
 no sólo sobre el código fuente.
+
+---
+
+## 12. Flujo único, trazabilidad pública y preparación de CMP
+
+Segunda pasada de implementación sobre la auditoría crítica. El criterio: una sola
+arquitectura, y lo que el sitio afirma debe ser lo que el código hace.
+
+### 1. Entrada determinista (el problema ya se conoce)
+
+- `src/app/api/problems/[problemKey]/cases/route.ts` deja de ser un endpoint de demo:
+  valida contra el catálogo publicado (404 tipado si no existe), crea el caso con los
+  **defaults del propio módulo** (`caseDefaultsForModule`, no `UNKNOWN`/`es-ES`
+  hardcodeados) y devuelve la **primera pregunta en la misma respuesta**.
+- `src/server/intake/progress.ts`: el cálculo de progreso se extrae de la ruta de intake
+  para que cuestionario y análisis no puedan divergir.
+- `/problemas/[slug]` enlaza a `/resolver?problema=<slug>`: el módulo viaja en la URL, no
+  se pide a un modelo que vuelva a adivinar lo que la persona acaba de elegir.
+- El buscador (`SearchBar`) pasa a ser navegación pura: problema conocido → entrada
+  determinista; texto libre → `/resolver`, que es el único flujo con reintento y salida
+  alternativa. Desaparece la tercera UX (`/case/new` eliminada) y el `sessionStorage` que
+  transportaba la interpretación entre pantallas.
+
+### 2. IA como dependencia, no como punto único de fallo
+
+- Errores tipados del servidor traducidos a mensajes con una salida real
+  (`AI_UNAVAILABLE`, `AI_INVALID_STRUCTURED_OUTPUT`, `BUDGET_EXCEEDED`,
+  `SERVICE_UNAVAILABLE`), con `AbortSignal.timeout` en cada llamada.
+- La pantalla de error ofrece: reintentar la descripción, listar los 4 problemas
+  publicados (entrada determinista) y volver a empezar. Nunca un callejón sin salida.
+
+### 3. Informe: trazable y corregible
+
+- Los hechos que cada regla lee y las fuentes que cita se derivan del propio módulo
+  (`src/lib/trace.ts`, `src/components/TraceDemo.tsx`) y se publican en
+  `/como-funciona` y en cada ficha: HECHO → REGLA → ARTÍCULO → FUENTE → CONCLUSIÓN.
+- Las respuestas del informe se pueden **corregir en el sitio** (`AnswerRow`): la
+  corrección se guarda como un hecho nuevo que supera al anterior (no se reescribe el
+  caso en silencio) y el análisis se regenera.
+- `INSUFFICIENT_DATA` deja de ser un final: explica qué falta, cuántos datos son, por
+  qué deciden una conclusión, cómo aportarlos y qué ocurre al hacerlo.
+
+### 4. Transparencia editorial
+
+- `/autor` pasa a *responsabilidad editorial y método de revisión*: qué se comprueba
+  automáticamente, qué revisa una persona, cómo informar de un error, y qué cubre y qué
+  no cubre Resolveo. Sin credenciales inventadas.
+- Nueva `/correcciones` (`src/lib/corrections.ts`): registro fechado de correcciones
+  reales (citas normativas, plazos sin fuente, páginas legales, flujo del buscador), con
+  el alcance del registro declarado en lugar de reconstruir un historial.
+
+### 5. SEO y contratos públicos
+
+- JSON-LD por página de problema: `BreadcrumbList`, `WebPage` (con `dateModified`) y
+  `FAQPage` construido desde las preguntas reales del catálogo.
+- Sitemap: añadida `/correcciones`; siguen fuera `/resolver`, `/case/*`, `/casos` y
+  `/problema-libre`.
+- `/casos` conserva `noindex` y su enlace útil en el footer («Recuperar un caso») para no
+  quedar huérfana.
+
+### 6. CMP preparado sin inventar nada
+
+- `src/components/GoogleConsentCmp.tsx` carga la etiqueta de Google Privacy & Messaging
+  solo si `NEXT_PUBLIC_GOOGLE_CMP_SRC` está definida, y solo si es https en un host
+  `google.com`. Sin variable no se renderiza nada: no hay placeholder que parezca un CMP.
+- No se implementa TCF, ni `__tcfapi`, ni Consent Mode a mano, ni se usa la decisión de
+  publicidad para Plausible (cookieless e independiente). Documentado en `.env.example`.
+
+### 7. Legal coherente con el código
+
+`/cookies` y `/privacidad` afirman ahora lo que el código hace: sin cookies, sin
+`localStorage` y **sin `sessionStorage`** (el estado del caso vive en el servidor). Se
+elimina la lectura muerta de esa clave en el cuestionario heredado.
+
+### 8. Verificación
+
+```bash
+$ npx tsc --noEmit      # PASS (0 errores)
+$ npx eslint src/ tests/ # PASS (0 errores, 0 warnings)
+$ npx vitest run        # PASS (71 archivos, 1147 tests)
+$ npx next build        # PASS (23 páginas generadas)
 ```
+
+Tests nuevos de esta fase: contrato del endpoint determinista (400/404/no-store),
+recorrido completo ficha → preguntas → cuestionario completo sobre persistencia real
+para **los 4 problemas publicados**, trazabilidad derivada (toda regla publicada cita al
+menos una fuente), registro de correcciones y guarda de la etiqueta de CMP.
+
+Se comprobó en el HTML generado: enlace `resolver?problema=vuelo-cancelado`, JSON-LD de
+FAQ y breadcrumbs, sección de trazabilidad y presencia de `/correcciones` en el sitemap.
+
+### 9. Pendiente (requiere credencial o decisión humana)
+
+- `NEXT_PUBLIC_GOOGLE_CMP_SRC`: pegar la etiqueta exacta que genera AdSense
+  (Privacidad y mensajería → Reglamentos europeos). No se inventa ni se construye a mano.
+- Revisión legal humana del supuesto de gastos adicionales (art. 9.1) y de la regla DRAFT
+  del cargo por permanencia: siguen fuera del conjunto publicado a propósito.
+- Identidad del responsable en `/privacidad` y firma en `/autor`: el proyecto dice «la
+  persona que mantiene el proyecto» + correo, sin inventar nombre ni entidad.
+- AdSense no se activa todavía: el remedio real es más contenido público, no un script.

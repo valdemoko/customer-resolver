@@ -24,7 +24,8 @@ const PLATFORM_LINKS = [
   { href: "/autor", label: "Autor" },
   { href: "/como-funciona", label: "Cómo funciona" },
   { href: "/fuentes", label: "Fuentes" },
-  { href: "/casos", label: "Casos" },
+  { href: "/correcciones", label: "Correcciones" },
+  { href: "/casos", label: "Recuperar un caso" },
   { href: "/contacto", label: "Contacto" },
 ] as const;
 

@@ -81,3 +81,19 @@ pnpm test:e2e    # E2E con servidor propio en :3100
 
 No se aceptan secretos en el repositorio. Todas las claves viven en variables de
 entorno de servidor (ver `.env.example`).
+
+## Analítica y consentimiento
+
+Son dos cosas distintas, y el proyecto las mantiene separadas:
+
+- **Plausible** (`NEXT_PUBLIC_PLAUSIBLE_DOMAIN`): analítica sin cookies ni
+  identificadores persistentes. No se condiciona al consentimiento publicitario y
+  no se carga en desarrollo.
+- **Google Privacy & Messaging** (`NEXT_PUBLIC_GOOGLE_CMP_SRC`): CMP certificado
+  para anuncios en EEA/UK/CH. Se configura pegando la etiqueta exacta que genera
+  AdSense; el código no construye ni inventa esa URL. Mientras la variable no esté
+  definida, no se renderiza ninguna etiqueta.
+
+No se implementa TCF ni Consent Mode a mano: el CMP certificado ya los cubre, y
+reimplementarlos sería una simulación. La decisión de publicidad tampoco se usa
+para cargar Plausible.

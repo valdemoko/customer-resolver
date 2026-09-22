@@ -240,11 +240,8 @@ export default function PrivacyPage() {
           </h2>
           <p>
             Resolveo <strong>no utiliza cookies</strong>. Ni cookies propias ni
-            de terceros. Para más detalles, incluido el uso puntual de{" "}
-            <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
-              sessionStorage
-            </code>{" "}
-            para el funcionamiento del cuestionario, consulta nuestra{" "}
+            de terceros, ni almacenamiento del navegador: el estado de un caso se
+            guarda en el servidor. Para más detalles, consulta nuestra{" "}
             <a
               href="/cookies"
               className="text-slate-900 underline underline-offset-2 hover:text-slate-700 transition-colors"

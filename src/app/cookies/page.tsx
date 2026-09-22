@@ -1,12 +1,15 @@
 /**
  * Política de Cookies y Almacenamiento — Resolveo.
  *
- * Documents that Resolveo does not use cookies.
+ * Documents that Resolveo does not use cookies, localStorage or sessionStorage.
  * Plausible Analytics is cookieless.
- * sessionStorage is documented because the site does use it: it carries the
- * interpretation from the search bar to the questionnaire and is deleted as
- * soon as it is read (audit 2026-09-22 — the page claimed no browser storage
- * was used beyond the HTTP cache).
+ *
+ * History of this page, because it is a claim about the code and has been wrong
+ * twice: it first said nothing was stored in the browser while the questionnaire
+ * used sessionStorage, and later documented that sessionStorage key while the
+ * search bar was the only writer. The search bar now navigates to `/resolver`
+ * (deterministically for a known problem), nothing writes browser storage, and
+ * the page says so. The case state lives on the server.
  */
 import type { Metadata } from "next";
 
@@ -111,51 +114,30 @@ export default function CookiesPage() {
             Almacenamiento en el navegador
           </h2>
           <p className="mb-4">
-            Resolveo no utiliza{" "}
+            Resolveo no utiliza cookies, ni{" "}
             <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
               localStorage
             </code>{" "}
-            ni cookies. Sí utiliza{" "}
+            ni{" "}
             <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">
               sessionStorage
             </code>
             {" "}
-            para una única función técnica: transportar los datos del análisis
-            entre la búsqueda y el cuestionario sin volver a consultarlos. No se
-            usa para identificarte, medir audiencia ni mostrar publicidad.
+            . El estado de un caso vive en el servidor, y la pantalla lo consulta
+            cada vez que lo necesita: no se guarda nada en tu navegador para
+            identificarte, medir audiencia ni mostrar publicidad.
           </p>
 
-          <div className="border border-slate-200/70 rounded overflow-hidden">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Clave</th>
-                  <th className="px-3 py-2 font-medium">Contenido</th>
-                  <th className="px-3 py-2 font-medium">Duración</th>
-                </tr>
-              </thead>
-              <tbody className="text-slate-600">
-                <tr className="border-t border-slate-200/70">
-                  <td className="px-3 py-2 font-mono whitespace-nowrap">
-                    intake-&lt;id-de-caso&gt;
-                  </td>
-                  <td className="px-3 py-2">
-                    El análisis y las preguntas del caso, para no repetir la
-                    consulta. Se elimina en cuanto el cuestionario lo lee.
-                  </td>
-                  <td className="px-3 py-2">
-                    Hasta cerrar la pestaña; se borra al leerse
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <p className="mb-4">
+            El único dato que permanece en tu navegador al usar Resolveo es el
+            identificador del caso, que aparece en la barra de direcciones de la
+            página de tu caso. Si guardas ese enlace, podrás volver a consultarlo;
+            si no, desaparece al cerrar la pestaña.
+          </p>
 
           <p className="mt-4">
-            Puedes borrarlo en cualquier momento cerrando la pestaña o limpiando
-            los datos del sitio desde tu navegador. Como no hay cookies, no
-            existe un banner de cookies: no hay nada que aceptar o rechazar por
-            navegar.
+            Al no haber cookies, no existe un banner de cookies: no hay nada que
+            aceptar o rechazar por navegar.
           </p>
         </section>
       </div>

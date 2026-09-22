@@ -170,6 +170,10 @@ interface CaseAnswer {
   label: string;
   value: string;
   origin: "USER" | "DOCUMENT" | "DERIVED";
+  /** Present when the report can correct this answer in place. */
+  factKey?: string;
+  answerType?: string;
+  answerOptions?: string[];
 }
 
 interface CaseResult {
@@ -258,6 +262,11 @@ interface AppState {
   skippedFacts: string[];
   /** True while completing pending data and re-running the analysis. */
   reanalyzing: boolean;
+  /**
+   * Title of the problem whose case is being prepared deterministically.
+   * Non-null only while the deterministic entry is running (no AI involved).
+   */
+  bootstrapTitle: string | null;
 }
 
 /** A fact candidate extracted from a document (never a fact until confirmed). */
@@ -529,6 +538,160 @@ function PendingFactCard({
   );
 }
 
+/**
+ * One answer of the report, correctable in place.
+ *
+ * Reading the report is when a wrong date or amount is noticed, so correcting it
+ * has to happen here. The correction goes through the same fact endpoint as a new
+ * answer: the previous value is superseded rather than edited, so the change is
+ * recorded instead of silently rewriting the case.
+ *
+ * Only facts the person supplied (`USER`, or read from a document) with a declared
+ * type are editable — a value the analysis computed cannot be "answered" again.
+ */
+function AnswerRow({
+  answer,
+  busy,
+  onSubmit,
+}: {
+  answer: CaseAnswer;
+  busy: boolean;
+  onSubmit: (factKey: string, kind: AnswerInputKind, raw: string) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const factKey = answer.factKey;
+  const kind = answer.answerType ? answerKindOf(answer.answerType) : null;
+  const options = answer.answerOptions ?? [];
+  const editable = Boolean(factKey) && answer.origin !== "DERIVED" && kind !== null;
+
+  const save = async (raw: string) => {
+    if (!factKey || !kind) return;
+    setError(null);
+    const ok = await onSubmit(factKey, kind, raw);
+    if (ok) {
+      setSaved(true);
+      setEditing(false);
+      setValue("");
+    } else {
+      setError("No pudimos guardar la corrección. Inténtalo de nuevo.");
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <dt className="text-xs text-[var(--color-ink-muted)]">{answer.label}:</dt>
+      <dd className="text-xs font-medium text-[var(--color-ink)]">
+        {answer.value}
+        <span className="ml-2 text-[10px] text-[var(--color-ink-faint)] uppercase tracking-wide">
+          {ORIGIN_TAGS[answer.origin]}
+        </span>
+      </dd>
+
+      {editable && !editing && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          disabled={busy}
+          className="text-[11px] text-[var(--color-accent)] underline underline-offset-2 hover:no-underline min-h-[24px]"
+        >
+          Corregir
+        </button>
+      )}
+
+      {saved && !editing && (
+        <span className="text-[11px] text-[var(--color-supported)]">Corregido</span>
+      )}
+
+      {editing && kind && (
+        <div className="w-full mt-2 p-3 bg-[var(--surface-warm)] border border-[var(--border-light)]">
+          <p className="text-[11px] text-[var(--color-ink-muted)] leading-relaxed mb-3">
+            Valor actual: {answer.value}. El valor anterior se conserva como superado y el análisis
+            se regenera con el nuevo.
+          </p>
+
+          {kind === "boolean" && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => void save("sí")} disabled={busy} className="btn-primary text-xs">
+                Sí
+              </button>
+              <button type="button" onClick={() => void save("no")} disabled={busy} className="btn-secondary text-xs">
+                No
+              </button>
+            </div>
+          )}
+
+          {kind === "enum" && options.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => void save(option)}
+                  disabled={busy}
+                  className="btn-secondary text-xs"
+                >
+                  {option.replace(/_/g, " ")}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {kind !== "boolean" && kind !== "enum" && (
+            <div className="flex flex-wrap gap-2">
+              <input
+                type={kind === "date" ? "date" : kind === "string" ? "text" : "number"}
+                inputMode={kind === "number" || kind === "money" ? "decimal" : undefined}
+                step={kind === "money" ? "0.01" : undefined}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && value.trim()) void save(value.trim());
+                }}
+                aria-label={`Nuevo valor para ${answer.label}`}
+                placeholder={
+                  kind === "money"
+                    ? "Importe en euros, por ejemplo 249,90"
+                    : kind === "number"
+                      ? "Escribe un número"
+                      : "Escribe el valor correcto"
+                }
+                className="input-base flex-1 min-w-[180px]"
+                disabled={busy}
+              />
+              <button
+                type="button"
+                onClick={() => void save(value.trim())}
+                disabled={!value.trim() || busy}
+                className="btn-primary text-xs"
+              >
+                {busy ? "Actualizando…" : "Guardar"}
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setError(null);
+            }}
+            disabled={busy}
+            className="btn-ghost text-xs mt-3"
+          >
+            Cancelar
+          </button>
+
+          {error && <p className="text-[11px] text-[var(--color-contradicted)] mt-2">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    REPORT — full case report
    ══════════════════════════════════════════════════════════════════════ */
@@ -791,9 +954,15 @@ function CaseReport({
             <p className="label mb-1">Datos que faltan</p>
             <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed mb-3">
               {actionable.length > 0
-                ? "Complétalos aquí y volveremos a analizar tu caso con los datos nuevos."
-                : "No hemos podido calcular estos datos con la información disponible."}
+                ? `Cada dato de esta lista decide una conclusión que no podemos dar sin él (${actionable.length === 1 ? "falta 1" : `faltan ${actionable.length}`}). Complétalos aquí y regeneramos el informe con los datos nuevos; no hay que repetir el cuestionario.`
+                : "Estos datos no dependen de una respuesta tuya que podamos pedir: te explicamos qué habría que comprobar en cada caso."}
             </p>
+            {uncomputable.length > 0 && actionable.length > 0 && (
+              <p className="text-xs text-[var(--color-ink-faint)] leading-relaxed mb-3">
+                Los que no se pueden responder aquí quedan explicados igualmente, para que sepas
+                qué comprobar por tu cuenta.
+              </p>
+            )}
             <div className="space-y-3">
               {[...actionable, ...uncomputable].map((item) => (
                 <PendingFactCard
@@ -951,22 +1120,23 @@ function CaseReport({
           </section>
         )}
 
-        {/* What the person answered — the report has to be checkable */}
+        {/* What the person answered — the report has to be checkable, and fixable */}
         {answers.length > 0 && (
           <section className="mb-8">
-            <p className="label mb-3">Tus respuestas</p>
+            <p className="label mb-1">Tus respuestas</p>
+            <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed mb-3">
+              El informe se apoya en estos datos. Si alguno no es correcto, corrígelo aquí: se
+              guarda como una corrección y el análisis se regenera.
+            </p>
             <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
-              <dl className="space-y-2">
+              <dl className="space-y-3">
                 {answers.map((answer, index) => (
-                  <div key={`${answer.label}-${index}`} className="flex flex-wrap gap-x-2">
-                    <dt className="text-xs text-[var(--color-ink-muted)]">{answer.label}:</dt>
-                    <dd className="text-xs font-medium text-[var(--color-ink)]">
-                      {answer.value}
-                      <span className="ml-2 text-[10px] text-[var(--color-ink-faint)] uppercase tracking-wide">
-                        {ORIGIN_TAGS[answer.origin]}
-                      </span>
-                    </dd>
-                  </div>
+                  <AnswerRow
+                    key={`${answer.label}-${index}`}
+                    answer={answer}
+                    busy={busy}
+                    onSubmit={onCompleteMissing}
+                  />
                 ))}
               </dl>
             </div>
@@ -1077,9 +1247,65 @@ const INITIAL_STATE: AppState = {
   companyQuestion: null,
   skippedFacts: [],
   reanalyzing: false,
+  bootstrapTitle: null,
 };
 
-export function ResolverClient() {
+export interface ResolverProblemOption {
+  readonly key: string;
+  readonly slug: string;
+  readonly title: string;
+}
+
+interface ResolverClientProps {
+  /**
+   * Set when the person arrived from a problem page (`/resolver?problema=slug`).
+   * The problem is already known, so the case is created deterministically and
+   * the AI is never asked to guess it.
+   */
+  readonly initialProblem?: ResolverProblemOption | null;
+  /** Published problems: the deterministic entry offered wherever the AI is not needed. */
+  readonly availableProblems?: readonly ResolverProblemOption[];
+}
+
+/**
+ * Server error codes → what the person can actually do about it.
+ *
+ * The API answers with typed codes (`AI_UNAVAILABLE`, `BUDGET_EXCEEDED`…); showing
+ * its English fallback text to a Spanish reader was both confusing and a dead end.
+ * Every branch here names a way to continue.
+ */
+function analysisErrorMessage(code: string | undefined, fallback: string | undefined): string {
+  switch (code) {
+    case "AI_UNAVAILABLE":
+      return "El análisis automático no está disponible en este momento. Puedes elegir tu problema en la lista o volver a intentarlo.";
+    case "AI_INVALID_STRUCTURED_OUTPUT":
+      return "El análisis no devolvió un resultado válido. Vuelve a intentarlo o elige tu problema en la lista.";
+    case "BUDGET_EXCEEDED":
+      return "Has agotado los intentos de análisis de esta sesión. Elige tu problema en la lista para continuar.";
+    case "SERVICE_UNAVAILABLE":
+      return "El servicio de análisis no está configurado en este momento. Elige tu problema en la lista para continuar.";
+    default:
+      return fallback && fallback.trim().length > 0
+        ? fallback
+        : "No pudimos analizar tu descripción. Vuelve a intentarlo o elige tu problema en la lista.";
+  }
+}
+
+/** Friendly message for a fetch that never completed. */
+function networkErrorMessage(error: unknown): string | null {
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    return "La operación tardó demasiado. Vuelve a intentarlo o elige tu problema en la lista.";
+  }
+  if (error instanceof TypeError) {
+    return "No pudimos conectar con el servidor. Comprueba tu conexión y vuelve a intentarlo.";
+  }
+  return null;
+}
+
+export function ResolverClient({
+  initialProblem = null,
+  availableProblems = [],
+}: ResolverClientProps) {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
 
   const [input, setInput] = useState("");
@@ -1087,12 +1313,83 @@ export function ResolverClient() {
   const [submitting, setSubmitting] = useState(false);
   const answerRef = useRef<HTMLInputElement>(null);
 
-  // Pre-fill from ?q= URL param (e.g. from problem detail page)
+  // Pre-fill from ?q= URL param (free description carried from elsewhere)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q");
     if (q) setInput(q);
   }, []);
+
+  // ── Deterministic entry: the problem is already known ──────────────
+  //
+  // Creates the case for that module and lands on its first question. No AI
+  // call happens: asking a model to guess a problem the person just picked
+  // wasted budget and turned every provider outage into a dead end.
+  const startFromProblem = useCallback(async (problemKey: string, problemTitle: string) => {
+    setState((prev) => ({
+      ...prev,
+      phase: "interpreting",
+      error: null,
+      bootstrapTitle: problemTitle,
+      routing: null,
+      interpretation: null,
+      guidance: null,
+      guidanceDisclaimer: null,
+      guidanceError: null,
+      guidanceLoading: false,
+    }));
+
+    try {
+      const res = await fetch(`/api/problems/${encodeURIComponent(problemKey)}/cases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          analysisErrorMessage(data?.error?.code, data?.error?.message),
+        );
+      }
+      if (typeof data?.caseId !== "string" || data.caseId.length === 0) {
+        throw new Error("No pudimos preparar el caso. Vuelve a intentarlo.");
+      }
+
+      const next = (data.nextQuestion ?? null) as Question | null;
+      setState((prev) => ({
+        ...prev,
+        phase: data.allRequiredConfirmed && !next ? "evidence" : "questioning",
+        caseId: data.caseId,
+        nextQuestion: next,
+        allRequiredConfirmed: Boolean(data.allRequiredConfirmed),
+        questionTotal: next?.totalApplicable ?? 0,
+        bootstrapTitle: null,
+        routing: {
+          status: "DETERMINISTIC",
+          moduleKey: data.problemKey,
+          moduleTitle: data.problemTitle ?? problemTitle,
+          userExplanation: "",
+        },
+      }));
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        phase: "error",
+        bootstrapTitle: null,
+        error:
+          networkErrorMessage(err) ??
+          (err instanceof Error ? err.message : "Error inesperado"),
+      }));
+    }
+  }, []);
+
+  const bootstrapStarted = useRef(false);
+  useEffect(() => {
+    if (!initialProblem || bootstrapStarted.current) return;
+    bootstrapStarted.current = true;
+    void startFromProblem(initialProblem.key, initialProblem.title);
+  }, [initialProblem, startFromProblem]);
 
   // ── Phase 1b: general orientation when the problem has no module ──
 
@@ -1112,6 +1409,7 @@ export function ResolverClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, caseId }),
+        signal: AbortSignal.timeout(30000),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.guidance) {
@@ -1145,11 +1443,12 @@ export function ResolverClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input.trim() }),
+        signal: AbortSignal.timeout(45000),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error?.message || "No se pudo interpretar el mensaje");
+        throw new Error(analysisErrorMessage(err.error?.code, err.error?.message));
       }
 
       const data = await res.json();
@@ -1182,7 +1481,9 @@ export function ResolverClient() {
       setState((prev) => ({
         ...prev,
         phase: "error",
-        error: err instanceof Error ? err.message : "Error inesperado",
+        error:
+          networkErrorMessage(err) ??
+          (err instanceof Error ? err.message : "Error inesperado"),
       }));
     } finally {
       setSubmitting(false);
@@ -1619,6 +1920,28 @@ export function ResolverClient() {
      RENDER
      ════════════════════════════════════════════════════════════════ */
 
+  // ── DETERMINISTIC BOOTSTRAP — preparing a known problem's case ──
+
+  if (state.phase === "interpreting" && state.bootstrapTitle) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center bg-[var(--surface-page)]">
+        <div className="max-w-[560px] w-full mx-auto px-5 py-12 text-center">
+          <div
+            className="w-10 h-10 mx-auto mb-6 border-2 border-[var(--border-default)] border-t-[var(--color-accent)] rounded-full animate-spin"
+            role="status"
+            aria-label="Preparando el caso"
+          />
+          <p className="label mb-3">Preparando tu caso</p>
+          <h1 className="mb-3">{state.bootstrapTitle}</h1>
+          <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed">
+            No hace falta que describas nada: ya sabemos qué problema es. Vamos directos a las
+            preguntas que necesitamos para analizarlo.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ── INTAKE ─────────────────────────────────────────────────────
 
   if (state.phase === "intake" || state.phase === "interpreting") {
@@ -1665,6 +1988,29 @@ export function ResolverClient() {
               </button>
             </div>
           </div>
+
+          {/* Known problems: deterministic entry, no interpretation needed. */}
+          {availableProblems.length > 0 && state.phase === "intake" && (
+            <div className="mt-8">
+              <p className="label mb-3">O elige tu problema</p>
+              <div className="flex flex-wrap gap-2">
+                {availableProblems.map((problem) => (
+                  <button
+                    key={problem.key}
+                    type="button"
+                    onClick={() => void startFromProblem(problem.key, problem.title)}
+                    className="text-sm px-3.5 py-2 border border-[var(--border-light)] bg-[var(--surface-paper)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink-faint)] hover:text-[var(--color-ink)] transition-colors min-h-[40px]"
+                  >
+                    {problem.title}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-[var(--color-ink-faint)] mt-3 leading-relaxed">
+                Con un problema de la lista no hace falta interpretar nada: vas directo a las
+                preguntas del análisis.
+              </p>
+            </div>
+          )}
 
           {state.phase === "interpreting" && (
             <div className="mt-8 space-y-3 anim-fade-in">
@@ -2366,24 +2712,67 @@ export function ResolverClient() {
   // ── ERROR ──────────────────────────────────────────────────────
 
   if (state.phase === "error") {
+    const canRetry = input.trim().length >= 10;
+
     return (
-      <div className="min-h-[80vh] flex items-center justify-center bg-[var(--surface-page)]">
-        <div className="max-w-[400px] mx-auto px-5 text-center">
-          <div className="w-12 h-12 rounded bg-[var(--color-contradicted-bg)] flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-[var(--color-contradicted)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
+      <div className="min-h-[80vh] bg-[var(--surface-page)]">
+        <div className="max-w-[640px] mx-auto px-5 md:px-8 py-12 md:py-16">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 rounded bg-[var(--color-contradicted-bg)] flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-[var(--color-contradicted)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h1 className="mb-3">No hemos podido completar el análisis</h1>
+            <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed">{state.error}</p>
+            <p className="text-xs text-[var(--color-ink-faint)] mt-3 leading-relaxed">
+              No se ha guardado ningún caso a medias. Elige una de estas vías para continuar.
+            </p>
           </div>
-          <h2 className="text-xl mb-2" style={{ fontFamily: "var(--font-display)" }}>Ha ocurrido un error</h2>
-          <p className="text-sm text-[var(--color-ink-muted)] mb-6">{state.error}</p>
-          <div className="flex gap-3 justify-center">
-            <button onClick={() => setState(INITIAL_STATE)} className="btn-primary">
-              Intentar de nuevo
-            </button>
-            <Link href="/" className="btn-secondary">
-              Volver al inicio
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
+            {canRetry ? (
+              <button onClick={() => void handleIntake()} disabled={submitting} className="btn-primary">
+                Volver a intentarlo
+              </button>
+            ) : (
+              <button onClick={() => setState({ ...INITIAL_STATE })} className="btn-primary">
+                Describir mi problema
+              </button>
+            )}
+            <Link href="/problemas" className="btn-secondary">
+              Ver los problemas disponibles
             </Link>
           </div>
+
+          {canRetry && (
+            <div className="mb-8 p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+              <p className="label mb-2">Tu descripción</p>
+              <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed">{input}</p>
+            </div>
+          )}
+
+          {availableProblems.length > 0 && (
+            <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+              <p className="label mb-3">Continuar sin análisis automático</p>
+              <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mb-4">
+                Estos problemas no dependen de ningún servicio externo: creamos el caso y
+                empezamos por las preguntas.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {availableProblems.map((problem) => (
+                  <button
+                    key={problem.key}
+                    type="button"
+                    onClick={() => void startFromProblem(problem.key, problem.title)}
+                    className="text-sm px-3.5 py-2 border border-[var(--border-light)] bg-[var(--surface-warm)] text-[var(--color-ink-soft)] hover:border-[var(--color-ink-faint)] hover:text-[var(--color-ink)] transition-colors min-h-[40px]"
+                  >
+                    {problem.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

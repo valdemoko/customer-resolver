@@ -132,6 +132,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
     const labels = {
       questions: Object.fromEntries(questions.map((q) => [q.factKey, q.text])),
       factLabels,
+      // Declared types let the report offer "edit" on the answers the person
+      // actually supplied, instead of only on the ones that are still missing.
+      answerTypes: Object.fromEntries(
+        questions
+          .filter((q) => typeof q.type === "string" && q.type.length > 0)
+          .map((q) => [q.factKey, q.type as string]),
+      ),
+      answerOptions: Object.fromEntries(
+        questions
+          .filter((q) => (q.options?.length ?? 0) > 0)
+          .map((q) => [q.factKey, q.options as readonly string[]]),
+      ),
     };
     const answers = buildExportAnswers(loaded.facts, labels);
     const highlights = buildCaseHighlights(loaded.facts, labels);

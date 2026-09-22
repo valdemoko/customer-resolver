@@ -12,6 +12,8 @@ import {
   getProblemBySlug,
   type ProblemCatalogueEntry,
 } from "@/lib/problem-catalogue";
+import { getProblemTrace } from "@/lib/trace";
+import { TraceDemo } from "@/components/TraceDemo";
 
 
 /* ── Problem images ─────────────────────────────────────────────── */
@@ -67,9 +69,69 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
   const related = problem.relatedSlugs
     .map((relatedSlug) => getProblemBySlug(relatedSlug))
     .filter((entry): entry is ProblemCatalogueEntry => Boolean(entry));
+  // Derived from the module's own rule set and sources — never hand-written.
+  const trace = getProblemTrace(problem.key, problem.title);
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const pageUrl = `${siteUrl}/problemas/${problem.slug}`;
+
+  // Structured data describes what the page really is: a guide with a FAQ whose
+  // answers come from the catalogue's own text, plus its position in the site.
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Resolveo", item: siteUrl },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Problemas",
+        item: `${siteUrl}/problemas`,
+      },
+      { "@type": "ListItem", position: 3, name: problem.title, item: pageUrl },
+    ],
+  };
+
+  const webPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: problem.title,
+    description: problem.description,
+    url: pageUrl,
+    inLanguage: "es-ES",
+    dateModified: problem.updatedAt,
+    isPartOf: { "@type": "WebSite", name: "Resolveo", url: siteUrl },
+  };
+
+  const faqSchema =
+    problem.faq.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: problem.faq.map((item) => ({
+            "@type": "Question",
+            name: item.question,
+            acceptedAnswer: { "@type": "Answer", text: item.answer },
+          })),
+        }
+      : null;
 
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative bg-[var(--surface-paper)] border-b border-[var(--border-light)]">
         {imageUrl && (
@@ -254,25 +316,14 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
             </ul>
           </div>
 
-          {/* ── Ejemplo ───────────────────────────────────────── */}
+          {/* ── Cómo se llega a una conclusión (ejemplo trazable) ── */}
           <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
-            <p className="label mb-4">Ejemplo de caso</p>
-            <div className="p-5 bg-[var(--surface-warm)] border border-[var(--border-light)]">
-              <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed mb-4">
-                {problem.example.scenario}
-              </p>
-              <p className="text-xs font-medium text-[var(--color-ink-faint)] uppercase tracking-wider mb-2">
-                Qué saldría en el informe
-              </p>
-              <ul className="space-y-2">
-                {problem.example.outcome.map((line) => (
-                  <li key={line} className="flex items-start gap-3 text-sm text-[var(--color-ink-soft)] leading-relaxed">
-                    <span className="flex-shrink-0 w-1 h-1 rounded-full bg-[var(--color-accent)] mt-2" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="label mb-4">Cómo se llega a una conclusión</p>
+            <TraceDemo
+              trace={trace}
+              scenario={problem.example.scenario}
+              outcome={problem.example.outcome}
+            />
           </div>
 
           {/* ── Cómo reclamar ─────────────────────────────────── */}
@@ -334,9 +385,11 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
           )}
 
           {/* ── CTA ───────────────────────────────────────────── */}
+          {/* Deterministic entry: the slug carries the module, so the case is
+              created directly and nothing is interpreted by a model. */}
           <div className="mt-10 flex flex-col sm:flex-row gap-3">
             <Link
-              href={`/resolver?q=${encodeURIComponent(problem.title)}`}
+              href={`/resolver?problema=${problem.slug}`}
               className="btn-primary"
             >
               Analizar mi caso

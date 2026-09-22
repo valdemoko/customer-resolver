@@ -80,4 +80,16 @@ export interface ExportAnswer {
   readonly value: string;
   /** Who provided it: the person, a document, or the analysis. */
   readonly origin: "USER" | "DOCUMENT" | "DERIVED";
+  /**
+   * Fact key behind the answer, when the report can let the person change it.
+   *
+   * Reading a report and finding a wrong date is when the mistake is noticed;
+   * without the key there is no way to correct it from the screen, so the person
+   * had to re-run the whole questionnaire to fix one field.
+   */
+  readonly factKey?: string;
+  /** Declared answer type (`boolean`, `date`, `money`…), for the edit control. */
+  readonly answerType?: string;
+  /** Allowed values when the declared type is `enum`. */
+  readonly answerOptions?: readonly string[];
 }

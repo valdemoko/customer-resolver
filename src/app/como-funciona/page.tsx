@@ -1,16 +1,20 @@
 /**
  * Cómo funciona — Resolveo.
  *
- * Explains the resolution process, the difference between
- * specific resolvers and universal intake, and how sources work.
+ * Explains the resolution process and, above all, *demonstrates* it: the
+ * traceability section is generated from a real module's rules and sources
+ * (see `getProblemTrace`), so what the page shows is what the analysis does.
  */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TraceDemo } from "@/components/TraceDemo";
+import { getProblemBySlug } from "@/lib/problem-catalogue";
+import { getProblemTrace } from "@/lib/trace";
 
 export const metadata: Metadata = {
   title: "Cómo funciona",
   description:
-    "Cómo funciona Resolveo: describe tu problema, aporta información, se analiza con normativa vigente y obtienes un resultado estructurado con fuentes verificables.",
+    "Cómo funciona Resolveo: describes el problema, identificamos los hechos relevantes, comprobamos las reglas aplicables, contrastamos las fuentes oficiales y generamos una conclusión trazable.",
   alternates: { canonical: "/como-funciona" },
   openGraph: {
     title: "Cómo funciona — Resolveo",
@@ -24,32 +28,42 @@ export const metadata: Metadata = {
 const STEPS = [
   {
     number: "1",
-    title: "Describe tu problema",
-    body: "Cuéntanos qué ha pasado con tus propias palabras. No necesitas conocer la categoría legal ni el nombre exacto del problema.",
+    title: "Describes tu problema",
+    body: "Con tus propias palabras. No necesitas conocer la categoría legal ni el nombre exacto del problema. Si ya sabes cuál es, puedes elegirlo en la lista y el análisis empieza directamente por las preguntas.",
   },
   {
     number: "2",
-    title: "Confirmamos los datos",
-    body: "El sistema te hará preguntas concretas para completar la información necesaria: fechas, importes, comunicaciones, documentación.",
+    title: "Identificamos los hechos relevantes",
+    body: "El sistema te pide únicamente los datos que las reglas del módulo leen: fechas, importes, comunicaciones y documentación. Nada se da por supuesto, y puedes completar o corregir cualquier dato antes del análisis.",
   },
   {
     number: "3",
-    title: "Aportas evidencia",
-    body: "Puedes subir facturas, correos, contratos o capturas de pantalla. Cada documento se procesa como evidencia estructurada del caso.",
+    title: "Comprobamos las reglas aplicables",
+    body: "Cada hecho se contrasta con reglas deterministas escritas a partir de normativa vigente. La coincidencia no es una estimación: una regla se cumple, no se cumple, entra en contradicción o falta información para decidirla.",
   },
   {
     number: "4",
-    title: "Se cruza información con normativa",
-    body: "El sistema evalúa los datos confirmados contra reglas basadas en normativa vigente. Las conclusiones se apoyan en fuentes registradas y verificables.",
+    title: "Contrastamos las fuentes oficiales",
+    body: "Cada regla solo puede publicarse con al menos una fuente verificada: texto publicado en el BOE o en EUR-Lex, con artículo, versión consultada y fecha de consulta. Una regla sin fuente no se evalúa.",
   },
   {
     number: "5",
-    title: "Obtienes un resultado",
-    body: "Recibes un informe con claims verificados, fuentes consultadas, acciones recomendadas y próximos pasos concretos.",
+    title: "Generamos una conclusión trazable",
+    body: "El informe muestra qué hechos ha leído cada conclusión, qué regla se ha aplicado y con qué fuente. Si algo no puede determinarse, se declara como información insuficiente en lugar de rellenarse con una suposición.",
   },
 ];
 
 export default function HowItWorksPage() {
+  // Real module: its own rules, facts and sources. Nothing written by hand here.
+  const demoProblem = getProblemBySlug("vuelo-cancelado");
+  const demo = demoProblem
+    ? {
+        trace: getProblemTrace(demoProblem.key, demoProblem.title),
+        scenario: demoProblem.example.scenario,
+        outcome: demoProblem.example.outcome,
+      }
+    : null;
+
   return (
     <div className="mx-auto max-w-3xl px-5 md:px-8 py-12 md:py-16">
       {/* Header */}
@@ -99,17 +113,54 @@ export default function HowItWorksPage() {
         </ol>
       </section>
 
+      {/* Traceability demo — generated from the real rule set */}
+      {demo && (
+        <section className="mb-14" aria-label="Demostración de trazabilidad">
+          <h2
+            className="text-2xl font-bold text-slate-900 mb-3"
+            style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+          >
+            Así se traza una conclusión
+          </h2>
+          <p className="text-slate-500 leading-relaxed mb-6">
+            Esta demostración se genera a partir de las reglas y las fuentes reales del
+            problema «{demoProblem?.title}». Los hechos que verás son los que el
+            cuestionario recoge; las reglas, las que el motor evalúa; y las fuentes, las
+            que el sistema cita al concluir.
+          </p>
+
+          <TraceDemo
+            trace={demo.trace}
+            scenario={demo.scenario}
+            outcome={demo.outcome}
+            variant="compact"
+          />
+
+          <p className="text-sm text-slate-500 leading-relaxed mt-6">
+            El registro completo, con la versión consultada de cada norma y el texto del
+            artículo aplicado, está en{" "}
+            <Link
+              href="/fuentes"
+              className="text-slate-700 font-medium underline underline-offset-2 hover:text-slate-900 transition-colors"
+            >
+              Fuentes normativas
+            </Link>
+            .
+          </p>
+        </section>
+      )}
+
       {/* Two types of problems */}
       <section className="mb-14">
         <h2
           className="text-2xl font-bold text-slate-900 mb-4"
           style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
         >
-          Dos tipos de problemas
+          Dos formas de empezar
         </h2>
 
         <div className="space-y-4">
-          {/* Specific resolver */}
+          {/* Deterministic entry */}
           <div className="cr-surface p-6">
             <div className="flex items-start gap-3 mb-3">
               <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center">
@@ -127,20 +178,21 @@ export default function HowItWorksPage() {
               </span>
               <div>
                 <h3 className="font-semibold text-slate-900">
-                  Resolver específico
+                  Eliges el problema
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed mt-1">
-                  Cuando tu problema coincide con un módulo disponible (cancelación
-                  y cargo, pedido no entregado, garantía rechazada, vuelo
-                  cancelado), el sistema aplica reglas deterministas basadas en
-                  normativa verificada. Cada conclusión tiene trazabilidad completa
-                  hasta la fuente oficial.
+                  Si tu problema está en la lista (cancelación y cargo, pedido no
+                  entregado, garantía rechazada, vuelo cancelado), el caso se crea
+                  directamente con su módulo y pasas al cuestionario. No hay
+                  interpretación por medio: se aplican reglas deterministas basadas en
+                  normativa verificada, con trazabilidad completa hasta la fuente
+                  oficial.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Universal intake */}
+          {/* Free description */}
           <div className="cr-surface p-6">
             <div className="flex items-start gap-3 mb-3">
               <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
@@ -160,14 +212,14 @@ export default function HowItWorksPage() {
               </span>
               <div>
                 <h3 className="font-semibold text-slate-900">
-                  Problema sin módulo específico
+                  Describes el problema
                 </h3>
                 <p className="text-sm text-slate-500 leading-relaxed mt-1">
-                  Si tu problema no tiene un resolver dedicado, el sistema recoge
-                  la información mediante entrada universal. Intenta identificar
-                  patrones relevantes, pero no genera conclusiones jurídicas
-                  inventadas. Te orienta sobre los siguientes pasos y te indica
-                  cuándo un módulo específico esté disponible.
+                  Si no aparece en la lista, cuéntalo con tus palabras: el sistema
+                  intenta identificar a qué módulo corresponde. Si no existe ninguno
+                  aplicable, lo dice y te orienta sobre los siguientes pasos en lugar de
+                  inventar conclusiones. Y si el análisis automático no está disponible,
+                  la lista de problemas sigue ahí para continuar.
                 </p>
               </div>
             </div>
@@ -241,24 +293,29 @@ export default function HowItWorksPage() {
           ¿Tienes un problema de consumo?
         </h2>
         <p className="text-sm text-slate-500 mb-6">
-          Descríbelo con tus palabras y empezaremos a analizarlo.
+          Descríbelo con tus palabras o elige el problema en la lista.
         </p>
-        <Link href="/" className="cr-btn-primary inline-flex">
-          Comenzar
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-            />
-          </svg>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/" className="cr-btn-primary inline-flex">
+            Comenzar
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+              />
+            </svg>
+          </Link>
+          <Link href="/problemas" className="cr-btn-secondary inline-flex">
+            Ver los problemas disponibles
+          </Link>
+        </div>
       </section>
     </div>
   );

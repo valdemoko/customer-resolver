@@ -6,7 +6,7 @@
  *
  * Each test demonstrates a REAL guarantee, not just "tests pass".
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -28,6 +28,11 @@ import * as schema from "@server/db/schema";
 
 import type { IsoDateTime } from "@core/shared/temporal";
 import type { CurrencyCode, JurisdictionCode, Locale, OwnerId, ProblemSlug } from "@core/types";
+
+// Every test builds a fresh PGlite database and applies the migrations. Under the
+// full parallel suite that occasionally exceeds the 5s default and failed a test
+// that passes on its own — a timeout, not a lost guarantee. The work is real I/O.
+vi.setConfig({ testTimeout: 30000 });
 
 const NOW = "2026-09-19T12:00:00.000Z" as IsoDateTime;
 

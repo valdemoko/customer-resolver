@@ -30,6 +30,13 @@ export interface AnswerLabels {
   readonly questions: Readonly<Record<string, string>>;
   /** Catalogue description per fact key. */
   readonly factLabels: Readonly<Record<string, string>>;
+  /**
+   * Declared answer type per fact key, when the report should be able to edit the
+   * answer in place. Facts with no question never get one.
+   */
+  readonly answerTypes?: Readonly<Record<string, string>>;
+  /** Allowed values for `enum` facts, so the report offers the real choices. */
+  readonly answerOptions?: Readonly<Record<string, readonly string[]>>;
 }
 
 const MONTHS = [
@@ -154,8 +161,19 @@ export function buildExportAnswers(
     const value = formatFactValue(fact.value);
     if (value === null) continue;
 
+    const answerType = labels.answerTypes?.[fact.key];
     seen.add(fact.key);
-    answers.push({ label, value, origin: originOf(fact) });
+    answers.push({
+      label,
+      value,
+      origin: originOf(fact),
+      // The key travels with the answer so the report can correct this exact
+      // fact instead of asking the person to repeat the questionnaire.
+      ...(answerType ? { factKey: fact.key, answerType } : {}),
+      ...(answerType === "enum" && labels.answerOptions?.[fact.key]
+        ? { answerOptions: labels.answerOptions[fact.key] }
+        : {}),
+    });
   }
 
   return answers;

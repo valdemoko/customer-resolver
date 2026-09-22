@@ -47,43 +47,26 @@ export function SearchBar({ size = "default", autoFocus = false, initialQuery }:
 
   const totalItems = menuItems.length;
 
+  /**
+   * Two destinations, and only two.
+   *
+   *  - A catalogue result: the problem is already known, so `/resolver` gets the
+   *    slug and creates the case deterministically. Sending it to the AI anyway
+   *    (as this used to) asked a model to re-guess what the person had just
+   *    picked, and handed the case to the legacy intake screen.
+   *  - Free text: `/resolver` runs the interpretation, and owns the retry and the
+   *    fallback when the model is unavailable. Interpreting here first meant two
+   *    code paths for the same step, and a failure had no way back.
+   */
   const handleSelect = useCallback(
     (item: MenuItem) => {
       setIsOpen(false);
       setIsLoading(true);
 
-      const message =
+      window.location.href =
         item.kind === "result"
-          ? `${item.problem.title} — ${query}`
-          : query;
-
-      fetch("/api/intake/interpret", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("Interpretation failed");
-          return res.json();
-        })
-        .then((data) => {
-          if (data.caseId && data.interpretation) {
-            sessionStorage.setItem(
-              `intake-${data.caseId}`,
-              JSON.stringify({
-                interpretation: data.interpretation,
-                routing: data.routing,
-                budget: data.budget,
-              }),
-            );
-            window.location.href = `/case/${data.caseId}/intake`;
-          } else {
-            window.location.href = `/resolver?q=${encodeURIComponent(query)}`;
-          }
-        })
-        .catch(() => {
-          window.location.href = `/resolver?q=${encodeURIComponent(query)}`;
-        });
+          ? `/resolver?problema=${encodeURIComponent(item.problem.slug)}`
+          : `/resolver?q=${encodeURIComponent(query)}`;
     },
     [query],
   );

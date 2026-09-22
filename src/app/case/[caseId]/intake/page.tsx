@@ -120,31 +120,15 @@ export default function IntakePage({ params }: { params: Promise<{ caseId: strin
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Initialize case ID from params + load cached interpretation
+  // Initialize case ID from params + load the case status from the server.
+  //
+  // This used to read a cached interpretation from `sessionStorage` that the
+  // search bar wrote. The search bar now sends known problems to `/resolver`
+  // deterministically and free text there too, so nothing writes that key: the
+  // cache read was dead code, and the case status is the single source of truth.
   useEffect(() => {
     params.then(({ caseId: id }) => {
       setCaseId(id);
-
-      // Check for cached interpretation from SearchBar
-      const cached = sessionStorage.getItem(`intake-${id}`);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          sessionStorage.removeItem(`intake-${id}`);
-          setState((prev) => ({
-            ...prev,
-            caseId: id,
-            phase: "interpretation",
-            interpretation: parsed.interpretation,
-            routing: parsed.routing,
-            budget: parsed.budget,
-          }));
-          return;
-        } catch {
-          // Fall through to load case status
-        }
-      }
-
       loadCaseStatus(id);
     });
   }, [params]);
