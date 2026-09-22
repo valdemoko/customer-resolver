@@ -1262,7 +1262,7 @@ describe("legal rule evaluation", () => {
       expect(evaluateRule(rules.compensation50PercentReduction, c).status).toBe("NOT_APPLICABLE");
     });
 
-    it("RED9: missing delay hours → INSUFFICIENT_DATA", () => {
+    it("RED9: eligible=false + missing delay hours → NOT_APPLICABLE", () => {
       const facts = [
         fact("cancellation.date", "2026-09-15"),
         fact("flight.compensation_tier", 400),
@@ -1270,6 +1270,26 @@ describe("legal rule evaluation", () => {
         fact("airline.re_routing.accepted", true),
         fact("airline.alternative_transport_compliant", false),
         fact("passenger.compensation_reduction_eligible", false),
+      ];
+      const c = ctx({ facts });
+
+      // The eligibility fact is definitively false, so the 50% reduction cannot
+      // apply no matter what the delay hours say: asking for them would be a
+      // dead end (the form does not even ask — the branch is closed).
+      const evaluation = evaluateRule(rules.compensation50PercentReduction, c);
+      expect(evaluation.status).toBe("NOT_APPLICABLE");
+      expect(evaluation.missingFacts).toEqual([]);
+    });
+
+    it("RED9b: everything satisfied except the delay hours → INSUFFICIENT_DATA", () => {
+      const facts = [
+        fact("cancellation.date", "2026-09-15"),
+        fact("flight.compensation_tier", 400),
+        fact("airline.re_routing_offered", true),
+        fact("airline.re_routing.accepted", true),
+        // Non-compliant ⇒ not exempt under Art. 5(1)(c), so the rule can still apply.
+        fact("airline.alternative_transport_compliant", false),
+        fact("passenger.compensation_reduction_eligible", true),
       ];
       const c = ctx({ facts });
 

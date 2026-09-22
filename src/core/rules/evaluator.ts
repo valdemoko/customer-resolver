@@ -482,7 +482,8 @@ export function evaluateRule(rule: Rule, context: RuleEvaluationContext): RuleEv
   const { missing, contradicted, evidence } = missingAndContradicted(rule.root, context);
 
   let status: RuleEvaluationStatus;
-  if (trace.matched) {
+  const tri = triState(trace);
+  if (tri === "TRUE") {
     // Any UNCONFIRMED fact involved → POTENTIALLY_APPLICABLE (not fully supported).
     const hasUnconfirmed = context.facts.some(
       (f) => f.status === "UNCONFIRMED" && referencesKey(rule.root, f.key),
@@ -490,10 +491,16 @@ export function evaluateRule(rule: Rule, context: RuleEvaluationContext): RuleEv
     status = hasUnconfirmed ? "POTENTIALLY_APPLICABLE" : "SUPPORTED";
   } else if (contradicted.size > 0) {
     status = "CONTRADICTED";
+  } else if (tri === "FALSE") {
+    // Definitively false: one branch of the rule cannot hold, so no amount of
+    // extra data could ever make it apply. Reporting INSUFFICIENT_DATA here
+    // asked the user for questions the form no longer shows (a closed `askIf`
+    // branch) — a dead end that said "we still need data" forever.
+    status = "NOT_APPLICABLE";
   } else if (missing.size > 0) {
     status = "INSUFFICIENT_DATA";
   } else {
-    // All facts present, unblocked and the condition simply does not hold.
+    // Unknown outcome with nothing left to collect (e.g. a wrong-typed value).
     status = "NOT_APPLICABLE";
   }
 
@@ -502,11 +509,64 @@ export function evaluateRule(rule: Rule, context: RuleEvaluationContext): RuleEv
     ruleVersion: rule.version,
     status,
     traces: [trace],
-    missingFacts: [...missing] as unknown as RuleEvaluation["missingFacts"],
+    // Nothing can be collected for a rule that cannot apply: listing its
+    // missing facts would keep asking for answers that change nothing.
+    missingFacts: status === "NOT_APPLICABLE" ? [] : ([...missing] as unknown as RuleEvaluation["missingFacts"]),
     contradictedFacts: [...contradicted] as unknown as RuleEvaluation["contradictedFacts"],
     evidenceRefs: [...evidence],
     sourceIds: rule.sourceIds,
   };
+}
+
+/** Three-valued outcome of a condition trace: true / false / undetermined. */
+type TriState = "TRUE" | "FALSE" | "UNKNOWN";
+
+/**
+ * Kleene three-valued logic over the condition trace.
+ *
+ * The rules are read as a human would read them: "the seller never repaired it"
+ * makes «repair failed after an attempted repair» definitively INAPPLICABLE, even
+ * if the details of that repair are unknown. Conversely a MISSING fact is
+ * UNDETERMINED, never false — «is the deadline passed?» cannot be answered
+ * without the date, and FACT_EXISTS guards keep that undetermined instead of
+ * letting a NOT invert it into certainty.
+ *
+ *   ALL: false if any child is false, true if all are true, else undetermined
+ *   ANY: true if any child is true, false if all are false, else undetermined
+ *   NOT: inverts, and an undetermined child stays CERTAIN-INVERTED — matching
+ *        the engine's long-standing NOT semantics that the module rules were
+ *        written and legally reviewed against.
+ */
+function triState(trace: ConditionTrace): TriState {
+  if (trace.kind === "ALL" || trace.kind === "ANY") {
+    const children = trace.children ?? [];
+    if (children.length === 0) return "FALSE";
+    const states = children.map(triState);
+    if (trace.kind === "ALL") {
+      if (states.some((s) => s === "FALSE")) return "FALSE";
+      return states.every((s) => s === "TRUE") ? "TRUE" : "UNKNOWN";
+    }
+    if (states.some((s) => s === "TRUE")) return "TRUE";
+    return states.every((s) => s === "FALSE") ? "FALSE" : "UNKNOWN";
+  }
+
+  if (trace.kind === "NOT") {
+    const child = trace.children?.[0];
+    if (!child) return "FALSE";
+    const state = triState(child);
+    if (state === "TRUE") return "FALSE";
+    return "TRUE";
+  }
+
+  if (trace.matched) return "TRUE";
+  if (
+    trace.reason === "MISSING_FACT" ||
+    trace.reason === "TYPE_MISMATCH" ||
+    trace.reason === "UNCONFIRMED_FACT"
+  ) {
+    return "UNKNOWN";
+  }
+  return "FALSE";
 }
 
 function referencesKey(condition: Condition, key: string): boolean {

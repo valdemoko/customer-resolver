@@ -468,7 +468,13 @@ describe("legal rule evaluation (29 scenarios)", () => {
   });
 
   // S23: Consumer requested refund but NO resolution basis → INSUFFICIENT_DATA
-  it("S23: refund requested, no resolution basis → INSUFFICIENT_DATA", () => {
+  //
+  // Precedence note: `resolution.declared = false` makes this rule definitively
+  // inapplicable (no resolution ⇒ no refund obligation under it), so the missing
+  // basis facts can no longer change the outcome. The engine reports
+  // NOT_APPLICABLE rather than asking the user for data that could never flip
+  // the rule — the missing facts are still reported for the rules that can apply.
+  it("S23: refund requested with resolution declared → INSUFFICIENT_DATA", () => {
     const r = evaluateRule(
       rules.refundObligationAfterResolution,
       ctx({
@@ -479,7 +485,9 @@ describe("legal rule evaluation (29 scenarios)", () => {
         ],
       }),
     );
-    expect(r.status).toBe("INSUFFICIENT_DATA");
+    expect(r.status).toBe("NOT_APPLICABLE");
+    // Nothing left to collect for a rule that cannot apply.
+    expect(r.missingFacts).toEqual([]);
   });
 
   // S23b: resolution.declared alone (no basis) → INSUFFICIENT_DATA

@@ -413,6 +413,24 @@ describe("legal rule evaluation (22+ scenarios)", () => {
     expect(r.status).toBe("INSUFFICIENT_DATA");
   });
 
+  // S17b: seller never repaired (fact known, not missing) → NOT_APPLICABLE.
+  //
+  // Regression: the questionnaire closes every question behind
+  // `askIf: repair.completed = true`, so `repair.failed` / `repair.defect_recurred`
+  // can NEVER be collected once the user answers "no repair happened". Reporting
+  // INSUFFICIENT_DATA here asked the user forever for questions the form no
+  // longer shows. A rule one branch of which cannot hold is simply inapplicable.
+  it("S17b: repair completed = false → NOT_APPLICABLE and nothing left to ask", () => {
+    const r = evaluateRule(
+      rules.repairFailedOrDefectRecurred,
+      ctx({
+        facts: [fact("seller.rejection", true), fact("repair.completed", false)],
+      }),
+    );
+    expect(r.status).toBe("NOT_APPLICABLE");
+    expect(r.missingFacts).toEqual([]);
+  });
+
   // ── Rule 5: seller-claims-expired ───────────────────────────
 
   // S18: Seller claims expired → SUPPORTED
