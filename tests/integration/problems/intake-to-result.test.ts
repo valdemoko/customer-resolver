@@ -20,7 +20,7 @@ import { ProblemRegistry } from "@core/problems";
 import { buildResult } from "@core/result/engine";
 import { warrantyRejectionModule } from "@problems/warranty-rejection";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
-import { publishModuleRuleSets } from "@server/rules/publish-module-rules";
+import { moduleIntakeRequirements, publishModuleRuleSets } from "@server/rules/publish-module-rules";
 import { loadCitedSources } from "@server/rules/load-cited-sources";
 
 const CURRENT_DATE = "2026-09-22";
@@ -109,18 +109,21 @@ describe("intake → analysis → result over real persistence", () => {
       ownerId: "anonymous" as never,
     });
 
-    // 2. The facts the questionnaire collects, with the declared types.
-    const answers: Array<{ key: string; value: unknown }> = [
-      {
-        key: "nonconformity.description",
-        value: { type: "string", value: "El portátil dejó de cargar a las tres semanas." },
-      },
-      { key: "seller.response_received", value: { type: "boolean", value: true } },
-      { key: "seller.rejection", value: { type: "boolean", value: true } },
-      { key: "purchase.delivery_date", value: { type: "date", value: "2026-05-01" } },
-      { key: "seller.claimed_misuse", value: { type: "boolean", value: false } },
-      { key: "seller.offered_repair", value: { type: "boolean", value: false } },
-    ];
+    // 2. Exactly what the questionnaire collects: every fact the rules read
+    //    (the requirement set is what drives the form in production).
+    const { neededFactKeys } = moduleIntakeRequirements(warrantyRejectionModule);
+    const answerValue = (key: string): unknown => {
+      if (key === "purchase.delivery_date") return { type: "date", value: "2026-05-01" };
+      if (key === "nonconformity.description") {
+        return { type: "string", value: "El portátil dejó de cargar a las tres semanas." };
+      }
+      return { type: "boolean", value: true };
+    };
+    const answers: Array<{ key: string; value: unknown }> = [...neededFactKeys].map((key) => ({
+      key,
+      value: answerValue(key),
+    }));
+    expect(answers.length).toBeGreaterThan(3);
     for (const answer of answers) {
       await caseService.confirmFactForCase(created.id, {
         key: answer.key as never,
@@ -184,6 +187,12 @@ describe("intake → analysis → result over real persistence", () => {
     // Traceability: a supported claim must show the sources backing it.
     expect(supportedClaims[0]?.supportingSources.length).toBeGreaterThan(0);
     expect(result.disclaimers.length).toBeGreaterThan(0);
+    // The report must say where the user can actually act on it.
+    expect(result.channels.length).toBeGreaterThan(0);
+    // With every rule input confirmed, the analysis is complete — not
+    // "INSUFFICIENT_DATA because the form stopped after three questions".
+    expect(analysisResult.intakeComplete).toBe(true);
+    expect(analysisResult.missingRequiredFacts).toEqual([]);
     expect(result.intakeComplete).toBe(true);
   });
 

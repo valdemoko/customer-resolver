@@ -102,12 +102,32 @@ interface Action {
   priority: number;
 }
 
+interface MissingInformation {
+  factKey: string;
+  questionId?: string;
+  description: string;
+  impact: "required" | "recommended";
+  blockedClaims: string[];
+}
+
 interface CaseResult {
   overallStatus: string;
   summary: string;
   claims: Claim[];
   sources: Source[];
   disclaimers: string[];
+  /** Present in the API response; used to name missing data in human terms. */
+  missingInformation?: MissingInformation[];
+  /** Official bodies where the case can be taken (always present). */
+  channels?: ConsumerChannel[];
+}
+
+interface ConsumerChannel {
+  id: string;
+  target: string;
+  channel: string;
+  why: string;
+  url: string;
 }
 
 interface ActionPlan {
@@ -185,6 +205,18 @@ const STATUS_DISPLAY: Record<string, { label: string; color: string }> = {
 
 function getStatusDisplay(status: string): { label: string; color: string } {
   return STATUS_DISPLAY[status] ?? DEFAULT_STATUS;
+}
+
+/**
+ * Name a missing fact the way the user can act on it.
+ *
+ * The engine reports fact keys (`compliance.presumption_deadline`); the result
+ * carries the question that supplies each one. Falling back to the key keeps the
+ * screen honest when no question exists — never hide that data is missing.
+ */
+function describeMissingFact(result: CaseResult, factKey: string): string {
+  const known = result.missingInformation?.find((m) => m.factKey === factKey);
+  return known?.description ?? factKey;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -656,6 +688,7 @@ export function ResolverClient() {
             claims: [],
             sources: [],
             disclaimers: [],
+            channels: [],
           },
         }));
       }
@@ -669,6 +702,7 @@ export function ResolverClient() {
           claims: [],
           sources: [],
           disclaimers: [],
+          channels: [],
         },
       }));
     }
@@ -1446,7 +1480,10 @@ export function ResolverClient() {
                           <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed">{claim.explanation}</p>
                           {claim.missingFacts.length > 0 && (
                             <p className="text-xs text-[var(--color-potentially)] mt-2">
-                              Datos faltantes: {claim.missingFacts.join(", ")}
+                              Datos faltantes:{" "}
+                              {claim.missingFacts
+                                .map((key) => describeMissingFact(result, key))
+                                .join(", ")}
                             </p>
                           )}
                         </div>
@@ -1478,6 +1515,39 @@ export function ResolverClient() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Where to complain — official bodies, never invented contacts */}
+          {result.channels && result.channels.length > 0 && (
+            <div className="mb-6">
+              <p className="label mb-3">Dónde reclamar</p>
+              <div className="space-y-2">
+                {result.channels.map((channel) => (
+                  <div
+                    key={channel.id}
+                    className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                  >
+                    <p className="text-sm font-medium text-[var(--color-ink)]">{channel.target}</p>
+                    <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">{channel.channel}</p>
+                    <p className="text-xs text-[var(--color-ink-soft)] mt-2 leading-relaxed">
+                      {channel.why}
+                    </p>
+                    <a
+                      href={channel.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline mt-2 inline-block"
+                    >
+                      Ir al canal oficial
+                    </a>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-[var(--color-ink-faint)] leading-relaxed mt-3">
+                El teléfono y el correo de cada organismo se publican en su página oficial. No los
+                reproducimos aquí porque pueden cambiar.
+              </p>
             </div>
           )}
 

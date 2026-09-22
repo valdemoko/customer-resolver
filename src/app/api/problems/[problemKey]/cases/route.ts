@@ -14,10 +14,7 @@ import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { getServerEnv } from "@/lib/env";
 import { isValidProblemKey, sanitizeErrorMessage } from "@/lib/validation";
-import { cancellationChargeModule } from "@problems/cancellation-charge";
-import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
-import { warrantyRejectionModule } from "@problems/warranty-rejection";
-import { flightCancelModule } from "@problems/flight-cancel";
+import { createProblemRegistry } from "@server/problems/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +26,7 @@ function compositionRoot(): { registry: ProblemRegistry; caseService: CaseServic
   if (!DATABASE_URL) {
     throw new Error("DATABASE_URL is required for the problems API (503 until configured)");
   }
-  const registry = new ProblemRegistry();
-  registry.register(cancellationChargeModule);
-  registry.register(noDeliveryRefundModule);
-  registry.register(warrantyRejectionModule);
-  registry.register(flightCancelModule);
+  const registry = createProblemRegistry();
   const repo = new DrizzleCaseRepository(createNeonDb(DATABASE_URL) as unknown as Repo);
   return { registry, caseService: new CaseService(repo) };
 }

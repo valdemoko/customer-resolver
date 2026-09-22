@@ -5,7 +5,7 @@
  * from src/app/api/problems/[problemKey]/cases/route.ts.
  */
 import { CaseService } from "@core/case/service";
-import { ProblemRegistry } from "@core/problems";
+import type { ProblemRegistry } from "@core/problems";
 import { IntakeService } from "@core/intake/service";
 import { AIRouter } from "@core/ai/router";
 import { createDefaultPromptRegistry } from "@core/ai/prompts";
@@ -16,10 +16,7 @@ import { createAIProvidersFromEnv } from "@server/adapters/ai";
 import { DrizzleBudgetStore } from "@server/db/repositories/budget-store";
 import { setBudgetStore } from "@server/intake/budget-store";
 import { getServerEnv } from "@/lib/env";
-import { cancellationChargeModule } from "@problems/cancellation-charge";
-import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
-import { warrantyRejectionModule } from "@problems/warranty-rejection";
-import { flightCancelModule } from "@problems/flight-cancel";
+import { createProblemRegistry } from "@server/problems/registry";
 
 type Repo = ConstructorParameters<typeof DrizzleCaseRepository>[0];
 type BudgetDb = ConstructorParameters<typeof DrizzleBudgetStore>[0];
@@ -44,12 +41,8 @@ export function createIntakeServices(): IntakeServices {
   const repo = new DrizzleCaseRepository(db as unknown as Repo);
   const caseService = new CaseService(repo);
 
-  // Problem registry — all available modules
-  const registry = new ProblemRegistry();
-  registry.register(cancellationChargeModule);
-  registry.register(noDeliveryRefundModule);
-  registry.register(warrantyRejectionModule);
-  registry.register(flightCancelModule);
+  // Problem registry — single shared registration
+  const registry = createProblemRegistry();
 
   // AI infrastructure
   const providers = createAIProvidersFromEnv(env);

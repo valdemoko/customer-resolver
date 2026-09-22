@@ -13,6 +13,7 @@
  */
 import type { FactKey, FactValue } from "../types";
 import type { IsoDateTime } from "../shared/temporal";
+import type { ConsumerChannel } from "./channels";
 
 // ── Claim Status (vocabulary from ARCHITECTURE.md §18) ──────────────
 
@@ -136,6 +137,12 @@ export interface Result {
 
   /** Disclaimers that must be shown to the user. */
   readonly disclaimers: readonly string[];
+
+  /**
+   * Official bodies the user can take this case to (who decides WHERE to act).
+   * Always present — even an undecidable case has a competent authority.
+   */
+  readonly channels: readonly ConsumerChannel[];
 
   /** Whether the intake is complete (all required facts provided). */
   readonly intakeComplete: boolean;

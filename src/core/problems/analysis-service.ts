@@ -18,6 +18,7 @@ import { isoDateAddMonths, isoDateDaysBetween } from "../shared/temporal";
 import { evaluateRule, type Rule, type RuleEvaluation, type RuleEvaluationContext } from "../rules";
 import { jurisdictionApplies } from "../rules/jurisdiction";
 import type { ProblemModuleDefinition } from "./contract";
+import { computeIntakeRequirements } from "./requirements";
 import { resolveNextQuestionWithValues } from "./intake";
 import type { KnownFact } from "./intake";
 
@@ -216,12 +217,13 @@ export class ProblemAnalysisService {
     });
 
     // ── Intake status (informational, drives the UI later) ───────────
-    // "Complete" means every REQUIRED question's fact is known — optional
-    // questions may remain unanswered without blocking analysis.
+    // "Complete" means every fact the rules read is known. Derived facts are
+    // excluded: the system computes them, so they are never user input.
+    const requirements = computeIntakeRequirements(problemModule, published);
     const knownKeys = new Set(currentFacts.map((f) => f.key as string));
-    const missingRequiredFacts = problemModule.intake
-      .filter((q) => q.required && !knownKeys.has(q.factKey as string))
-      .map((q) => q.factKey as string);
+    const missingRequiredFacts = [...requirements.neededFactKeys].filter(
+      (key) => !knownKeys.has(key),
+    );
     const values = new Map(currentFacts.map((f) => [f.key as string, extractPrimitive(f.value)]));
     const known: KnownFact[] = currentFacts.map((f) => ({
       key: f.key,
@@ -307,7 +309,7 @@ function primitiveFactValue(fact: { value: unknown } | undefined): unknown {
   return extractPrimitive(fact.value as { type: string; value: unknown });
 }
 
-function computeDerivedFacts(
+export function computeDerivedFacts(
   facts: readonly { key: string; value: unknown; status: string }[],
   _module: ProblemModuleDefinition,
 ): readonly { key: string; value: unknown; status: string; provenance: string }[] {

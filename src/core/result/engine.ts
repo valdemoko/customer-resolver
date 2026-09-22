@@ -9,6 +9,8 @@
  */
 import type { Fact } from "../types";
 import type { RuleEvaluation } from "../rules/types";
+import { DERIVED_FACT_SOURCES, resolveAnswerableFactKey } from "../problems/requirements";
+import { channelsForProblem } from "./channels";
 import type {
   Claim,
   ClaimStatus,
@@ -439,6 +441,15 @@ export function buildResult(input: BuildResultInput): Result {
   const factMap = buildFactLookup(facts);
   const questionMap = new Map(questions.map((q) => [q.factKey, q]));
 
+  // Derived facts (deadlines, distances, compensation tiers) are never asked:
+  // the system computes them. When a rule reports one as missing, point at the
+  // question that supplies its inputs instead of showing a raw fact key.
+  for (const derivedKey of Object.keys(DERIVED_FACT_SOURCES)) {
+    if (questionMap.has(derivedKey)) continue;
+    const question = questionMap.get(resolveAnswerableFactKey(derivedKey));
+    if (question) questionMap.set(derivedKey, question);
+  }
+
   // Build claims from evaluations
   const claims: Claim[] = evaluations.map((evaluation, index) => {
     const template = ASSERTION_TEMPLATES[evaluation.ruleKey];
@@ -495,6 +506,9 @@ export function buildResult(input: BuildResultInput): Result {
     contradictions,
     sources,
     disclaimers,
+    // Where to act: official bodies for this problem, always shown — a case
+    // with insufficient data still has a competent authority to complain to.
+    channels: channelsForProblem(problemKey),
     intakeComplete,
   };
 }

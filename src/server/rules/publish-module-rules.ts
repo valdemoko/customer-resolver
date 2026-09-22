@@ -15,7 +15,11 @@
  *  - Runs at most once per server instance (see `ensureModuleRuleSetsPublished`).
  */
 import type { Rule, Source } from "@core/rules";
-import type { ProblemRegistry } from "@core/problems/contract";
+import type { ProblemModuleDefinition, ProblemRegistry } from "@core/problems/contract";
+import {
+  computeIntakeRequirements,
+  type IntakeRequirements,
+} from "@core/problems/requirements";
 import type { RulesRepository } from "@server/db/repositories/rules-repository";
 
 import {
@@ -63,6 +67,34 @@ const MODULE_RULE_SETS: Readonly<Record<string, ModuleRuleSet>> = {
     sources: buildFlightCancelSources,
   },
 };
+
+const codeRulesCache = new Map<string, readonly Rule[]>();
+
+/**
+ * The module's code-defined rules (no database access). Used to know which facts
+ * an analysis reads, so the questionnaire can ask exactly those.
+ */
+export function moduleCodeRules(moduleKey: string): readonly Rule[] {
+  const cached = codeRulesCache.get(moduleKey);
+  if (cached) return cached;
+  const ruleSet = MODULE_RULE_SETS[moduleKey];
+  const rules = ruleSet ? ruleSet.rules() : [];
+  codeRulesCache.set(moduleKey, rules);
+  return rules;
+}
+
+/**
+ * Which facts must be collected before this module's analysis can conclude.
+ * Derived facts (deadlines, distances, tiers) are excluded: the system computes
+ * them from their inputs, so asking the user for them would be nonsense.
+ */
+export function moduleIntakeRequirements(module: ProblemModuleDefinition): IntakeRequirements {
+  // Only rules that will actually be evaluated count: a code-defined DRAFT rule
+  // (deliberately unpublished) must not make the questionnaire ask for facts no
+  // analysis will ever read.
+  const evaluable = moduleCodeRules(module.key).filter((rule) => rule.status === "PUBLISHED");
+  return computeIntakeRequirements(module, evaluable);
+}
 
 export interface PublishSummary {
   readonly sourcesPublished: number;

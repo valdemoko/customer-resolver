@@ -63,6 +63,7 @@ function makeResult(overrides: Partial<Result> = {}): Result {
     contradictions: [],
     sources: [],
     disclaimers: ["Esta información no constituye asesoramiento legal."],
+    channels: [],
     intakeComplete: true,
     ...overrides,
   };

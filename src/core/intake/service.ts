@@ -34,7 +34,7 @@ import {
 } from "./schemas";
 import { buildModuleCatalogue, formatCatalogueForPrompt } from "./catalogue";
 import { routeInterpretation } from "./routing";
-import { selectNextQuestion, allRequiredFactsConfirmed } from "./question-selector";
+import { selectNextQuestion, allRequiredFactsConfirmed, intakeRequirementsSatisfied } from "./question-selector";
 import { BudgetExceededError } from "./errors";
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -266,8 +266,9 @@ export class IntakeService {
     module: ProblemModuleDefinition,
     confirmedFacts: readonly KnownFact[],
     factValues: ReadonlyMap<FactKey, unknown>,
+    neededFactKeys?: ReadonlySet<string>,
   ): QuestionSelection | null {
-    return selectNextQuestion(module, confirmedFacts, factValues);
+    return selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys);
   }
 
   /**
@@ -278,6 +279,17 @@ export class IntakeService {
     confirmedFacts: readonly KnownFact[],
   ): boolean {
     return allRequiredFactsConfirmed(module, confirmedFacts);
+  }
+
+  /**
+   * Check if every fact the analysis needs is confirmed (intake done).
+   */
+  intakeRequirementsSatisfied(
+    module: ProblemModuleDefinition,
+    confirmedFacts: readonly KnownFact[],
+    neededFactKeys?: ReadonlySet<string>,
+  ): boolean {
+    return intakeRequirementsSatisfied(module, confirmedFacts, neededFactKeys);
   }
 
   /**

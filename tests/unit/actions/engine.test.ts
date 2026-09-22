@@ -27,6 +27,7 @@ function makeResult(overrides: Partial<Result>): Result {
     contradictions: [],
     sources: [],
     disclaimers: [],
+    channels: [],
     intakeComplete: true,
     ...overrides,
   };

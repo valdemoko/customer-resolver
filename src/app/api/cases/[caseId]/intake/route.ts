@@ -9,11 +9,69 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createIntakeServices } from "@server/intake/composition";
+import { moduleIntakeRequirements } from "@server/rules/publish-module-rules";
 import { factValueSchema } from "@core/intake/schemas";
+import type { KnownFact } from "@core/problems";
+import type { QuestionSelection } from "@core/intake/types";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
 import type { FactKey, FactValue } from "@core/types";
 
 export const dynamic = "force-dynamic";
+
+// ── Intake progress ──────────────────────────────────────────────────
+
+interface LoadedFactsView {
+  readonly facts: readonly { key: FactKey; value: unknown; status: string }[];
+}
+
+interface IntakeProgressView {
+  readonly nextQuestion: QuestionSelection | null;
+  readonly allRequiredConfirmed: boolean;
+}
+
+/**
+ * Deterministic progress for a case: the next fact the analysis still needs, and
+ * whether the questionnaire is finished.
+ *
+ * "Finished" means every fact the module's rules read is confirmed — not "the
+ * module's three required facts are present". Using the latter ended the form
+ * after three questions, so the rules ran with half their inputs missing and
+ * every claim came back INSUFFICIENT_DATA.
+ */
+function resolveIntakeProgress(
+  services: ReturnType<typeof createIntakeServices>,
+  loaded: LoadedFactsView,
+  problemKey: string,
+): IntakeProgressView {
+  try {
+    const problemModule = services.registry.get(problemKey);
+    const requirements = moduleIntakeRequirements(problemModule);
+    const knownFacts: KnownFact[] = loaded.facts.map((f) => ({
+      key: f.key,
+      status: f.status as KnownFact["status"],
+    }));
+    const factValues = new Map<FactKey, unknown>(
+      loaded.facts.filter((f) => f.status === "CONFIRMED").map((f) => [f.key, f.value]),
+    );
+
+    return {
+      nextQuestion: services.intakeService.selectNextQuestion(
+        problemModule,
+        knownFacts,
+        factValues,
+        requirements.neededFactKeys,
+      ),
+      allRequiredConfirmed: services.intakeService.intakeRequirementsSatisfied(
+        problemModule,
+        knownFacts,
+        requirements.neededFactKeys,
+      ),
+    };
+  } catch {
+    // Unknown module — the case simply has no next question.
+    return { nextQuestion: null, allRequiredConfirmed: false };
+  }
+}
 
 // ── POST input validation ────────────────────────────────────────────
 
@@ -73,35 +131,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
       provenance: f.provenance,
     }));
 
-  // Get fact values map for askIf evaluation
-  const factValues = new Map(
-    loaded.facts.filter((f) => f.status === "CONFIRMED").map((f) => [f.key, f.value]),
-  );
-
   // Get next question if module is known
   const problemKey = loaded.case.problemSlug;
-  let nextQuestion = null;
-  let allRequiredConfirmed = false;
-  if (problemKey && problemKey !== "unknown") {
-    try {
-      const problemModule = services.registry.get(problemKey);
-      const knownFacts = loaded.facts.map((f) => ({
-        key: f.key,
-        status: f.status,
-      }));
-      nextQuestion = services.intakeService.selectNextQuestion(
-        problemModule,
-        knownFacts,
-        factValues,
-      );
-      allRequiredConfirmed = services.intakeService.allRequiredFactsConfirmed(
-        problemModule,
-        knownFacts,
-      );
-    } catch {
-      // Module not found — continue without question
-    }
-  }
+  const progress = problemKey
+    ? resolveIntakeProgress(services, loaded, problemKey)
+    : { nextQuestion: null, allRequiredConfirmed: false };
+  const { nextQuestion, allRequiredConfirmed } = progress;
 
   return NextResponse.json({
     caseId,
@@ -214,33 +249,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     });
 
     // Get next question after confirmation
-    let nextQuestion = null;
-    let allRequiredConfirmed = false;
     const loaded = await services.caseService.loadCase(caseId);
     const problemKey = loaded.case.problemSlug;
-    if (problemKey && problemKey !== "unknown") {
-      try {
-        const problemModule = services.registry.get(problemKey);
-        const knownFacts = loaded.facts.map((f) => ({
-          key: f.key,
-          status: f.status,
-        }));
-        const factValues = new Map(
-          loaded.facts.filter((f) => f.status === "CONFIRMED").map((f) => [f.key, f.value]),
-        );
-        nextQuestion = services.intakeService.selectNextQuestion(
-          problemModule,
-          knownFacts,
-          factValues,
-        );
-        allRequiredConfirmed = services.intakeService.allRequiredFactsConfirmed(
-          problemModule,
-          knownFacts,
-        );
-      } catch {
-        // Module not found
-      }
-    }
+    const progress = problemKey
+      ? resolveIntakeProgress(services, loaded, problemKey)
+      : { nextQuestion: null, allRequiredConfirmed: false };
+    const { nextQuestion, allRequiredConfirmed } = progress;
 
     return NextResponse.json({
       success: true,

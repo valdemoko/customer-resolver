@@ -110,6 +110,27 @@ function buildActions(data: ExportData): string {
   return lines.join("\n");
 }
 
+function buildChannels(data: ExportData): string {
+  const channels = data.result.channels;
+  if (channels.length === 0) return "";
+
+  const lines: string[] = [];
+  lines.push("-".repeat(60));
+  lines.push("DÓNDE RECLAMAR");
+  lines.push("-".repeat(60));
+  lines.push("");
+
+  for (const channel of channels) {
+    lines.push(`• ${channel.target}`);
+    lines.push(`   ${channel.channel}`);
+    lines.push(`   ${channel.why}`);
+    lines.push(`   URL oficial: ${channel.url}`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
 function buildSources(data: ExportData, includeSources: boolean): string {
   if (!includeSources || data.result.sources.length === 0) return "";
 
@@ -166,6 +187,7 @@ export class TxtExportAdapter implements ExportPort {
       buildClaims(data, includeDetails),
       buildMissingInfo(data),
       buildActions(data),
+      buildChannels(data),
       buildSources(data, includeSources),
       buildDisclaimers(data, includeDisclaimers),
     ].join("\n");

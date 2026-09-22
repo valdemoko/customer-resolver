@@ -6,7 +6,6 @@
 import { NextResponse } from "next/server";
 import { CaseService } from "@core/case/service";
 import { ProblemAnalysisService } from "@core/problems/analysis-service";
-import { ProblemRegistry } from "@core/problems";
 import { buildResult } from "@core/result/engine";
 import { deriveActions } from "@core/actions/engine";
 import { createEvent } from "@core/case/events";
@@ -16,10 +15,7 @@ import { RulesRepository } from "@server/db/repositories/rules-repository";
 import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
-import { cancellationChargeModule } from "@problems/cancellation-charge";
-import { noDeliveryRefundModule } from "@problems/no-delivery-refund";
-import { warrantyRejectionModule } from "@problems/warranty-rejection";
-import { flightCancelModule } from "@problems/flight-cancel";
+import { createProblemRegistry } from "@server/problems/registry";
 import { now as systemNow } from "@core/shared/temporal";
 
 export const dynamic = "force-dynamic";
@@ -35,11 +31,7 @@ function compositionRoot() {
   const repo = new DrizzleCaseRepository(db);
   const caseService = new CaseService(repo);
   const rulesRepo = new RulesRepository(db);
-  const registry = new ProblemRegistry();
-  registry.register(cancellationChargeModule);
-  registry.register(noDeliveryRefundModule);
-  registry.register(warrantyRejectionModule);
-  registry.register(flightCancelModule);
+  const registry = createProblemRegistry();
 
   const analysisService = new ProblemAnalysisService({
     repo,

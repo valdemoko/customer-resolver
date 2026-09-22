@@ -60,6 +60,12 @@ export function selectNextQuestion(
   module: ProblemModuleDefinition,
   confirmedFacts: readonly KnownFact[],
   factValues: ReadonlyMap<FactKey, unknown>,
+  /**
+   * Facts the analysis actually needs (see `computeIntakeRequirements`). When
+   * given, the form asks exactly those — a question whose fact no rule reads is
+   * not worth the user's time. Omitted ⇒ the whole module questionnaire applies.
+   */
+  neededFactKeys?: ReadonlySet<string>,
 ): QuestionSelection | null {
   // Build set of confirmed fact keys (non-superceded)
   const confirmedKeys = new Set<FactKey>(
@@ -70,6 +76,9 @@ export function selectNextQuestion(
   const applicable = module.intake.filter((question) => {
     // Skip if fact already confirmed
     if (confirmedKeys.has(question.factKey as FactKey)) return false;
+
+    // Only facts the analysis needs
+    if (neededFactKeys && !neededFactKeys.has(question.factKey as string)) return false;
 
     // Evaluate askIf conditions
     return evaluateAskIf(question, factValues, confirmedKeys);
@@ -115,4 +124,33 @@ export function allRequiredFactsConfirmed(
   return module.factCatalogue
     .filter((f) => f.required)
     .every((f) => confirmedKeys.has(f.key as FactKey));
+}
+
+/**
+ * Is the intake done? True only when every fact the analysis needs is confirmed.
+ *
+ * Distinct from `allRequiredFactsConfirmed`, which reflects the module's minimum
+ * viable set: that one is true after three questions for warranty-rejection,
+ * while the rules still need the seller's response details, the repair history
+ * and the delivery date. Treating it as "done" ended the questionnaire too early.
+ *
+ * With no requirement set it degrades to the required-facts semantics.
+ */
+export function intakeRequirementsSatisfied(
+  module: ProblemModuleDefinition,
+  confirmedFacts: readonly KnownFact[],
+  neededFactKeys?: ReadonlySet<string>,
+): boolean {
+  if (!neededFactKeys || neededFactKeys.size === 0) {
+    return allRequiredFactsConfirmed(module, confirmedFacts);
+  }
+
+  const confirmedKeys = new Set(
+    confirmedFacts.filter((f) => f.status === "CONFIRMED").map((f) => f.key as string),
+  );
+
+  for (const key of neededFactKeys) {
+    if (!confirmedKeys.has(key)) return false;
+  }
+  return true;
 }

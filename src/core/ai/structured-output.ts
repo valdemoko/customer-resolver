@@ -30,6 +30,30 @@ export interface ParsedStructuredOutput<T> {
  * Parse + validate a raw model response against a Zod schema.
  * Throws AI_INVALID_STRUCTURED_OUTPUT (never a SyntaxError/ZodError to callers).
  */
+/**
+ * Remove object properties whose value is explicitly `null`, recursively.
+ *
+ * Models write `"field": null` for "not applicable" while a schema expresses
+ * that as an omitted optional field; Zod rejects `null` on an optional field, so
+ * a semantically valid answer was thrown away as invalid output (503).
+ *
+ * Soundness: this runs only AFTER the strict parse failed, and it only removes
+ * `null`s. A `null` in a REQUIRED position stays missing and is still rejected,
+ * so this can never accept an incomplete answer — it can only accept an answer
+ * that the schema already considers "absent is fine".
+ */
+function dropNullProperties(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(dropNullProperties);
+  if (value === null || typeof value !== "object") return value;
+
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (entry === null) continue;
+    out[key] = dropNullProperties(entry);
+  }
+  return out;
+}
+
 export function parseStructuredOutput<T>(
   raw: string,
   schema: ZodType<T>,
@@ -48,7 +72,15 @@ export function parseStructuredOutput<T>(
     });
   }
 
-  const result = schema.safeParse(json);
+  const strict = schema.safeParse(json);
+  if (!strict.success) {
+    const withoutNulls = schema.safeParse(dropNullProperties(json));
+    if (withoutNulls.success) {
+      return { data: withoutNulls.data, raw: cleaned };
+    }
+  }
+
+  const result = strict;
   if (!result.success) {
     // Only the issue count + paths go into the error — never the content.
     const paths = result.error.issues

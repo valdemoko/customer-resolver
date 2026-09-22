@@ -51,6 +51,7 @@ function makeExportData(overrides: Partial<ExportData> = {}): ExportData {
         },
       ],
       disclaimers: ["Esta información no constituye asesoramiento legal."],
+      channels: [],
       intakeComplete: true,
     },
     actionPlan: {
@@ -175,6 +176,7 @@ describe("TXT Export Adapter", () => {
         claims: [],
         sources: [],
         disclaimers: [],
+        channels: [],
       },
     });
 
