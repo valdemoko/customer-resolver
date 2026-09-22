@@ -17,7 +17,13 @@
 import { NextResponse } from "next/server";
 import { CaseService } from "@core/case/service";
 import { EvidenceService } from "@core/evidence/service";
-import { DocumentProcessingService } from "@core/document/processing-service";
+import {
+  DocumentProcessingService,
+  type DocumentFactExtractor,
+} from "@core/document/processing-service";
+import { AIFactExtractionService } from "@core/ai/fact-extraction";
+import { createIntakeServices } from "@server/intake/composition";
+import { getBudgetStore } from "@server/intake/budget-store";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { InMemoryObjectStorage } from "@server/adapters/storage/in-memory-object-storage";
@@ -131,13 +137,80 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   }
 
   // 3. The case must exist before anything is attached to it.
+  let loadedCase: Awaited<ReturnType<typeof services.caseService.loadCase>>;
   try {
-    await services.caseService.loadCase(caseId);
+    loadedCase = await services.caseService.loadCase(caseId);
   } catch {
     return NextResponse.json(
       { error: { code: "NOT_FOUND", message: "Case not found" } },
       { status: 404 },
     );
+  }
+
+  // 3b. Fact keys this case's problem can accept, and the AI reader that turns
+  //     the document text into candidates. Without it an uploaded invoice would
+  //     be stored, read, and contribute nothing to the analysis.
+  const problemSlug = loadedCase.case.problemSlug;
+  let requiredFactKeys: readonly string[] = [];
+  let factExtractor: DocumentFactExtractor | undefined;
+  try {
+    const intake = createIntakeServices();
+    requiredFactKeys = intake.registry.has(problemSlug)
+      ? intake.registry.get(problemSlug).factCatalogue.map((fact) => fact.key as string)
+      : [];
+    const budgetStore = getBudgetStore();
+    const reader = new AIFactExtractionService(intake.router);
+
+    factExtractor = {
+      async extract({ caseId: id, documentText, requiredFactKeys: keys, physicalObjectId }) {
+        // Document reading shares the per-case AI budget: an anonymous upload
+        // must not become an unlimited AI spend.
+        const reservation = await budgetStore.tryReserveBudget(id);
+        if (!reservation.allowed) {
+          throw new Error("AI budget exhausted for this case");
+        }
+        try {
+          const extracted = await reader.extract({
+            caseId: id,
+            physicalObjectId,
+            documentText,
+            requiredFactKeys: keys,
+            now: () => new Date().toISOString(),
+          });
+          return extracted.candidates.map((candidate) => ({
+            factKey: candidate.factKey,
+            proposedValue: candidate.proposedValue,
+            // Only a quote actually found in the text carries a location; see
+            // mapModelFactsToCandidates (the AI cannot invent one). Without real
+            // offsets there is no traceable location, so the value is dropped
+            // rather than attached to a made-up span.
+            location:
+              candidate.location &&
+              typeof candidate.location.startOffset === "number" &&
+              typeof candidate.location.endOffset === "number"
+                ? {
+                    page: candidate.location.page,
+                    startOffset: candidate.location.startOffset,
+                    endOffset: candidate.location.endOffset,
+                  }
+                : null,
+            confidence:
+              candidate.certainty === "EXPLICIT"
+                ? 0.95
+                : candidate.certainty === "INFERRED"
+                  ? 0.7
+                  : 0.4,
+          }));
+        } catch (error) {
+          // Nothing was produced for the user: give the slot back so a retry is possible.
+          await budgetStore.releaseBudget(id);
+          throw error;
+        }
+      },
+    };
+  } catch {
+    // AI layer unavailable: the document is still stored and its text extracted.
+    factExtractor = undefined;
   }
 
   // 4. Register the evidence container, then process the document.
@@ -162,6 +235,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       buffer,
       mimeType,
       filename,
+      requiredFactKeys,
+      factExtractor,
     });
 
     const extractedText = result.processingRun.result?.text?.fullText ?? "";
@@ -174,6 +249,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       extractedCharacters: extractedText.length,
       usedOcr: result.processingRun.result?.text?.usedOcr ?? false,
       extractionError: result.processingRun.result?.error ?? null,
+      // Why no data was read out of the document, when reading it failed. A
+      // document the system could not read must never look like an empty one.
+      factExtractionError: result.factExtractionError,
       // Candidates are NOT facts: the user confirms them (only then do they
       // reach the rule engine).
       candidates: result.factCandidates.map((candidate) => ({

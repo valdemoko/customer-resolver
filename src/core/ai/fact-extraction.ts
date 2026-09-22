@@ -89,9 +89,10 @@ export function budgetDocumentText(rawText: string, budget: TokenBudget): Budget
 
 export interface FactExtractionInput {
   readonly caseId: string;
-  readonly evidenceId: string;
+  /** Provenance is attached at persistence time; unused by the call itself. */
+  readonly evidenceId?: string;
   readonly physicalObjectId: string;
-  readonly processingRunId: string;
+  readonly processingRunId?: string;
   /** Processed document text from F5 (DocumentText.fullText). */
   readonly documentText: string;
   /** Required fact keys declared by the problem module (e.g. cancellation.date). */

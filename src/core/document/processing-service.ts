@@ -207,12 +207,49 @@ export interface UploadAndProcessInput {
   readonly buffer: Uint8Array;
   readonly mimeType: string;
   readonly filename: string;
+  /** Fact keys the case's module can accept — anything else is dropped. */
+  readonly requiredFactKeys?: readonly string[];
+  /**
+   * Turns extracted text into fact candidates (the AI layer in production).
+   * Absent ⇒ the document is stored and its text extracted, with no candidates.
+   */
+  readonly factExtractor?: DocumentFactExtractor;
+}
+
+/** A fact found in a document, before any user confirmation. */
+export interface ExtractedFactProposal {
+  readonly factKey: string;
+  readonly proposedValue: unknown;
+  /** `null` when the quote could not be located in the text — dropped: the AI
+   *  may not invent where a value came from (spec §7). */
+  readonly location: {
+    readonly page?: number;
+    readonly startOffset: number;
+    readonly endOffset: number;
+  } | null;
+  readonly confidence?: number;
+}
+
+/** Port: read fact candidates out of an already-extracted document text. */
+export interface DocumentFactExtractor {
+  extract(input: {
+    readonly caseId: string;
+    readonly documentText: string;
+    readonly requiredFactKeys: readonly string[];
+    readonly physicalObjectId: string;
+  }): Promise<readonly ExtractedFactProposal[]>;
 }
 
 export interface UploadAndProcessResult {
   readonly physicalObject: PhysicalObject;
   readonly processingRun: DocumentProcessingRun;
   readonly factCandidates: readonly DocumentFactCandidate[];
+  /**
+   * Why no candidates were produced, when the extraction itself failed.
+   * Surfaced to the user: a document the system could not read must never
+   * look like a document with nothing in it.
+   */
+  readonly factExtractionError: string | null;
 }
 
 export class DocumentProcessingService {
@@ -302,6 +339,7 @@ export class DocumentProcessingService {
     // 10. Process document (text extraction)
     let processingResult: ProcessingRunResult | undefined;
     let factCandidates: DocumentFactCandidate[] = [];
+    let factExtractionError: string | null = null;
 
     if (this.extractor.supports(mimeType)) {
       const extraction = await this.extractor.extract({
@@ -326,16 +364,48 @@ export class DocumentProcessingService {
           metadata: extraction.metadata,
         };
 
-        // Create fact candidates from extraction
-        // In F5, we create simple text-based candidates (no AI interpretation)
+        // Create fact candidates from the extracted text.
+        // The extractor port is how the AI layer joins here: without it the text
+        // is stored but nothing is proposed (the document would contribute nothing).
         if (extraction.fullText.length > 0) {
+          let proposals: readonly ExtractedFactProposal[] = [];
+          const requiredFactKeys = input.requiredFactKeys ?? [];
+          if (input.factExtractor && requiredFactKeys.length > 0) {
+            try {
+              proposals = await input.factExtractor.extract({
+                caseId,
+                documentText: extraction.fullText,
+                requiredFactKeys,
+                physicalObjectId: physicalObject.id,
+              });
+            } catch (error) {
+              // A failed AI read must not discard the uploaded document: the text
+              // stays, and the caller is told so it can say so to the user.
+              factExtractionError = error instanceof Error ? error.message : String(error);
+              proposals = [];
+            }
+          }
+
           factCandidates = createFactCandidates({
             caseId,
             evidenceId,
             physicalObjectId: physicalObject.id,
             processingRunId: run.id,
             extractorVersion: extraction.extractorVersion,
-            proposedFacts: [], // No automatic fact creation — requires AI or rule-based extraction
+            // Only candidates whose quote was actually found in the document: an
+            // unlocatable value cannot be traced to a source.
+            proposedFacts: proposals
+              .filter((proposal) => proposal.location !== null)
+              .map((proposal) => ({
+                factKey: proposal.factKey,
+                proposedValue: proposal.proposedValue,
+                location: proposal.location as {
+                  page?: number;
+                  startOffset: number;
+                  endOffset: number;
+                },
+                confidence: proposal.confidence,
+              })),
             at,
           });
         }
@@ -378,7 +448,12 @@ export class DocumentProcessingService {
           loaded.case.version,
         );
 
-        return { physicalObject, processingRun: completedRun, factCandidates };
+        return {
+          physicalObject,
+          processingRun: completedRun,
+          factCandidates,
+          factExtractionError,
+        };
       }
     }
 
@@ -422,6 +497,11 @@ export class DocumentProcessingService {
       loaded.case.version,
     );
 
-    return { physicalObject, processingRun: failedRun, factCandidates };
+    return {
+      physicalObject,
+      processingRun: failedRun,
+      factCandidates,
+      factExtractionError,
+    };
   }
 }

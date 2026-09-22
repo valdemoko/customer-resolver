@@ -585,6 +585,14 @@ export function ResolverClient() {
 
           processedDocuments += 1;
           totalCharacters += data.extractedCharacters ?? 0;
+          // The text was read but the AI could not turn it into data: say so.
+          // Otherwise the user would believe an unread document was empty.
+          if (data.factExtractionError) {
+            console.warn(`[evidence] ${file.name}: extracción fallida —`, data.factExtractionError);
+            failures.push(
+              `${file.name}: no pudimos leer los datos del documento; puedes continuar y completarlos a mano`,
+            );
+          }
           for (const candidate of data.candidates ?? []) {
             if (found.some((c) => c.candidateId === candidate.candidateId)) continue;
             found.push({

@@ -26,6 +26,85 @@ vi.mock("@server/db/client", () => ({
   createNeonDb: () => harness.db,
 }));
 
+// The AI budget is durable in production (its own table, outside this harness's
+// migration subset). The shared-limit behaviour is not what this file tests, so
+// it runs against an in-memory counter.
+vi.mock("@server/intake/budget-store", () => {
+  const counts = new Map<string, number>();
+  const max = 3;
+  const store = {
+    async tryReserveBudget(caseId: string) {
+      const current = counts.get(caseId) ?? 0;
+      if (current >= max) return { allowed: false, currentCount: current, maxAllowed: max };
+      counts.set(caseId, current + 1);
+      return { allowed: true, currentCount: current + 1, maxAllowed: max };
+    },
+    async releaseBudget(caseId: string) {
+      const current = counts.get(caseId) ?? 0;
+      if (current > 0) counts.set(caseId, current - 1);
+    },
+    async hasRemainingBudget(caseId: string) {
+      return (counts.get(caseId) ?? 0) < max;
+    },
+    async getCallCount(caseId: string) {
+      return counts.get(caseId) ?? 0;
+    },
+    async recordCall(caseId: string) {
+      counts.set(caseId, (counts.get(caseId) ?? 0) + 1);
+    },
+    async resetBudget(caseId: string) {
+      counts.delete(caseId);
+    },
+  };
+  return {
+    getBudgetStore: () => store,
+    setBudgetStore: () => undefined,
+    MAX_INTERPRETATION_CALLS: max,
+  };
+});
+
+// The reader that turns document text into fact candidates. A scripted model
+// keeps the suite offline and makes the extracted value deterministic.
+vi.mock("@server/adapters/ai", async () => {
+  const { FakeAIProvider } = await import("../../unit/ai/fake-provider");
+  const { aiModelId, aiProviderId } = await import("@core/ai/types");
+  return {
+    createAIProvidersFromEnv: () => [
+      new FakeAIProvider({
+        models: [
+          {
+            providerId: aiProviderId("groq"),
+            modelId: aiModelId("groq-fast"),
+            capabilities: {
+              structuredOutput: true,
+              maxInputTokens: 8000,
+              maxOutputTokens: 4096,
+              vision: false,
+            },
+            taskTypes: ["DOCUMENT_FACT_EXTRACTION"],
+            priority: 1,
+          },
+        ],
+        script: [
+          {
+            kind: "success",
+            text: JSON.stringify({
+              facts: [
+                {
+                  factKey: "purchase.delivery_date",
+                  value: "2026-05-01",
+                  sourceQuote: "Fecha de entrega: 2026-05-01",
+                  certainty: "EXPLICIT",
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    ],
+  };
+});
+
 type PostHandler = (
   request: Request,
   context: { params: Promise<{ caseId: string }> },
@@ -109,6 +188,29 @@ describe("POST /api/cases/[caseId]/evidence", () => {
     const loaded = await new DrizzleCaseRepository(harness.db).loadCase(caseId);
     expect(loaded?.evidence.some((e) => e.id === data.evidenceId)).toBe(true);
     expect(loaded?.processingRuns.some((run) => run.id === data.processingRunId)).toBe(true);
+  });
+
+  it("proposes the data it reads from the document, never as confirmed facts", async () => {
+    const caseId = await createCase();
+    const res = await POST(
+      uploadRequest("Factura. Fecha de entrega: 2026-05-01.", "factura.txt", "text/plain"),
+      { params: Promise.resolve({ caseId }) },
+    );
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+
+    // The document now contributes: one candidate, traceable to its quote.
+    expect(data.factCandidatesError ?? data.factExtractionError).toBeNull();
+    const candidate = data.candidates.find(
+      (c: { factKey: string }) => c.factKey === "purchase.delivery_date",
+    );
+    expect(candidate?.proposedValue).toBe("2026-05-01");
+
+    // ...but nothing is a fact until the user confirms it.
+    const { DrizzleCaseRepository } = await import("@server/db/repositories/case-repository");
+    const loaded = await new DrizzleCaseRepository(harness.db).loadCase(caseId);
+    expect(loaded?.facts.some((f) => f.key === "purchase.delivery_date")).toBe(false);
   });
 
   it("rejects an unsupported file type with a clear status", async () => {

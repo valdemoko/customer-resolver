@@ -25,6 +25,8 @@ export interface IntakeServices {
   registry: ProblemRegistry;
   caseService: CaseService;
   intakeService: IntakeService;
+  /** Shared AI router (document fact extraction uses it too). */
+  router: AIRouter;
 }
 
 /**
@@ -57,5 +59,5 @@ export function createIntakeServices(): IntakeServices {
   // Intake service
   const intakeService = new IntakeService(router, registry);
 
-  return { registry, caseService, intakeService };
+  return { registry, caseService, intakeService, router };
 }
