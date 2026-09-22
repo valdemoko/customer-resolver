@@ -147,6 +147,45 @@ export const intakeInterpretationSchema = z
 
 export type IntakeInterpretationOutput = z.infer<typeof intakeInterpretationSchema>;
 
+// ── General guidance schema (problems with no registered module) ─────
+//
+// When a problem matches no registered module, Resolveo cannot run its rule
+// engine, so there is no verified result to show. Instead of a dead end the
+// AI produces GENERAL orientation: what the situation is, what the person can
+// do next, who to contact and what to gather.
+//
+// It is explicitly NOT a personalized legal analysis: no legal articles, no
+// deadlines, no amounts, no verdicts, no invented facts or organisations.
+// The escalation channels are a closed list fixed by the prompt.
+
+export const guidanceStepSchema = z.object({
+  title: z.string().min(1).max(200),
+  detail: z.string().min(1).max(1200),
+});
+
+export const guidanceChannelSchema = z.object({
+  target: z.string().min(1).max(200),
+  channel: z.string().max(400).default(""),
+  why: z.string().min(1).max(600),
+});
+
+export const generalGuidanceSchema = z
+  .object({
+    understanding: z.string().min(1).max(1200),
+    // Omitted lists default to empty: a missing list means the same as an empty
+    // one, and rejecting the whole answer for that would be a false negative.
+    generalSteps: z.array(guidanceStepSchema).max(8).default([]),
+    whereToComplain: z.array(guidanceChannelSchema).max(5).default([]),
+    documentsToGather: z.array(z.string().min(1).max(400)).max(12).default([]),
+    whatWeCannotDo: z.array(z.string().min(1).max(400)).max(8).default([]),
+  })
+  .strict();
+
+export type GeneralGuidanceOutput = z.infer<typeof generalGuidanceSchema>;
+
 // ── Schema version ───────────────────────────────────────────────────
 
 export const INTAKE_SCHEMA_VERSION = "intake-interpretation@1";
+
+/** Version identifier of the general-guidance output contract. */
+export const GENERAL_GUIDANCE_SCHEMA_VERSION = "general-guidance@1";

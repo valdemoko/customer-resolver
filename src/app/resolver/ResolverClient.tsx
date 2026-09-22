@@ -110,6 +110,15 @@ interface ActionPlan {
   nextStep: string;
 }
 
+/** General orientation for problems with no registered module (Fase 8.4). */
+interface Guidance {
+  understanding: string;
+  generalSteps: Array<{ title: string; detail: string }>;
+  whereToComplain: Array<{ target: string; channel: string; why: string }>;
+  documentsToGather: string[];
+  whatWeCannotDo: string[];
+}
+
 interface AppState {
   phase: Phase;
   caseId: string | null;
@@ -122,6 +131,10 @@ interface AppState {
   actionPlan: ActionPlan | null;
   error: string | null;
   budget: { current: number; max: number } | null;
+  guidance: Guidance | null;
+  guidanceDisclaimer: string | null;
+  guidanceLoading: boolean;
+  guidanceError: string | null;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -169,20 +182,26 @@ function buildValueInput(factKey: string, answer: string): { type: string; value
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════════ */
 
+const INITIAL_STATE: AppState = {
+  phase: "intake",
+  caseId: null,
+  interpretation: null,
+  routing: null,
+  nextQuestion: null,
+  allRequiredConfirmed: false,
+  confirmedFacts: [],
+  result: null,
+  actionPlan: null,
+  error: null,
+  budget: null,
+  guidance: null,
+  guidanceDisclaimer: null,
+  guidanceLoading: false,
+  guidanceError: null,
+};
+
 export function ResolverClient() {
-  const [state, setState] = useState<AppState>({
-    phase: "intake",
-    caseId: null,
-    interpretation: null,
-    routing: null,
-    nextQuestion: null,
-    allRequiredConfirmed: false,
-    confirmedFacts: [],
-    result: null,
-    actionPlan: null,
-    error: null,
-    budget: null,
-  });
+  const [state, setState] = useState<AppState>(INITIAL_STATE);
 
   const [input, setInput] = useState("");
   const [answer, setAnswer] = useState("");
@@ -194,6 +213,44 @@ export function ResolverClient() {
     const params = new URLSearchParams(window.location.search);
     const q = params.get("q");
     if (q) setInput(q);
+  }, []);
+
+  // ── Phase 1b: general orientation when the problem has no module ──
+
+  const loadGuidance = useCallback(async (message: string, caseId: string | null) => {
+    if (!caseId) return;
+
+    setState((prev) => ({
+      ...prev,
+      guidance: null,
+      guidanceDisclaimer: null,
+      guidanceError: null,
+      guidanceLoading: true,
+    }));
+
+    try {
+      const res = await fetch("/api/intake/guidance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, caseId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.guidance) {
+        throw new Error(data.error?.message || "No pudimos preparar la orientación");
+      }
+      setState((prev) => ({
+        ...prev,
+        guidance: data.guidance,
+        guidanceDisclaimer: data.disclaimer ?? null,
+        guidanceLoading: false,
+      }));
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        guidanceLoading: false,
+        guidanceError: err instanceof Error ? err.message : "Error inesperado",
+      }));
+    }
   }, []);
 
   // ── Phase 1: Submit problem description ────────────────────────
@@ -226,7 +283,21 @@ export function ResolverClient() {
         routing: data.routing,
         nextQuestion: data.nextQuestion,
         budget: data.budget,
+        guidance: null,
+        guidanceDisclaimer: null,
+        guidanceError: null,
+        guidanceLoading: false,
       }));
+
+      // No registered module → ask for general orientation in the background.
+      // The interpretation above is already visible; a failure here only
+      // removes the extra orientation, never the interpretation.
+      if (
+        data.routing?.status === "UNSUPPORTED" ||
+        data.routing?.status === "UNSUPPORTED_JURISDICTION"
+      ) {
+        void loadGuidance(input.trim(), data.caseId ?? null);
+      }
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -236,7 +307,7 @@ export function ResolverClient() {
     } finally {
       setSubmitting(false);
     }
-  }, [input, submitting]);
+  }, [input, submitting, loadGuidance]);
 
   // ── Phase 2: Move to questioning ──────────────────────────────
 
@@ -627,29 +698,132 @@ export function ResolverClient() {
             {/* Actions */}
             {isUnsupported ? (
               <div className="mt-8">
-                <button
-                  onClick={() =>
-                    setState({
-                      phase: "intake",
-                      caseId: null,
-                      interpretation: null,
-                      routing: null,
-                      nextQuestion: null,
-                      allRequiredConfirmed: false,
-                      confirmedFacts: [],
-                      result: null,
-                      actionPlan: null,
-                      error: null,
-                      budget: null,
-                    })
-                  }
-                  className="btn-primary"
-                >
-                  Describir otro problema
-                </button>
-                <p className="text-xs text-[var(--color-ink-faint)] mt-6">
-                  Tu situación no encaja en ninguno de los problemas que analizamos por ahora.
-                </p>
+                {/* Orientation is being prepared */}
+                {state.guidanceLoading && (
+                  <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                    <p className="label mb-3">Preparando orientación</p>
+                    <div className="space-y-3">
+                      {["Situación detectada", "Qué puedes hacer", "Dónde reclamar"].map((step, i) => (
+                        <div
+                          key={step}
+                          className="flex items-center gap-3 text-sm text-[var(--color-ink-faint)] anim-fade-in"
+                          style={{ animationDelay: `${i * 250}ms` }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] flex-shrink-0" />
+                          {step}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Guidance generated for this specific problem */}
+                {state.guidance && (
+                  <div className="space-y-5 anim-fade-in">
+                    <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                      <p className="label mb-1">Orientación general</p>
+                      <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
+                        {state.guidance.understanding}
+                      </p>
+                    </div>
+
+                    {state.guidance.generalSteps.length > 0 && (
+                      <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                        <p className="label mb-3">Qué puedes hacer</p>
+                        <ol className="space-y-4">
+                          {state.guidance.generalSteps.map((step, i) => (
+                            <li key={step.title} className="flex items-start gap-3">
+                              <span className="w-5 h-5 rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)] text-xs font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
+                                {i + 1}
+                              </span>
+                              <div>
+                                <p className="text-sm font-medium text-[var(--color-ink)]">{step.title}</p>
+                                <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mt-1">
+                                  {step.detail}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {state.guidance.whereToComplain.length > 0 && (
+                      <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                        <p className="label mb-3">Dónde reclamar</p>
+                        <div className="space-y-4">
+                          {state.guidance.whereToComplain.map((channel) => (
+                            <div key={channel.target} className="flex items-start gap-3">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] mt-2 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-[var(--color-ink)]">{channel.target}</p>
+                                {channel.channel && (
+                                  <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">{channel.channel}</p>
+                                )}
+                                <p className="text-sm text-[var(--color-ink-muted)] leading-relaxed mt-1">
+                                  {channel.why}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {state.guidance.documentsToGather.length > 0 && (
+                      <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+                        <p className="label mb-3">Documentos y pruebas que conviene reunir</p>
+                        <ul className="space-y-2">
+                          {state.guidance.documentsToGather.map((doc) => (
+                            <li key={doc} className="flex items-start gap-3 text-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-stone)] mt-2 flex-shrink-0" />
+                              <span className="text-[var(--color-ink-muted)]">{doc}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {state.guidance.whatWeCannotDo.length > 0 && (
+                      <div className="p-5 bg-[var(--surface-elevated)] border border-[var(--border-light)]">
+                        <p className="label mb-3">Qué no hace esta orientación</p>
+                        <ul className="space-y-2">
+                          {state.guidance.whatWeCannotDo.map((limit) => (
+                            <li key={limit} className="flex items-start gap-3 text-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-insufficient)] mt-2 flex-shrink-0" />
+                              <span className="text-[var(--color-ink-muted)]">{limit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {state.guidanceDisclaimer && (
+                      <p className="text-xs text-[var(--color-ink-faint)] leading-relaxed">
+                        {state.guidanceDisclaimer}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Orientation failed — the interpretation is still valid */}
+                {state.guidanceError && !state.guidanceLoading && !state.guidance && (
+                  <div className="p-4 bg-[var(--color-potentially-bg)] border border-[var(--color-potentially)]/20 text-sm text-[var(--color-potentially)]">
+                    No pudimos preparar la orientación general para este problema.
+                    <button
+                      onClick={() => void loadGuidance(input.trim(), state.caseId)}
+                      className="ml-3 underline underline-offset-2 hover:no-underline"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-8">
+                  <button onClick={() => setState(INITIAL_STATE)} className="btn-secondary">
+                    Describir otro problema
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -997,7 +1171,7 @@ export function ResolverClient() {
           <h2 className="text-xl mb-2" style={{ fontFamily: "var(--font-display)" }}>Ha ocurrido un error</h2>
           <p className="text-sm text-[var(--color-ink-muted)] mb-6">{state.error}</p>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => setState({ phase: "intake", caseId: null, interpretation: null, routing: null, nextQuestion: null, allRequiredConfirmed: false, confirmedFacts: [], result: null, actionPlan: null, error: null, budget: null })} className="btn-primary">
+            <button onClick={() => setState(INITIAL_STATE)} className="btn-primary">
               Intentar de nuevo
             </button>
             <Link href="/" className="btn-secondary">
