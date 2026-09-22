@@ -32,9 +32,12 @@ export const entityTypeSchema = z.enum([
 
 export const moduleCandidateSchema = z.object({
   problemKey: z.string().min(1),
-  signals: z.array(z.string()).min(1).max(10),
-  matchedRequiredFacts: z.array(z.string()),
-  missingRequiredFacts: z.array(z.string()),
+  // Array fields default to empty: smaller models frequently omit them, and an
+  // omitted list carries the same meaning as an empty one. Rejecting the whole
+  // response for that reason would turn a valid interpretation into a 503.
+  signals: z.array(z.string()).max(10).default([]),
+  matchedRequiredFacts: z.array(z.string()).default([]),
+  missingRequiredFacts: z.array(z.string()).default([]),
   confidence: classificationConfidenceSchema,
 });
 
@@ -64,10 +67,12 @@ export const intakeFactCandidateSchema = z.object({
   candidateId: z.string().min(1),
   factKey: z.string().min(1),
   proposedValue: factValueSchema,
+  // sourceText is required: every fact must be traceable to a verbatim quote.
   sourceText: z.string().min(1).max(2000),
-  aiInterpretation: z.string().min(1).max(1000),
+  aiInterpretation: z.string().max(1000).default(""),
   certainty: factCertaintySchema,
-  problemKey: z.string().min(1),
+  // Empty when the fact does not belong to any candidate module (out-of-scope problem).
+  problemKey: z.string().optional(),
 });
 
 // ── Detected entity schema ───────────────────────────────────────────
@@ -79,20 +84,22 @@ export const detectedEntitySchema = z.object({
   confidence: factCertaintySchema,
 });
 
+export const emptyStringArray = z.array(z.string()).default([]);
+
 // ── Missing info hint schema ─────────────────────────────────────────
 
 export const missingInfoHintSchema = z.object({
   factKey: z.string().min(1),
   questionHint: z.string().min(1).max(500),
   priority: z.enum(["HIGH", "MEDIUM", "LOW"]),
-  requiredByRules: z.array(z.string()),
+  requiredByRules: emptyStringArray,
 });
 
 // ── Ambiguity schema ─────────────────────────────────────────────────
 
 export const ambiguitySchema = z.object({
   description: z.string().min(1).max(500),
-  affectedFacts: z.array(z.string()),
+  affectedFacts: emptyStringArray,
   resolutionHint: z.string().min(1).max(500),
 });
 
@@ -113,7 +120,7 @@ export const apparentContradictionSchema = z.object({
 export const jurisdictionHintSchema = z.object({
   jurisdiction: z.string().min(2).max(10),
   confidence: classificationConfidenceSchema,
-  signals: z.array(z.string()).min(1).max(5),
+  signals: z.array(z.string()).max(5).default([]),
 });
 
 // ── Full interpretation schema ───────────────────────────────────────
@@ -124,14 +131,16 @@ export const jurisdictionHintSchema = z.object({
 
 export const intakeInterpretationSchema = z
   .object({
-    summary: z.string().min(1).max(1000),
-    candidateModules: z.array(moduleCandidateSchema).min(1).max(5),
-    factCandidates: z.array(intakeFactCandidateSchema).max(20),
-    missingInformation: z.array(missingInfoHintSchema).max(10),
-    ambiguities: z.array(ambiguitySchema).max(10),
-    contradictions: z.array(apparentContradictionSchema).max(5),
-    entities: z.array(detectedEntitySchema).max(20),
-    jurisdictionHints: z.array(jurisdictionHintSchema).max(3),
+    summary: z.string().max(1000).default(""),
+    // Empty is valid: it means the problem matches none of the registered modules,
+    // which the deterministic routing layer turns into UNSUPPORTED (never a 503).
+    candidateModules: z.array(moduleCandidateSchema).max(5).default([]),
+    factCandidates: z.array(intakeFactCandidateSchema).max(20).default([]),
+    missingInformation: z.array(missingInfoHintSchema).max(10).default([]),
+    ambiguities: z.array(ambiguitySchema).max(10).default([]),
+    contradictions: z.array(apparentContradictionSchema).max(5).default([]),
+    entities: z.array(detectedEntitySchema).max(20).default([]),
+    jurisdictionHints: z.array(jurisdictionHintSchema).max(3).default([]),
     classificationConfidence: classificationConfidenceSchema,
   })
   .strict();

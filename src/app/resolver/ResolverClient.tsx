@@ -549,6 +549,8 @@ export function ResolverClient() {
   if (state.phase === "interpretation" && state.interpretation) {
     const interp = state.interpretation;
     const routing = state.routing;
+    const isUnsupported =
+      routing?.status === "UNSUPPORTED" || routing?.status === "UNSUPPORTED_JURISDICTION";
 
     return (
       <div className="min-h-[80vh] bg-[var(--surface-page)]">
@@ -568,12 +570,16 @@ export function ResolverClient() {
             <p className="label mb-3">Hemos entendido lo siguiente</p>
             <h1 className="mb-6">Esto es lo que hemos detectado</h1>
 
-            {/* Module detected */}
-            {routing?.moduleTitle && (
+            {/* Module detected (or out-of-scope notice) */}
+            {(routing?.moduleTitle || routing?.userExplanation) && (
               <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-5">
-                <p className="label mb-1">Problema detectado</p>
-                <p className="text-base font-medium text-[var(--color-ink)]">{routing.moduleTitle}</p>
-                {routing.userExplanation && (
+                <p className="label mb-1">
+                  {routing?.moduleTitle ? "Problema detectado" : "Aviso"}
+                </p>
+                {routing?.moduleTitle && (
+                  <p className="text-base font-medium text-[var(--color-ink)]">{routing.moduleTitle}</p>
+                )}
+                {routing?.userExplanation && (
                   <p className="text-sm text-[var(--color-ink-muted)] mt-1">{routing.userExplanation}</p>
                 )}
               </div>
@@ -619,24 +625,54 @@ export function ResolverClient() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 mt-8">
-              <button onClick={handleStartQuestioning} className="btn-primary">
-                Completar datos
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setState((prev) => ({ ...prev, phase: "evidence" }))}
-                className="btn-secondary"
-              >
-                Saltar a análisis
-              </button>
-            </div>
+            {isUnsupported ? (
+              <div className="mt-8">
+                <button
+                  onClick={() =>
+                    setState({
+                      phase: "intake",
+                      caseId: null,
+                      interpretation: null,
+                      routing: null,
+                      nextQuestion: null,
+                      allRequiredConfirmed: false,
+                      confirmedFacts: [],
+                      result: null,
+                      actionPlan: null,
+                      error: null,
+                      budget: null,
+                    })
+                  }
+                  className="btn-primary"
+                >
+                  Describir otro problema
+                </button>
+                <p className="text-xs text-[var(--color-ink-faint)] mt-6">
+                  Tu situación no encaja en ninguno de los problemas que analizamos por ahora.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-3 mt-8">
+                  <button onClick={handleStartQuestioning} className="btn-primary">
+                    Completar datos
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setState((prev) => ({ ...prev, phase: "evidence" }))}
+                    className="btn-secondary"
+                  >
+                    Saltar a análisis
+                  </button>
+                </div>
 
-            <p className="text-xs text-[var(--color-ink-faint)] mt-6">
-              La información detectada es orientativa. Necesitamos confirmarla antes de analizar.
-            </p>
+                <p className="text-xs text-[var(--color-ink-faint)] mt-6">
+                  La información detectada es orientativa. Necesitamos confirmarla antes de analizar.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

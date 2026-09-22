@@ -147,7 +147,8 @@ export class IntakeService {
           sourceText: sourceTextValid ? c.sourceText : "[source not verified]",
           aiInterpretation: c.aiInterpretation,
           certainty: c.certainty,
-          problemKey: c.problemKey,
+          // Out-of-scope facts may have no module: keep the candidate but with an empty key.
+          problemKey: c.problemKey ?? "",
           status: "UNCONFIRMED" as const,
           aiRequestId: result.record.aiRequestId,
         };

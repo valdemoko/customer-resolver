@@ -215,6 +215,17 @@ EXAMPLE OUTPUT for a user saying "Me han cobrado 50 euros por cancelar mi teléf
 {"summary":"El usuario indica que le han cobrado 50 euros por la cancelación de un servicio de telefonía y no está de acuerdo con el cargo.","candidateModules":[{"problemKey":"cancellation-charge","signals":["cargo post-cancelación","telefonía","desacuerdo con el cobro"],"matchedRequiredFacts":["service_type"],"missingRequiredFacts":["cancelation_date","charge_amount","company_name"],"confidence":"HIGH"}],"factCandidates":[{"candidateId":"fc-1","factKey":"service_type","proposedValue":{"type":"string","value":"telefonía"},"sourceText":"cancelar mi teléfono","aiInterpretation":"El servicio es de telefonía","certainty":"EXPLICIT","problemKey":"cancellation-charge"},{"candidateId":"fc-2","factKey":"charge_amount","proposedValue":{"type":"number","value":50},"sourceText":"cobrado 50 euros","aiInterpretation":"El cargo es de 50 euros","certainty":"EXPLICIT","problemKey":"cancellation-charge"}],"missingInformation":[{"factKey":"cancelation_date","questionHint":"¿Cuándo solicitaste la cancelación del servicio?","priority":"HIGH","requiredByRules":["cancellation-charge"]}],"ambiguities":[],"contradictions":[],"entities":[{"type":"MONETARY_AMOUNT","rawText":"50 euros","normalizedValue":"50 EUR","confidence":"EXPLICIT"}],"jurisdictionHints":[],"classificationConfidence":"MEDIUM"}
 `.trim();
 
+// v2: explicit rules for problems that match no registered module.
+const PROBLEM_INTERPRETATION_V2 = PROBLEM_INTERPRETATION_V1.replace(
+  "Output ONLY the JSON object. No prose, no explanation, no markdown.",
+  `OUT-OF-SCOPE PROBLEMS (critical):
+- If the problem does NOT match any catalogue module, return "candidateModules": [] (empty array). Do NOT force a match.
+- In that case OMIT "problemKey" in every factCandidate (the field is optional).
+- If the problem DOES match a module, every factCandidate MUST include its "problemKey".
+
+Output ONLY the JSON object. No prose, no explanation, no markdown.`,
+);
+
 export const BUILT_IN_PROMPTS: ReadonlyArray<Omit<PromptDefinition, "contentHash">> = [
   {
     promptId: "document-fact-extraction",
@@ -236,6 +247,13 @@ export const BUILT_IN_PROMPTS: ReadonlyArray<Omit<PromptDefinition, "contentHash
     task: "PROBLEM_INTERPRETATION",
     outputSchemaVersion: "intake-interpretation@1",
     systemPrompt: PROBLEM_INTERPRETATION_V1,
+  },
+  {
+    promptId: "problem-interpretation",
+    promptVersion: 2,
+    task: "PROBLEM_INTERPRETATION",
+    outputSchemaVersion: "intake-interpretation@1",
+    systemPrompt: PROBLEM_INTERPRETATION_V2,
   },
 ];
 

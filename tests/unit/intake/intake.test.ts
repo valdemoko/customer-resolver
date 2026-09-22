@@ -279,10 +279,29 @@ describe("F8.3 Schema Validation", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects output with empty candidateModules", () => {
-    const invalid = { ...validOutput, candidateModules: [] };
-    const result = intakeInterpretationSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+  it("accepts output with empty candidateModules (out-of-scope problem)", () => {
+    const outOfScope = { ...validOutput, candidateModules: [] };
+    const result = intakeInterpretationSchema.safeParse(outOfScope);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts fact candidates without problemKey", () => {
+    const outOfScope = {
+      ...validOutput,
+      candidateModules: [],
+      factCandidates: [
+        {
+          candidateId: "c-out",
+          factKey: "cancellation.date",
+          proposedValue: { type: "date", value: "2025-01-15" },
+          sourceText: "cancelé el 15 de enero",
+          aiInterpretation: "User cancelled on January 15",
+          certainty: "EXPLICIT",
+        },
+      ],
+    };
+    const result = intakeInterpretationSchema.safeParse(outOfScope);
+    expect(result.success).toBe(true);
   });
 
   it("rejects output with invalid confidence enum", () => {
