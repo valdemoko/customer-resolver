@@ -15,7 +15,11 @@ import { RulesRepository } from "@server/db/repositories/rules-repository";
 import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
-import { createProblemRegistry } from "@server/problems/registry";
+import {
+  createProblemRegistry,
+  moduleFactLabels,
+  moduleIntakeQuestions,
+} from "@server/problems/registry";
 import { now as systemNow } from "@core/shared/temporal";
 
 export const dynamic = "force-dynamic";
@@ -97,6 +101,12 @@ export async function POST(
     // Run analysis to get evaluations
     const analysis = await services.analysisService.runProblemAnalysis(caseId);
 
+    // Module questions + fact descriptions, so missing information is described
+    // in user language — never as a raw fact key.
+    const problemModule = services.registry.has(analysis.problemKey)
+      ? services.registry.get(analysis.problemKey)
+      : null;
+
     // Build result
     const result = buildResult({
       caseId,
@@ -106,7 +116,8 @@ export async function POST(
       facts: loaded.facts,
       evaluations: analysis.evaluations,
       sources: [],
-      questions: [],
+      questions: moduleIntakeQuestions(problemModule),
+      factLabels: moduleFactLabels(problemModule),
       intakeComplete: analysis.intakeComplete,
     });
 

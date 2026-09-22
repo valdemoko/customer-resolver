@@ -56,4 +56,22 @@ export interface ExportData {
     readonly jurisdiction: string;
     readonly createdAt: string;
   };
+  /**
+   * What the person answered, in their own words' terms.
+   *
+   * The report is meant to be readable on its own: without this section the
+   * document listed conclusions but not the data they came from, so nobody
+   * could check it against the claim they are about to send.
+   */
+  readonly answers?: readonly ExportAnswer[];
+}
+
+/** A fact supplied by the user, already formatted for reading. */
+export interface ExportAnswer {
+  /** Human name of the fact (never a raw fact key). */
+  readonly label: string;
+  /** Value formatted for reading ("Sí", "10/08/2026", "249,90 €"). */
+  readonly value: string;
+  /** Who provided it: the person, a document, or the analysis. */
+  readonly origin: "USER" | "DOCUMENT" | "DERIVED";
 }

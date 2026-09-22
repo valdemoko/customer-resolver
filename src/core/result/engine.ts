@@ -7,10 +7,11 @@
  * The engine NEVER invents facts, NEVER fabricates sources, and NEVER
  * overstates certainty. Every claim must be traceable to a rule evaluation.
  */
-import type { Fact } from "../types";
+import type { Fact, FactKey } from "../types";
 import type { RuleEvaluation } from "../rules/types";
 import { DERIVED_FACT_SOURCES, resolveAnswerableFactKey } from "../problems/requirements";
 import { channelsForProblem } from "./channels";
+import { DERIVED_FACT_HINTS, GENERIC_MISSING_HINT } from "./fact-labels";
 import type {
   Claim,
   ClaimStatus,
@@ -328,29 +329,75 @@ function buildSupportingFacts(
 
 // ── Missing Information ─────────────────────────────────────────────
 
+interface QuestionLookupEntry {
+  readonly text: string;
+  readonly factKey: string;
+  readonly required: boolean;
+  readonly type?: string;
+  readonly options?: readonly string[];
+}
+
 function buildMissingInformation(
   evaluations: readonly RuleEvaluation[],
-  questionMap: Map<string, { text: string; factKey: string; required: boolean }>,
+  questionMap: Map<string, QuestionLookupEntry>,
+  factLabels: Readonly<Record<string, string>>,
+  answeredKeys: ReadonlySet<string>,
 ): readonly MissingInformation[] {
   const missing = new Map<string, MissingInformation>();
 
   for (const evaluation of evaluations) {
     for (const factKey of evaluation.missingFacts) {
       const key = factKey as string;
-      if (missing.has(key)) continue;
+      const existing = missing.get(key);
+      if (existing) {
+        missing.set(key, {
+          ...existing,
+          blockedClaims: [...existing.blockedClaims, evaluation.ruleKey],
+        });
+        continue;
+      }
 
       const question = questionMap.get(key);
+      const answerFactKey = question?.factKey as FactKey | undefined;
+      // A question exists, but its answer is already on record: the user cannot
+      // "answer it again" to fix anything. This is the derived-fact case (the
+      // airports were given, yet the distance could not be computed), so the
+      // report explains what failed and asks them to review that answer.
+      const answerAlreadyGiven = answerFactKey !== undefined && answeredKeys.has(answerFactKey);
+      const hint = DERIVED_FACT_HINTS[key];
+      const askable = question !== undefined && !answerAlreadyGiven;
+
+      const description = askable
+        ? question.text
+        : (hint ?? factLabels[key] ?? GENERIC_MISSING_HINT);
+
+      // Only a fact backed by a question can be completed by the user.
+      const answerable = answerFactKey !== undefined;
+
       missing.set(key, {
         factKey: factKey,
         questionId: question?.factKey === key ? undefined : question?.factKey,
-        description: question?.text ?? `Dato requerido: ${key}`,
-        impact: evaluation.status === "INSUFFICIENT_DATA" ? "required" : "recommended",
+        ...(answerFactKey !== undefined ? { answerFactKey } : {}),
+        ...(askable && question?.type !== undefined ? { answerType: question.type } : {}),
+        ...(askable && question?.options !== undefined
+          ? { answerOptions: question.options }
+          : {}),
+        description,
+        kind: askable ? "question" : "review",
+        impact:
+          answerable && evaluation.status === "INSUFFICIENT_DATA" ? "required" : "recommended",
+        answerable,
         blockedClaims: [evaluation.ruleKey],
       });
     }
   }
 
-  return [...missing.values()];
+  // Answerable questions first (what the user can act on), then the "we could
+  // not compute this" reviews, which explain rather than ask.
+  const weight = (item: MissingInformation): number =>
+    (item.kind === "question" ? 0 : 2) + (item.impact === "required" ? 0 : 1);
+
+  return [...missing.values()].sort((a, b) => weight(a) - weight(b));
 }
 
 // ── Contradictions ──────────────────────────────────────────────────
@@ -358,6 +405,8 @@ function buildMissingInformation(
 function buildContradictions(
   evaluations: readonly RuleEvaluation[],
   factMap: Map<string, Fact>,
+  questionMap: Map<string, QuestionLookupEntry>,
+  factLabels: Readonly<Record<string, string>> = {},
 ): readonly ResultContradiction[] {
   const contradictions = new Map<string, ResultContradiction>();
 
@@ -374,9 +423,14 @@ function buildContradictions(
       }
 
       const fact = factMap.get(key);
+      const question = questionMap.get(key);
       contradictions.set(key, {
         factKey: factKey,
-        description: `Información contradictoria sobre: ${key}`,
+        // Never the raw key: the user has to recognise which of their answers
+        // conflicts with another.
+        description: `Hay datos que no encajan entre sí sobre: ${
+          question?.text ?? factLabels[key] ?? DERIVED_FACT_HINTS[key] ?? GENERIC_MISSING_HINT
+        }`,
         conflictingValues: fact ? [fact.value] : [],
         affectedClaims: [evaluation.ruleKey],
       });
@@ -416,7 +470,20 @@ export interface BuildResultInput {
   readonly evaluations: readonly RuleEvaluation[];
   readonly sources: readonly SupportingSource[];
   /** Intake questions from the problem module (for missing info descriptions). */
-  readonly questions?: readonly { id: string; text: string; factKey: string; required: boolean }[];
+  readonly questions?: readonly {
+    id: string;
+    text: string;
+    factKey: string;
+    required: boolean;
+    type?: string;
+    options?: readonly string[];
+  }[];
+  /**
+   * Human description per fact key (from the module catalogue). Used only when
+   * no question can collect the fact, so missing data is never shown as a raw
+   * key such as `flight.compensation_tier`.
+   */
+  readonly factLabels?: Readonly<Record<string, string>>;
   /** Whether intake is complete. */
   readonly intakeComplete?: boolean;
 }
@@ -435,6 +502,7 @@ export function buildResult(input: BuildResultInput): Result {
     evaluations,
     sources,
     questions = [],
+    factLabels = {},
     intakeComplete = false,
   } = input;
 
@@ -485,11 +553,17 @@ export function buildResult(input: BuildResultInput): Result {
   // Build summary
   const summary = buildSummary(overallStatus, claims);
 
-  // Build missing information
-  const missingInformation = buildMissingInformation(evaluations, questionMap);
+  // Build missing information — always in the user's language, always with the
+  // fact the user can really answer (see `buildMissingInformation`).
+  const missingInformation = buildMissingInformation(
+    evaluations,
+    questionMap,
+    factLabels,
+    new Set(factMap.keys()),
+  );
 
   // Build contradictions
-  const contradictions = buildContradictions(evaluations, factMap);
+  const contradictions = buildContradictions(evaluations, factMap, questionMap, factLabels);
 
   // Build disclaimers
   const disclaimers = buildDisclaimers(overallStatus);

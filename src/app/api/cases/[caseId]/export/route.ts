@@ -1,7 +1,8 @@
 /**
- * API Route: GET /api/cases/:caseId/export?format=txt
+ * API Route: GET /api/cases/:caseId/export?format=pdf
  *
- * Exports case data as a document.
+ * Exports the case as a document: what the person answered, the analysis, the
+ * pending data, the next steps, where to complain and the cited sources.
  * No auth yet (deferred); typed error codes in every response.
  */
 import { NextResponse } from "next/server";
@@ -9,15 +10,22 @@ import { CaseService } from "@core/case/service";
 import { ProblemAnalysisService } from "@core/problems/analysis-service";
 import { buildResult } from "@core/result/engine";
 import { deriveActions } from "@core/actions/engine";
+import { buildExportAnswers } from "@core/export/answers";
 import { TxtExportAdapter } from "@core/export/txt-adapter";
 import { ExportService } from "@core/export/service";
+import { PdfExportAdapter } from "@server/adapters/export/pdf-adapter";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
 import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules";
+import { loadCitedSources } from "@server/rules/load-cited-sources";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
-import { createProblemRegistry } from "@server/problems/registry";
+import {
+  createProblemRegistry,
+  moduleFactLabels,
+  moduleIntakeQuestions,
+} from "@server/problems/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +74,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
   }
 
   const url = new URL(request.url);
-  const format = (url.searchParams.get("format") ?? "txt") as "txt" | "pdf" | "docx";
+  // PDF by default: the report is meant to be sent to the company or an
+  // official body, and that is the format they accept.
+  const format = (url.searchParams.get("format") ?? "pdf") as "txt" | "pdf" | "docx";
 
   let services: ReturnType<typeof compositionRoot>;
   try {
@@ -94,6 +104,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       );
     }
 
+    // The report must name the case's real problem, describe missing data with
+    // the questions the person actually saw, and cite the official sources the
+    // analysis used — otherwise the document is not checkable.
+    const problemModule = services.registry.has(analysis.problemKey)
+      ? services.registry.get(analysis.problemKey)
+      : null;
+    const questions = moduleIntakeQuestions(problemModule);
+    const factLabels = moduleFactLabels(problemModule);
+    const sources = await loadCitedSources(services.rulesRepo, analysis.evaluations);
+
     // Build result + actions
     const result = buildResult({
       caseId,
@@ -102,21 +122,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       engineVersion: analysis.engineVersion,
       facts: loaded.facts,
       evaluations: analysis.evaluations,
-      sources: [],
-      questions: [],
+      sources,
+      questions,
+      factLabels,
       intakeComplete: analysis.intakeComplete,
     });
 
     const actionPlan = deriveActions(result);
 
+    // What the person answered, in readable form (see `buildExportAnswers`).
+    const answers = buildExportAnswers(loaded.facts, {
+      questions: Object.fromEntries(questions.map((q) => [q.factKey, q.text])),
+      factLabels,
+    });
+
     // Export
-    const exportService = new ExportService([new TxtExportAdapter()]);
+    const exportService = new ExportService([new PdfExportAdapter(), new TxtExportAdapter()]);
     const exported = await exportService.exportCase(
       {
         result,
         actionPlan,
+        answers,
         caseMetadata: {
-          problemTitle: "Cobro después de cancelar un servicio",
+          problemTitle: problemModule?.title ?? "Caso de consumo",
           jurisdiction: loaded.case.jurisdiction,
           createdAt: loaded.case.createdAt,
         },
@@ -124,10 +152,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ case
       format,
     );
 
-    const body =
+    // Binary formats are returned as bytes: decoding them as text corrupted PDFs.
+    const body: BodyInit =
       typeof exported.content === "string"
         ? exported.content
-        : new TextDecoder().decode(exported.content);
+        : new Uint8Array(exported.content);
+
     return new NextResponse(body, {
       headers: {
         "Content-Type": exported.mimeType,

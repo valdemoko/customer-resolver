@@ -32,7 +32,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
     type: "REQUEST_REFUND",
     title: "Solicitar reembolso",
     description:
-      "Con la información disponible, puede solicitar el reembolso del cargo. Adjunte la documentación de soporte.",
+      "Con la información disponible, puede solicitar el reembolso o la compensación que corresponda a su caso. Adjunte la documentación de soporte.",
     priority: 1,
     triggerStatus: "SUPPORTED",
   },
@@ -40,7 +40,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
     type: "SUBMIT_COMPLAINT",
     title: "Presentar reclamación",
     description:
-      "Si el proveedor no responde o rechaza su solicitud, puede presentar una reclamación formal.",
+      "Si la empresa no responde o rechaza su solicitud, puede presentar una reclamación formal ante los organismos oficiales que aparecen más abajo.",
     priority: 2,
     triggerStatus: "SUPPORTED",
   },
@@ -94,26 +94,68 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
 
 // ── Missing Information Actions ─────────────────────────────────────
 
+/**
+ * One action per fact the user can actually complete.
+ *
+ * Facts with no answerable question (`answerable: false`) are NOT turned into
+ * "provide this" actions: the user would be sent to a dead end. The report shows
+ * the explanation instead, without an action that cannot be carried out.
+ */
 function deriveMissingInfoActions(result: Result): readonly Action[] {
   const actions: Action[] = [];
 
   for (const missing of result.missingInformation) {
-    if (missing.impact === "required") {
-      actions.push({
-        id: `action-missing-${missing.factKey}`,
-        type: "COLLECT_INFORMATION",
-        title: `Proporcionar: ${missing.description}`,
-        description: missing.description,
-        priority: 1,
-        status: "AVAILABLE",
-        prerequisites: [],
-        relatedClaims: missing.blockedClaims,
-        relatedEvidence: [],
-      });
-    }
+    if (missing.impact !== "required" || !missing.answerable) continue;
+
+    actions.push({
+      id: `action-missing-${missing.factKey}`,
+      type: "COLLECT_INFORMATION",
+      // A question becomes "complete this"; a failed computation becomes "review
+      // this", because the user cannot answer the derived value itself.
+      title:
+        missing.kind === "question"
+          ? `Completar: ${missing.description.replace(/\?\s*$/, "")}`
+          : "Revisar un dato que no hemos podido calcular",
+      description: missing.description,
+      priority: 1,
+      status: "AVAILABLE",
+      prerequisites: [],
+      relatedClaims: missing.blockedClaims,
+      relatedEvidence: [],
+    });
   }
 
   return actions;
+}
+
+/**
+ * Collapse actions that mean the same thing.
+ *
+ * A derived action is emitted per claim, so four supported claims produced four
+ * identical "Solicitar reembolso" entries and every missing fact produced one
+ * more generic "Proporcionar información faltante". The report became a wall of
+ * repeated lines. Actions are merged by (type, title); the claims they relate to
+ * are kept, because they are what makes the action traceable.
+ */
+function mergeDuplicateActions(actions: readonly Action[]): readonly Action[] {
+  const merged = new Map<string, Action>();
+
+  for (const action of actions) {
+    const key = `${action.type}\u0000${action.title}`;
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, action);
+      continue;
+    }
+    merged.set(key, {
+      ...existing,
+      priority: Math.min(existing.priority, action.priority),
+      relatedClaims: [...new Set([...existing.relatedClaims, ...action.relatedClaims])],
+      relatedEvidence: [...new Set([...existing.relatedEvidence, ...action.relatedEvidence])],
+    });
+  }
+
+  return [...merged.values()];
 }
 
 // ── Evidence Preservation Actions ───────────────────────────────────
@@ -168,10 +210,17 @@ function deriveDocumentActions(result: Result): readonly Action[] {
 // ── Next Step ───────────────────────────────────────────────────────
 
 function determineNextStep(result: Result, actions: readonly Action[]): string {
-  // If there are missing required facts, that's the first step
+  // If there are missing required facts, that's the first step. Listed as a
+  // count with the first item named: dumping every question into one sentence
+  // was unreadable and repeated questions the user had already answered.
   const requiredMissing = result.missingInformation.filter((m) => m.impact === "required");
   if (requiredMissing.length > 0) {
-    return `Antes de continuar, necesitamos: ${requiredMissing.map((m) => m.description).join(", ")}.`;
+    const [first] = requiredMissing;
+    const rest = requiredMissing.length - 1;
+    return (
+      `Faltan ${requiredMissing.length} dato${requiredMissing.length > 1 ? "s" : ""} para poder concluir. ` +
+      `Empieza por: ${first?.description ?? ""}${rest > 0 ? ` (y ${rest} más)` : ""}`
+    );
   }
 
   // If there are contradictions, address them first
@@ -218,7 +267,14 @@ export function deriveActions(result: Result): ActionPlan {
   }
 
   // 2. Derive actions from missing information
-  actions.push(...deriveMissingInfoActions(result));
+  const missingActions = deriveMissingInfoActions(result);
+  actions.push(...missingActions);
+
+  // Any missing fact is already reported: as a specific "complete this" action
+  // when the person can answer it, or as an explanation when the analysis could
+  // not compute it. The generic "provide missing information" would only add a
+  // vague step on top of either.
+  const genericCollect = result.missingInformation.length > 0;
 
   // 3. Derive evidence preservation actions
   actions.push(...deriveEvidenceActions(result));
@@ -226,14 +282,27 @@ export function deriveActions(result: Result): ActionPlan {
   // 4. Derive document generation actions
   actions.push(...deriveDocumentActions(result));
 
-  // 5. Sort by priority (ascending = highest priority first)
-  const sorted = [...actions].sort((a, b) => a.priority - b.priority);
+  // 5. Collapse duplicates, then sort by priority (highest first)
+  const merged = mergeDuplicateActions(
+    genericCollect
+      ? actions.filter(
+          (a) =>
+            !(
+              a.type === "COLLECT_INFORMATION" &&
+              a.title === "Proporcionar información faltante"
+            ),
+        )
+      : actions,
+  );
+  const sorted = [...merged].sort((a, b) => a.priority - b.priority);
 
   // 6. Determine next step
   const nextStep = determineNextStep(result, sorted);
 
-  // 7. Determine if plan is complete
-  const complete = result.missingInformation.filter((m) => m.impact === "required").length === 0;
+  // 7. Determine if plan is complete — incomplete only when the USER can still
+  // do something about it (an unanswerable derived fact is not a pending step).
+  const complete =
+    result.missingInformation.filter((m) => m.impact === "required" && m.answerable).length === 0;
 
   return {
     caseId: result.caseId,

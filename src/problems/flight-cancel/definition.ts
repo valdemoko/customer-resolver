@@ -21,6 +21,7 @@
  * amounts, strict notice periods, and tiered distance-based rights.
  */
 import { defineProblemModule, type ProblemModuleDefinition } from "@core/problems/contract";
+import { airportOptions } from "@core/problems/airports";
 
 export const MODULE_KEY = "flight-cancel";
 export const MODULE_VERSION = 2;
@@ -271,17 +272,26 @@ export const flightCancelModule: ProblemModuleDefinition = defineProblemModule({
     // Phase 1: What happened?
     {
       id: "q-departure",
-      text: "¿De qué aeropuerto salía tu vuelo? (código IATA o ciudad)",
+      text:
+        "¿De qué aeropuerto salía tu vuelo? Escribe la ciudad o su código IATA " +
+        "(por ejemplo: Madrid, MAD).",
       type: "string",
       factKey: "flight.departure_airport",
       required: true,
+      // Suggestions, not a closed list: the answer is resolved by name or code
+      // (see `resolveAirport`). The distance — and with it the compensation
+      // tier — can only be computed when the airport is recognised.
+      options: airportOptions(),
     },
     {
       id: "q-arrival",
-      text: "¿A qué aeropuerto ibas dirigido?",
+      text:
+        "¿A qué aeropuerto ibas? Escribe la ciudad o su código IATA " +
+        "(por ejemplo: Londres, LHR).",
       type: "string",
       factKey: "flight.arrival_airport",
       required: true,
+      options: airportOptions(),
     },
     {
       id: "q-scheduled-date",

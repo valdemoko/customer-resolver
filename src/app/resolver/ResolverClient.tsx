@@ -105,9 +105,26 @@ interface Action {
 interface MissingInformation {
   factKey: string;
   questionId?: string;
+  /** The fact the USER can answer, when a question exists for it. */
+  answerFactKey?: string;
   description: string;
+  /** Answer type declared by the module (`boolean`, `date`, `money`…). */
+  answerType?: string;
+  /** Allowed values when the declared type is `enum`. */
+  answerOptions?: string[];
+  /** `question` = the user can answer it; `review` = we could not compute it. */
+  kind: "question" | "review";
   impact: "required" | "recommended";
+  /** False when no question can supply the fact. */
+  answerable: boolean;
   blockedClaims: string[];
+}
+
+/** A fact the person supplied, already formatted by the server for reading. */
+interface CaseAnswer {
+  label: string;
+  value: string;
+  origin: "USER" | "DOCUMENT" | "DERIVED";
 }
 
 interface CaseResult {
@@ -120,6 +137,21 @@ interface CaseResult {
   missingInformation?: MissingInformation[];
   /** Official bodies where the case can be taken (always present). */
   channels?: ConsumerChannel[];
+}
+
+/** Answer type the report form must send, derived from what was asked. */
+type AnswerInputKind = "boolean" | "number" | "money" | "date" | "enum" | "string";
+
+/**
+ * Intake URL, telling the server which questions the person already declined.
+ *
+ * Without this the selector returned the same unanswered question right after a
+ * "no lo sé", so the questionnaire could not advance past it.
+ */
+function intakeUrl(caseId: string, skipped: readonly string[]): string {
+  const settled = skipped.filter((key) => key.length > 0);
+  const query = settled.length > 0 ? `?skipped=${encodeURIComponent(settled.join(","))}` : "";
+  return `/api/cases/${caseId}/intake${query}`;
 }
 
 interface ConsumerChannel {
@@ -167,6 +199,12 @@ interface AppState {
   uploading: boolean;
   uploadError: string | null;
   uploadSummary: string | null;
+  /** What the person answered, formatted by the server (shared with the PDF). */
+  answers: CaseAnswer[];
+  /** Facts the person said they did not know — never asked twice by accident. */
+  skippedFacts: string[];
+  /** True while completing pending data and re-running the analysis. */
+  reanalyzing: boolean;
 }
 
 /** A fact candidate extracted from a document (never a fact until confirmed). */
@@ -271,6 +309,459 @@ function buildTypedValue(
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   REPORT — pending data controls
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Answer type declared by the module, mapped to the control to render. */
+function answerKindOf(declaredType?: string): AnswerInputKind {
+  switch (declaredType) {
+    case "boolean":
+      return "boolean";
+    case "number":
+      return "number";
+    case "money":
+      return "money";
+    case "date":
+      return "date";
+    case "enum":
+      return "enum";
+    default:
+      return "string";
+  }
+}
+
+const ORIGIN_TAGS: Record<CaseAnswer["origin"], string> = {
+  USER: "Indicado por ti",
+  DOCUMENT: "Leído de un documento",
+  DERIVED: "Calculado",
+};
+
+/**
+ * One pending fact, answerable right where it is reported.
+ *
+ * A missing datum used to be a sentence the person could not act on: the report
+ * said "falta información" and stopped there. Filling it here saves the fact and
+ * re-runs the analysis, so the resolution is regenerated with the new data.
+ */
+function PendingFactCard({
+  item,
+  busy,
+  onSubmit,
+}: {
+  item: MissingInformation;
+  busy: boolean;
+  onSubmit: (factKey: string, kind: AnswerInputKind, raw: string) => Promise<boolean>;
+}) {
+  const [value, setValue] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const factKey = item.answerFactKey ?? item.factKey;
+  const kind = answerKindOf(item.answerType);
+  const options = item.answerOptions ?? [];
+
+  // Not answerable: explain what could not be computed instead of showing a
+  // control the person cannot fill in.
+  if (!item.answerable || item.answerFactKey === undefined) {
+    return (
+      <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+        <p className="text-sm text-[var(--color-ink)] leading-relaxed">{item.description}</p>
+      </div>
+    );
+  }
+
+  const submit = async (raw: string) => {
+    setLocalError(null);
+    const ok = await onSubmit(factKey, kind, raw);
+    if (ok) {
+      setSaved(true);
+      setValue("");
+    } else {
+      setLocalError("No pudimos guardar ese dato. Inténtalo de nuevo.");
+    }
+  };
+
+  return (
+    <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+      <p className="text-sm font-medium text-[var(--color-ink)] leading-relaxed mb-3">
+        {item.description}
+      </p>
+
+      {kind === "boolean" && (
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => void submit("sí")}
+            disabled={busy}
+            className="btn-primary flex-1 text-sm"
+          >
+            Sí
+          </button>
+          <button
+            type="button"
+            onClick={() => void submit("no")}
+            disabled={busy}
+            className="btn-secondary flex-1 text-sm"
+          >
+            No
+          </button>
+        </div>
+      )}
+
+      {kind === "enum" && options.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {options.map((option: string) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => void submit(option)}
+              disabled={busy}
+              className="btn-secondary text-sm"
+            >
+              {option.replace(/_/g, " ")}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {(kind === "string" || kind === "number" || kind === "money" || kind === "date") && (
+        <>
+          <input
+            type={kind === "date" ? "date" : kind === "string" ? "text" : "number"}
+            inputMode={kind === "number" || kind === "money" ? "decimal" : undefined}
+            step={kind === "money" ? "0.01" : undefined}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && value.trim()) void submit(value);
+            }}
+            placeholder={
+              kind === "money"
+                ? "Importe en euros, por ejemplo 249,90"
+                : kind === "number"
+                  ? "Escribe un número"
+                  : kind === "date"
+                    ? ""
+                    : "Escribe tu respuesta..."
+            }
+            className="input-base"
+            disabled={busy}
+            list={options.length > 0 ? `pending-options-${factKey}` : undefined}
+          />
+          {options.length > 0 && (
+            <datalist id={`pending-options-${factKey}`}>
+              {options.map((option: string) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+          )}
+          <button
+            type="button"
+            onClick={() => void submit(value)}
+            disabled={!value.trim() || busy}
+            className="btn-primary text-sm mt-3"
+          >
+            {busy ? "Analizando de nuevo…" : "Guardar y actualizar el análisis"}
+          </button>
+        </>
+      )}
+
+      {saved && (
+        <p className="text-xs text-[var(--color-supported)] mt-3">
+          Dato guardado. El análisis se ha actualizado con este dato.
+        </p>
+      )}
+      {localError && <p className="text-xs text-[var(--color-contradicted)] mt-3">{localError}</p>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   REPORT — full case report
+   ══════════════════════════════════════════════════════════════════════ */
+
+const CLAIM_GROUPS: readonly { status: string; title: string; note?: string }[] = [
+  { status: "SUPPORTED", title: "Lo que hemos podido confirmar" },
+  { status: "POTENTIALLY_APPLICABLE", title: "Lo que puede ser aplicable" },
+  {
+    status: "INSUFFICIENT_DATA",
+    title: "Lo que aún no podemos determinar",
+    note: "Los datos que faltan aparecen más arriba: complétalos y el análisis se rehará solo.",
+  },
+  { status: "CONTRADICTED", title: "Información que no encaja" },
+  { status: "NOT_APPLICABLE", title: "Lo que no resulta aplicable" },
+];
+
+function CaseReport({
+  result,
+  actionPlan,
+  answers,
+  caseId,
+  problemTitle,
+  busy,
+  error,
+  onCompleteMissing,
+}: {
+  result: CaseResult;
+  actionPlan: ActionPlan | null;
+  answers: CaseAnswer[];
+  caseId: string;
+  problemTitle: string | null;
+  busy: boolean;
+  error: string | null;
+  onCompleteMissing: (factKey: string, kind: AnswerInputKind, raw: string) => Promise<boolean>;
+}) {
+  const statusCfg = getStatusDisplay(result.overallStatus);
+  const missing = result.missingInformation ?? [];
+  const actionable = missing.filter((m) => m.kind === "question" && m.answerable);
+  const uncomputable = missing.filter((m) => m.kind !== "question");
+
+  return (
+    <div className="min-h-screen bg-[var(--surface-page)]">
+      <div className="max-w-[720px] mx-auto px-5 md:px-8 py-12 md:py-16">
+        {/* Header */}
+        <div className="mb-8">
+          <p className="label mb-3">Informe del caso</p>
+          <h1 className="mb-3">Esto es lo que hemos encontrado</h1>
+          {problemTitle && (
+            <p className="text-sm text-[var(--color-ink-muted)] mb-4">{problemTitle}</p>
+          )}
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded"
+            style={{ backgroundColor: `${statusCfg.color}10`, color: statusCfg.color }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusCfg.color }} />
+            <span className="text-xs font-medium">{statusCfg.label}</span>
+          </div>
+        </div>
+
+        {/* Dictamen */}
+        <section className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-8">
+          <p className="label mb-2">Dictamen</p>
+          <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">{result.summary}</p>
+        </section>
+
+        {/* Pending data — answerable in place, then re-analysed */}
+        {(actionable.length > 0 || uncomputable.length > 0) && (
+          <section className="mb-8">
+            <p className="label mb-1">Datos que faltan</p>
+            <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed mb-3">
+              {actionable.length > 0
+                ? "Complétalos aquí y volveremos a analizar tu caso con los datos nuevos."
+                : "No hemos podido calcular estos datos con la información disponible."}
+            </p>
+            <div className="space-y-3">
+              {[...actionable, ...uncomputable].map((item) => (
+                <PendingFactCard
+                  key={item.factKey}
+                  item={item}
+                  busy={busy}
+                  onSubmit={onCompleteMissing}
+                />
+              ))}
+            </div>
+            {busy && (
+              <p className="text-xs text-[var(--color-accent)] mt-3 anim-fade-in">
+                Actualizando el informe con los datos nuevos…
+              </p>
+            )}
+            {error && (
+              <p className="text-xs text-[var(--color-contradicted)] mt-3">{error}</p>
+            )}
+          </section>
+        )}
+
+        {/* Claims, grouped by what they mean for the person */}
+        {CLAIM_GROUPS.map((group) => {
+          const claims = result.claims.filter((claim) => claim.status === group.status);
+          if (claims.length === 0) return null;
+          const cfg = getStatusDisplay(group.status);
+          return (
+            <section key={group.status} className="mb-8">
+              <p className="label mb-3" style={{ color: cfg.color }}>
+                {group.title}
+              </p>
+              {group.note && (
+                <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed mb-3">
+                  {group.note}
+                </p>
+              )}
+              <div className="space-y-2">
+                {claims.map((claim) => (
+                  <div
+                    key={claim.id}
+                    className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                  >
+                    <p className="text-sm font-medium text-[var(--color-ink)] mb-1">
+                      {claim.assertion}
+                    </p>
+                    <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                      {claim.explanation}
+                    </p>
+                    {claim.missingFacts.length > 0 && (
+                      <p className="text-xs text-[var(--color-insufficient)] mt-2">
+                        Datos que faltan para esta conclusión:{" "}
+                        {claim.missingFacts.map((key) => describeMissingFact(result, key)).join("; ")}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Actions */}
+        {actionPlan && actionPlan.actions.length > 0 && (
+          <section className="mb-8">
+            <p className="label mb-3">Qué hacer ahora</p>
+            <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-3">
+              <p className="text-sm font-medium text-[var(--color-ink)]">{actionPlan.nextStep}</p>
+            </div>
+            <div className="space-y-2">
+              {actionPlan.actions.map((action) => (
+                <div
+                  key={action.id}
+                  className="flex items-start gap-3 p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                >
+                  <span className="w-5 h-5 rounded bg-[var(--surface-warm)] flex items-center justify-center text-[10px] font-medium text-[var(--color-ink-muted)] flex-shrink-0 mt-0.5">
+                    {action.priority}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-[var(--color-ink)]">{action.title}</p>
+                    <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">
+                      {action.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Where to complain — official bodies, never invented contacts */}
+        {result.channels && result.channels.length > 0 && (
+          <section className="mb-8">
+            <p className="label mb-3">Dónde reclamar</p>
+            <div className="space-y-2">
+              {result.channels.map((channel) => (
+                <div
+                  key={channel.id}
+                  className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                >
+                  <p className="text-sm font-medium text-[var(--color-ink)]">{channel.target}</p>
+                  <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">{channel.channel}</p>
+                  <p className="text-xs text-[var(--color-ink-soft)] mt-2 leading-relaxed">
+                    {channel.why}
+                  </p>
+                  <a
+                    href={channel.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline mt-2 inline-block"
+                  >
+                    Ir al canal oficial
+                  </a>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-[var(--color-ink-faint)] leading-relaxed mt-3">
+              El teléfono y el correo de cada organismo se publican en su página oficial. No los
+              reproducimos aquí porque cambian con el tiempo.
+            </p>
+          </section>
+        )}
+
+        {/* What the person answered — the report has to be checkable */}
+        {answers.length > 0 && (
+          <section className="mb-8">
+            <p className="label mb-3">Tus respuestas</p>
+            <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
+              <dl className="space-y-2">
+                {answers.map((answer, index) => (
+                  <div key={`${answer.label}-${index}`} className="flex flex-wrap gap-x-2">
+                    <dt className="text-xs text-[var(--color-ink-muted)]">{answer.label}:</dt>
+                    <dd className="text-xs font-medium text-[var(--color-ink)]">
+                      {answer.value}
+                      <span className="ml-2 text-[10px] text-[var(--color-ink-faint)] uppercase tracking-wide">
+                        {ORIGIN_TAGS[answer.origin]}
+                      </span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        )}
+
+        {/* Sources */}
+        {result.sources.length > 0 && (
+          <section className="mb-8">
+            <p className="label mb-3">Fuentes consultadas</p>
+            <div className="space-y-2">
+              {result.sources.map((source) => (
+                <div
+                  key={source.sourceId}
+                  className="p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]"
+                >
+                  <p className="text-sm font-medium text-[var(--color-ink)]">{source.title}</p>
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline mt-1 inline-block"
+                  >
+                    Ver fuente externa
+                  </a>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Disclaimers */}
+        {result.disclaimers.length > 0 && (
+          <div className="p-4 bg-[var(--surface-warm)] border border-[var(--border-light)] mb-8">
+            <p className="text-[10px] font-medium text-[var(--color-ink-faint)] uppercase tracking-wider mb-2">
+              Aviso
+            </p>
+            {result.disclaimers.map((d, i) => (
+              <p key={i} className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                {d}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Export */}
+        <div className="flex flex-wrap items-center gap-3 mb-8">
+          <a
+            href={`/api/cases/${caseId}/export?format=pdf`}
+            className="btn-primary text-sm"
+            download
+          >
+            Descargar informe en PDF
+          </a>
+          <a
+            href={`/api/cases/${caseId}/export?format=txt`}
+            className="btn-ghost text-sm"
+            download
+          >
+            Versión de texto
+          </a>
+          <Link href="/" className="btn-ghost text-sm">
+            Volver al inicio
+          </Link>
+        </div>
+        <p className="text-[11px] text-[var(--color-ink-faint)] leading-relaxed">
+          El PDF incluye el problema, tus respuestas, las conclusiones, los datos pendientes, los
+          pasos a seguir, los organismos oficiales y las fuentes consultadas.
+        </p>
+      </div>
+    </div>
+  );
+}
+/* ══════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -295,6 +786,9 @@ const INITIAL_STATE: AppState = {
   uploading: false,
   uploadError: null,
   uploadSummary: null,
+  answers: [],
+  skippedFacts: [],
+  reanalyzing: false,
 };
 
 export function ResolverClient() {
@@ -458,7 +952,7 @@ export function ResolverClient() {
 
       // Load next question
       setAnswer("");
-      const intakeRes = await fetch(`/api/cases/${state.caseId}/intake`);
+      const intakeRes = await fetch(intakeUrl(state.caseId, state.skippedFacts));
       if (intakeRes.ok) {
         const intakeData = await intakeRes.json();
         setState((prev) => ({
@@ -486,9 +980,16 @@ export function ResolverClient() {
 
   // ── Phase 3b: Skip question ────────────────────────────────────
 
+  /**
+   * "I don't know" is a legitimate answer and must not trap the person.
+   *
+   * The server always returns the first unanswered fact, so a skipped question
+   * came back immediately and the form looked stuck. The skipped key is now
+   * remembered: the question is not asked again, and the report offers it later
+   * with the rest of the pending data.
+   */
   const handleSkipQuestion = useCallback(async () => {
-    if (!state.caseId || !state.nextQuestion) return;
-
+    if (!state.caseId || !state.nextQuestion) return;      const skippedKey = state.nextQuestion.factKey;
     setSubmitting(true);
     try {
       await fetch("/api/intake/confirm", {
@@ -496,13 +997,14 @@ export function ResolverClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caseId: state.caseId,
-          candidateId: `intake-${state.nextQuestion.factKey}`,
-          factKey: state.nextQuestion.factKey,
+          candidateId: `intake-${skippedKey}`,
+          factKey: skippedKey,
           decision: "reject",
         }),
       });
 
-      const intakeRes = await fetch(`/api/cases/${state.caseId}/intake`);
+      const nextSkipped = [...new Set([...state.skippedFacts, skippedKey])];
+      const intakeRes = await fetch(intakeUrl(state.caseId, nextSkipped));
       if (intakeRes.ok) {
         const intakeData = await intakeRes.json();
         setAnswer("");
@@ -515,6 +1017,7 @@ export function ResolverClient() {
             prev.questionTotal ?? 0,
             intakeData.nextQuestion?.totalApplicable ?? 0,
           ),
+          skippedFacts: nextSkipped,
           error: null,
         }));
       }
@@ -527,6 +1030,16 @@ export function ResolverClient() {
       setSubmitting(false);
     }
   }, [state.caseId, state.nextQuestion]);
+
+  // ── Phase 3c: Leave the questionnaire with data still pending ──
+
+  /**
+   * The form never holds the person hostage: whatever is left is completed from
+   * the report itself, which then re-runs the analysis with the new data.
+   */
+  const handleFinishQuestionnaire = useCallback(() => {
+    setState((prev) => ({ ...prev, phase: "evidence", error: null }));
+  }, []);
 
   // ── Phase 4: Skip evidence → analysis ──────────────────────────
 
@@ -673,7 +1186,7 @@ export function ResolverClient() {
     try {
       const res = await fetch(`/api/cases/${caseId}/result`);
       if (res.ok) {
-        const { result } = await res.json();
+        const { result, answers } = await res.json();
         const actionsRes = await fetch(`/api/cases/${caseId}/actions`);
         let actionPlan = null;
         if (actionsRes.ok) {
@@ -685,6 +1198,8 @@ export function ResolverClient() {
           phase: "result",
           result,
           actionPlan,
+          answers: answers ?? [],
+          error: null,
         }));
       } else {
         setState((prev) => ({
@@ -716,11 +1231,66 @@ export function ResolverClient() {
     }
   }, []);
 
+  // ── Complete a pending fact from the report and re-run the analysis ──
+
+  /**
+   * Answer one of the pending facts from the report itself and re-analyse.
+   *
+   * This is the difference between "falta información" as a dead end and as a
+   * step: the person fills the gap where it is shown and the report is
+   * regenerated with the new data, without repeating the questionnaire.
+   */
+  const handleCompleteMissing = useCallback(
+    async (factKey: string, inputKind: AnswerInputKind, raw: string) => {
+      const caseId = state.caseId;
+      if (!caseId || !raw.trim()) return false;
+
+      const question: Question = {
+        factKey,
+        questionText: "",
+        reason: "",
+        priority: "REQUIRED",
+        remainingCount: 0,
+        questionType: inputKind,
+      };
+      const typedValue = buildTypedValue(question, raw.trim());
+      if (!typedValue) {
+        setState((prev) => ({ ...prev, error: "Ese dato no encaja con el formato esperado." }));
+        return false;
+      }
+
+      setState((prev) => ({ ...prev, reanalyzing: true, error: null }));
+      try {
+        const res = await fetch(`/api/cases/${caseId}/intake`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ factKey, value: typedValue, decision: "confirm" }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || "No pudimos guardar ese dato");
+        }
+
+        await loadResult(caseId);
+        return true;
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          error: err instanceof Error ? err.message : "No pudimos guardar ese dato",
+        }));
+        return false;
+      } finally {
+        setState((prev) => ({ ...prev, reanalyzing: false }));
+      }
+    },
+    [state.caseId, loadResult],
+  );
+
   // ── Load case status ───────────────────────────────────────────
 
   const loadCaseStatus = useCallback(async (caseId: string) => {
     try {
-      const res = await fetch(`/api/cases/${caseId}/intake`);
+      const res = await fetch(intakeUrl(caseId, []));
       if (res.ok) {
         const data = await res.json();
         setState((prev) => ({
@@ -1075,6 +1645,7 @@ export function ResolverClient() {
   if (state.phase === "questioning") {
     const currentQuestion = state.nextQuestion;
     const questionControl = currentQuestion?.questionType ?? "string";
+    const isSkipped = currentQuestion ? state.skippedFacts.includes(currentQuestion.factKey) : false;
     const totalQuestions = Math.max(
       state.questionTotal ?? 0,
       currentQuestion?.totalApplicable ?? 0,
@@ -1116,6 +1687,15 @@ export function ResolverClient() {
           {state.nextQuestion ? (
             <div className="anim-slide-up">
               <div className="p-6 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-6">
+                {/* Already declined: say so instead of asking the same thing again. */}
+                {isSkipped && (
+                  <div className="mb-4 p-3 bg-[var(--surface-warm)] border border-[var(--border-light)]">
+                    <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                      Indicaste que no sabes este dato. Puedes contestarlo ahora o dejarlo para el
+                      informe: allí podrás completarlo y volveremos a analizar el caso.
+                    </p>
+                  </div>
+                )}
                 <p className="text-base font-medium text-[var(--color-ink)] leading-relaxed mb-4">
                   {state.nextQuestion.questionText}
                 </p>
@@ -1195,7 +1775,21 @@ export function ResolverClient() {
                       }
                       className="input-base"
                       disabled={submitting}
+                      /* Suggestions from the module (e.g. airports). Free text is
+                         still accepted: the value is resolved server-side. */
+                      list={
+                        (state.nextQuestion.options ?? []).length > 0
+                          ? "answer-suggestions"
+                          : undefined
+                      }
                     />
+                    {(state.nextQuestion.options ?? []).length > 0 && (
+                      <datalist id="answer-suggestions">
+                        {(state.nextQuestion.options ?? []).map((option: string) => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
+                    )}
 
                     <div className="flex gap-3 mt-4">
                       <button
@@ -1212,7 +1806,7 @@ export function ResolverClient() {
                         disabled={submitting}
                         className="btn-ghost"
                       >
-                        No sé / Omitir
+                        No lo sé
                       </button>
                     </div>
                   </>
@@ -1233,9 +1827,20 @@ export function ResolverClient() {
                     disabled={submitting}
                     className="btn-ghost"
                   >
-                    No sé / Omitir
+                    No lo sé
                   </button>
                 )}
+
+              <div className="flex flex-wrap gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={handleFinishQuestionnaire}
+                  disabled={submitting}
+                  className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline"
+                >
+                  Terminar aquí y completar el resto en el informe
+                </button>
+              </div>
 
               <p className="text-xs text-[var(--color-ink-faint)] mt-6">
                 Tu respuesta se almacena únicamente para este caso. Los datos que confirmes son los
@@ -1447,158 +2052,18 @@ export function ResolverClient() {
 
   // ── RESULT ─────────────────────────────────────────────────────
 
-  if (state.phase === "result" && state.result) {
-    const { result, actionPlan } = state;
-    const statusCfg = getStatusDisplay(result.overallStatus);
-
+  if (state.phase === "result" && state.result && state.caseId) {
     return (
-      <div className="min-h-screen bg-[var(--surface-page)]">
-        <div className="max-w-[640px] mx-auto px-5 md:px-8 py-12 md:py-16">
-          {/* Header */}
-          <div className="mb-10">
-            <p className="label mb-3">Resultado del análisis</p>
-            <h1 className="mb-4">Esto es lo que hemos encontrado</h1>
-
-            {/* Status */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded" style={{ backgroundColor: `${statusCfg.color}10`, color: statusCfg.color }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusCfg.color }} />
-              <span className="text-xs font-medium">{statusCfg.label}</span>
-            </div>
-          </div>
-
-          {/* Summary */}
-          <div className="p-5 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-6">
-            <p className="label mb-2">Resumen</p>
-            <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">{result.summary}</p>
-          </div>
-
-          {/* Claims */}
-          {result.claims.length > 0 && (
-            <div className="mb-6">
-              <p className="label mb-3">Qué hemos podido confirmar</p>
-              <div className="space-y-3">
-                {result.claims.map((claim) => {
-                  const claimStatus = getStatusDisplay(claim.status);
-                  return (
-                    <div key={claim.id} className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]">
-                      <div className="flex items-start gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: claimStatus.color }} />
-                        <div>
-                          <p className="text-sm font-medium text-[var(--color-ink)] mb-1">{claim.assertion}</p>
-                          <p className="text-xs text-[var(--color-ink-muted)] leading-relaxed">{claim.explanation}</p>
-                          {claim.missingFacts.length > 0 && (
-                            <p className="text-xs text-[var(--color-potentially)] mt-2">
-                              Datos faltantes:{" "}
-                              {claim.missingFacts
-                                .map((key) => describeMissingFact(result, key))
-                                .join(", ")}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          {actionPlan && actionPlan.actions.length > 0 && (
-            <div className="mb-6">
-              <p className="label mb-3">Qué hacer ahora</p>
-              <div className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)] mb-3">
-                <p className="text-sm font-medium text-[var(--color-ink)]">{actionPlan.nextStep}</p>
-              </div>
-              <div className="space-y-2">
-                {actionPlan.actions.map((action) => (
-                  <div key={action.id} className="flex items-start gap-3 p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]">
-                    <span className="w-5 h-5 rounded bg-[var(--surface-warm)] flex items-center justify-center text-[10px] font-medium text-[var(--color-ink-muted)] flex-shrink-0 mt-0.5">
-                      {action.priority}
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-[var(--color-ink)]">{action.title}</p>
-                      <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">{action.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Where to complain — official bodies, never invented contacts */}
-          {result.channels && result.channels.length > 0 && (
-            <div className="mb-6">
-              <p className="label mb-3">Dónde reclamar</p>
-              <div className="space-y-2">
-                {result.channels.map((channel) => (
-                  <div
-                    key={channel.id}
-                    className="p-4 bg-[var(--surface-paper)] border border-[var(--border-light)]"
-                  >
-                    <p className="text-sm font-medium text-[var(--color-ink)]">{channel.target}</p>
-                    <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">{channel.channel}</p>
-                    <p className="text-xs text-[var(--color-ink-soft)] mt-2 leading-relaxed">
-                      {channel.why}
-                    </p>
-                    <a
-                      href={channel.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline mt-2 inline-block"
-                    >
-                      Ir al canal oficial
-                    </a>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11px] text-[var(--color-ink-faint)] leading-relaxed mt-3">
-                El teléfono y el correo de cada organismo se publican en su página oficial. No los
-                reproducimos aquí porque pueden cambiar.
-              </p>
-            </div>
-          )}
-
-          {/* Sources */}
-          {result.sources.length > 0 && (
-            <div className="mb-6">
-              <p className="label mb-3">Fuentes consultadas</p>
-              <div className="space-y-2">
-                {result.sources.map((source) => (
-                  <div key={source.sourceId} className="p-3 bg-[var(--surface-paper)] border border-[var(--border-light)]">
-                    <p className="text-sm font-medium text-[var(--color-ink)]">{source.title}</p>
-                    <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-accent)] underline underline-offset-2 hover:no-underline mt-1 inline-block">
-                      Ver fuente externa
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Disclaimers */}
-          {result.disclaimers.length > 0 && (
-            <div className="p-4 bg-[var(--surface-warm)] border border-[var(--border-light)] mb-8">
-              <p className="text-[10px] font-medium text-[var(--color-ink-faint)] uppercase tracking-wider mb-2">Aviso</p>
-              {result.disclaimers.map((d, i) => (
-                <p key={i} className="text-xs text-[var(--color-ink-muted)] leading-relaxed">{d}</p>
-              ))}
-            </div>
-          )}
-
-          {/* Export */}
-          {state.caseId && (
-            <div className="flex gap-3 mb-8">
-              <a href={`/api/cases/${state.caseId}/export?format=txt`} className="btn-secondary text-sm">
-                Descargar informe
-              </a>
-              <Link href="/" className="btn-ghost text-sm">
-                Volver al inicio
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
+      <CaseReport
+        result={state.result}
+        actionPlan={state.actionPlan}
+        answers={state.answers}
+        caseId={state.caseId}
+        problemTitle={state.routing?.moduleTitle ?? null}
+        busy={state.reanalyzing}
+        error={state.error}
+        onCompleteMissing={handleCompleteMissing}
+      />
     );
   }
 

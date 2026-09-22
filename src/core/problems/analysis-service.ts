@@ -19,6 +19,7 @@ import { evaluateRule, type Rule, type RuleEvaluation, type RuleEvaluationContex
 import { jurisdictionApplies } from "../rules/jurisdiction";
 import type { ProblemModuleDefinition } from "./contract";
 import { computeIntakeRequirements } from "./requirements";
+import { resolveAirport } from "./airports";
 import { factPrimitive, resolveNextQuestionWithValues } from "./intake";
 import type { KnownFact } from "./intake";
 
@@ -416,8 +417,10 @@ export function computeDerivedFacts(
       typeof arrAirport === "string" &&
       !factMap.has("flight.distance_km")
     ) {
-      const dep = AIRPORT_COORDS[depAirport.toUpperCase()];
-      const arr = AIRPORT_COORDS[arrAirport.toUpperCase()];
+      // Resolve the answer the passenger actually gave: an IATA code, the city,
+      // or the airport's name (see `resolveAirport`).
+      const dep = resolveAirport(depAirport);
+      const arr = resolveAirport(arrAirport);
       if (dep && arr) {
         const distanceKm = haversineDistance(dep.lat, dep.lon, arr.lat, arr.lon);
         derived.push({
@@ -497,43 +500,6 @@ export function computeDerivedFacts(
 
   return derived;
 }
-
-// ── Airport coordinate lookup (major European airports) ────────────
-// Simplified lookup for distance computation. Only airports that
-// appear in common consumer travel routes are included.
-const AIRPORT_COORDS: Record<string, { lat: number; lon: number }> = {
-  MAD: { lat: 40.4983, lon: -3.5676 }, // Madrid Barajas
-  VLC: { lat: 39.4914, lon: -0.4732 }, // Valencia
-  SVQ: { lat: 37.3902, lon: -5.8765 }, // Sevilla
-  AGP: { lat: 36.6749, lon: -4.4991 }, // Málaga
-  PMI: { lat: 39.5517, lon: 2.7388 }, // Palma de Mallorca
-  LPA: { lat: 27.9319, lon: -15.3866 }, // Gran Canaria
-  TFN: { lat: 28.4827, lon: -16.3415 }, // Tenerife Norte
-  TFS: { lat: 28.0443, lon: -16.5725 }, // Tenerife Sur
-  CDG: { lat: 49.0097, lon: 2.5479 }, // Paris Charles de Gaulle
-  ORY: { lat: 48.7262, lon: 2.3652 }, // Paris Orly
-  FCO: { lat: 41.8003, lon: 12.2389 }, // Roma Fiumicino
-  FRA: { lat: 50.0379, lon: 8.5622 }, // Frankfurt
-  AMS: { lat: 52.3105, lon: 4.7683 }, // Amsterdam Schiphol
-  LHR: { lat: 51.47, lon: -0.4543 }, // London Heathrow
-  LGW: { lat: 51.1537, lon: -0.1821 }, // London Gatwick
-  LIS: { lat: 38.7756, lon: -9.1354 }, // Lisbon
-  OPO: { lat: 41.2481, lon: -8.6814 }, // Porto
-  ZRH: { lat: 47.4647, lon: 8.5492 }, // Zurich
-  MUC: { lat: 48.3537, lon: 11.775 }, // Munich
-  BCN: { lat: 41.2974, lon: 2.0833 }, // Barcelona
-  DUB: { lat: 53.4264, lon: -6.2499 }, // Dublin
-  ATH: { lat: 37.9364, lon: 23.9475 }, // Athens
-  IST: { lat: 41.2753, lon: 28.7519 }, // Istanbul
-  NRT: { lat: 35.7647, lon: 140.3864 }, // Tokyo Narita
-  JFK: { lat: 40.6413, lon: -73.7781 }, // New York JFK
-  EWR: { lat: 40.6895, lon: -74.1745 }, // Newark
-  MIA: { lat: 25.7959, lon: -80.287 }, // Miami
-  GRU: { lat: -23.4356, lon: -46.4731 }, // São Paulo
-  MEX: { lat: 19.4363, lon: -99.0721 }, // Mexico City
-  BOG: { lat: 4.7016, lon: -74.1469 }, // Bogotá
-  EZE: { lat: -34.8222, lon: -58.5358 }, // Buenos Aires
-};
 
 /** Haversine formula: distance in km between two lat/lon points. */
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

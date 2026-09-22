@@ -16,7 +16,11 @@ import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules"
 import { loadCitedSources } from "@server/rules/load-cited-sources";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
-import { createProblemRegistry } from "@server/problems/registry";
+import {
+  createProblemRegistry,
+  moduleFactLabels,
+  moduleIntakeQuestions,
+} from "@server/problems/registry";
 import { cases, physicalObjects } from "@server/db/schema";
 import { eq } from "drizzle-orm";
 
@@ -95,16 +99,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
     // Official sources cited by the evaluated rules (never invented references).
     const sources = await loadCitedSources(services.rulesRepo, analysis.evaluations);
 
-    // Module questions, so missing information is described in user language.
+    // Module questions + fact descriptions, so missing information is described
+    // in user language — never as a raw fact key.
     const problemModule = services.registry.has(analysis.problemKey)
       ? services.registry.get(analysis.problemKey)
       : null;
-    const questions = (problemModule?.intake ?? []).map((q) => ({
-      id: q.id,
-      text: q.text,
-      factKey: q.factKey as string,
-      required: q.required,
-    }));
+    const questions = moduleIntakeQuestions(problemModule);
+    const factLabels = moduleFactLabels(problemModule);
 
     // Build result
     const result = buildResult({
@@ -116,6 +117,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
       evaluations: analysis.evaluations,
       sources,
       questions,
+      factLabels,
       intakeComplete: analysis.intakeComplete,
     });
 

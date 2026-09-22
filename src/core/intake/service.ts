@@ -267,8 +267,9 @@ export class IntakeService {
     confirmedFacts: readonly KnownFact[],
     factValues: ReadonlyMap<FactKey, unknown>,
     neededFactKeys?: ReadonlySet<string>,
+    declinedFactKeys?: ReadonlySet<string>,
   ): QuestionSelection | null {
-    return selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys);
+    return selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys, declinedFactKeys);
   }
 
   /**
@@ -289,8 +290,15 @@ export class IntakeService {
     confirmedFacts: readonly KnownFact[],
     factValues: ReadonlyMap<FactKey, unknown>,
     neededFactKeys?: ReadonlySet<string>,
+    declinedFactKeys?: ReadonlySet<string>,
   ): boolean {
-    return intakeRequirementsSatisfied(module, confirmedFacts, factValues, neededFactKeys);
+    return intakeRequirementsSatisfied(
+      module,
+      confirmedFacts,
+      factValues,
+      neededFactKeys,
+      declinedFactKeys,
+    );
   }
 
   /**

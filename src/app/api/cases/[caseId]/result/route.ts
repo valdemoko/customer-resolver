@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { CaseService } from "@core/case/service";
 import { ProblemAnalysisService } from "@core/problems/analysis-service";
 import { buildResult } from "@core/result/engine";
+import { buildExportAnswers } from "@core/export/answers";
 import { createNeonDb } from "@server/db/client";
 import { DrizzleCaseRepository } from "@server/db/repositories/case-repository";
 import { RulesRepository } from "@server/db/repositories/rules-repository";
@@ -15,7 +16,11 @@ import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules"
 import { loadCitedSources } from "@server/rules/load-cited-sources";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
-import { createProblemRegistry } from "@server/problems/registry";
+import {
+  createProblemRegistry,
+  moduleFactLabels,
+  moduleIntakeQuestions,
+} from "@server/problems/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -93,16 +98,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
     // Official sources cited by the evaluated rules (never invented references).
     const sources = await loadCitedSources(services.rulesRepo, analysis.evaluations);
 
-    // Module questions, so missing information is described in user language.
+    // Module questions + fact descriptions, so missing information is described
+    // in user language — never as a raw fact key.
     const problemModule = services.registry.has(analysis.problemKey)
       ? services.registry.get(analysis.problemKey)
       : null;
-    const questions = (problemModule?.intake ?? []).map((q) => ({
-      id: q.id,
-      text: q.text,
-      factKey: q.factKey as string,
-      required: q.required,
-    }));
+    const questions = moduleIntakeQuestions(problemModule);
+    const factLabels = moduleFactLabels(problemModule);
 
     // Build result
     const result = buildResult({
@@ -114,10 +116,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
       evaluations: analysis.evaluations,
       sources,
       questions,
+      factLabels,
       intakeComplete: analysis.intakeComplete,
     });
 
-    return NextResponse.json({ result }, { headers: PRIVATE_CACHE_HEADERS });
+    // What the person answered, formatted once here so the on-screen report and
+    // the exported PDF say exactly the same thing.
+    const answers = buildExportAnswers(loaded.facts, {
+      questions: Object.fromEntries(questions.map((q) => [q.factKey, q.text])),
+      factLabels,
+    });
+
+    return NextResponse.json({ result, answers }, { headers: PRIVATE_CACHE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       {

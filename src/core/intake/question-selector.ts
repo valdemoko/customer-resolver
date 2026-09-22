@@ -66,6 +66,13 @@ export function selectNextQuestion(
    * not worth the user's time. Omitted ⇒ the whole module questionnaire applies.
    */
   neededFactKeys?: ReadonlySet<string>,
+  /**
+   * Facts the person explicitly said they do not know. "I don't know" is an
+   * answer: without this the same question came back immediately (the selector
+   * always returns the first unanswered fact), so the form could never move on.
+   * Such a fact stays missing for the rules — it simply stops being asked.
+   */
+  declinedFactKeys?: ReadonlySet<string>,
 ): QuestionSelection | null {
   // Build set of confirmed fact keys (non-superceded)
   const confirmedKeys = new Set<FactKey>(
@@ -76,6 +83,9 @@ export function selectNextQuestion(
   const applicable = module.intake.filter((question) => {
     // Skip if fact already confirmed
     if (confirmedKeys.has(question.factKey as FactKey)) return false;
+
+    // Already answered with "I don't know"
+    if (declinedFactKeys?.has(question.factKey as string)) return false;
 
     // Only facts the analysis needs
     if (neededFactKeys && !neededFactKeys.has(question.factKey as string)) return false;
@@ -144,10 +154,18 @@ export function intakeRequirementsSatisfied(
   confirmedFacts: readonly KnownFact[],
   factValues: ReadonlyMap<FactKey, unknown>,
   neededFactKeys?: ReadonlySet<string>,
+  declinedFactKeys?: ReadonlySet<string>,
 ): boolean {
   if (!neededFactKeys || neededFactKeys.size === 0) {
-    return allRequiredFactsConfirmed(module, confirmedFacts);
+    const settled = new Set<FactKey>(
+      confirmedFacts.filter((f) => f.status === "CONFIRMED").map((f) => f.key),
+    );
+    return module.factCatalogue
+      .filter((f) => f.required)
+      .every((f) => settled.has(f.key as FactKey) || declinedFactKeys?.has(f.key as string) === true);
   }
 
-  return selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys) === null;
+  return (
+    selectNextQuestion(module, confirmedFacts, factValues, neededFactKeys, declinedFactKeys) === null
+  );
 }

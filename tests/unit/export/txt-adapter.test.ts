@@ -197,6 +197,8 @@ describe("TXT Export Adapter", () => {
             factKey: "charge.date" as never,
             description: "Fecha del cargo",
             impact: "required",
+            kind: "question",
+            answerable: true,
             blockedClaims: ["rule-1"],
           },
         ],

@@ -43,6 +43,7 @@ function resolveIntakeProgress(
   services: ReturnType<typeof createIntakeServices>,
   loaded: LoadedFactsView,
   problemKey: string,
+  declinedFactKeys?: ReadonlySet<string>,
 ): IntakeProgressView {
   try {
     const problemModule = services.registry.get(problemKey);
@@ -59,18 +60,46 @@ function resolveIntakeProgress(
         knownFacts,
         factValues,
         requirements.neededFactKeys,
+        declinedFactKeys,
       ),
       allRequiredConfirmed: services.intakeService.intakeRequirementsSatisfied(
         problemModule,
         knownFacts,
         factValues,
         requirements.neededFactKeys,
+        declinedFactKeys,
       ),
     };
   } catch {
     // Unknown module — the case simply has no next question.
     return { nextQuestion: null, allRequiredConfirmed: false };
   }
+}
+
+/**
+ * Facts the client reports as "I don't know", taken from `?skipped=a,b`.
+ *
+ * The questionnaire is stateless per request, so the client tells the server
+ * which questions to stop asking. Only keys the module actually declares are
+ * accepted; anything else is ignored.
+ */
+function parseDeclinedFactKeys(
+  request: Request,
+  services: ReturnType<typeof createIntakeServices>,
+  problemKey: string | null | undefined,
+): ReadonlySet<string> {
+  const raw = new URL(request.url).searchParams.get("skipped");
+  if (!raw || !problemKey || !services.registry.has(problemKey)) return new Set();
+
+  const declared = new Set(
+    services.registry.get(problemKey).intake.map((q) => q.factKey as string),
+  );
+  return new Set(
+    raw
+      .split(",")
+      .map((key) => key.trim())
+      .filter((key) => key.length > 0 && declared.has(key)),
+  );
 }
 
 // ── POST input validation ────────────────────────────────────────────
@@ -90,7 +119,7 @@ const PRIVATE_CACHE_HEADERS = {
   "Pragma": "no-cache",
 } as const;
 
-export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
 
   if (!isValidCaseId(caseId)) {
@@ -133,8 +162,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
 
   // Get next question if module is known
   const problemKey = loaded.case.problemSlug;
+  const declinedFactKeys = parseDeclinedFactKeys(request, services, problemKey);
   const progress = problemKey
-    ? resolveIntakeProgress(services, loaded, problemKey)
+    ? resolveIntakeProgress(services, loaded, problemKey, declinedFactKeys)
     : { nextQuestion: null, allRequiredConfirmed: false };
   const { nextQuestion, allRequiredConfirmed } = progress;
 

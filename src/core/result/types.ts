@@ -78,15 +78,41 @@ export interface Claim {
   readonly contradictedFacts: readonly FactKey[];
   /** Raw rule evaluation traces (for debugging/audit). */
   readonly ruleTraces: readonly unknown[];
-}
-
-// ── Missing Information ─────────────────────────────────────────────
-
+}// ── Missing Information ─────────────────────────────────────────────
 export interface MissingInformation {
+  /** The fact the rules reported as missing (may be a derived fact). */
   readonly factKey: FactKey;
   readonly questionId?: string;
+  /**
+   * The fact the USER can actually answer, when an intake question exists for
+   * it (directly, or as an input of a derived fact). This is what the report
+   * must ask for — asking for `flight.compensation_tier` is unanswerable.
+   */
+  readonly answerFactKey?: FactKey;
+  /** Plain-language question or explanation. Never a raw fact key. */
   readonly description: string;
+  /**
+   * `question` — the user was asked this and can answer it now.
+   * `review` — the answer is on record but the derived value could not be
+   * computed from it, so the report explains what to check instead of asking
+   * the same question again as if nothing had been answered.
+   */
+  readonly kind: "question" | "review";
+  /**
+   * Answer type declared by the module for `answerFactKey` (`boolean`, `date`,
+   * `money`…), so the report renders the right control instead of a free-text
+   * box whose value the rule engine cannot compare.
+   */
+  readonly answerType?: string;
+  /** Allowed values when the declared type is `enum`. */
+  readonly answerOptions?: readonly string[];
   readonly impact: "required" | "recommended";
+  /**
+   * True only when answering `answerFactKey` can actually unblock the claim.
+   * When false, no question exists: the user is told what could not be
+   * computed instead of being sent to a dead end.
+   */
+  readonly answerable: boolean;
   /** Which claims are blocked by this missing fact. */
   readonly blockedClaims: readonly string[];
 }

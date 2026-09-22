@@ -21,7 +21,11 @@ import { ensureRuleSetsPublishedSafe } from "@server/rules/publish-module-rules"
 import { DocumentRepository } from "@server/db/repositories/document-repository";
 import { getServerEnv } from "@/lib/env";
 import { isValidCaseId, sanitizeErrorMessage } from "@/lib/validation";
-import { createProblemRegistry } from "@server/problems/registry";
+import {
+  createProblemRegistry,
+  moduleFactLabels,
+  moduleIntakeQuestions,
+} from "@server/problems/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -190,6 +194,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     const analysis = await services.analysisService.runProblemAnalysis(caseId);
 
     // 3. Build result + actions
+    // Module questions + fact descriptions, so the document never carries raw
+    // fact keys when data is missing.
+    const problemModule = services.registry.has(analysis.problemKey)
+      ? services.registry.get(analysis.problemKey)
+      : null;
+
     const result = buildResult({
       caseId,
       problemKey: analysis.problemKey,
@@ -198,7 +208,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
       facts: loaded.facts,
       evaluations: analysis.evaluations,
       sources: [],
-      questions: [],
+      questions: moduleIntakeQuestions(problemModule),
+      factLabels: moduleFactLabels(problemModule),
       intakeComplete: analysis.intakeComplete,
     });
 
