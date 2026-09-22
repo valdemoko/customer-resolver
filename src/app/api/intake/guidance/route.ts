@@ -113,8 +113,16 @@ export async function POST(request: Request) {
               ? String((error as Record<string, unknown>).detail)
               : undefined,
           code:
-            error instanceof Error && "aiCode" in error
-              ? String((error as Record<string, unknown>).aiCode)
+            error instanceof Error && "code" in error
+              ? String((error as Record<string, unknown>).code)
+              : undefined,
+          causeMessage:
+            error instanceof Error && "causeMessage" in error
+              ? String((error as Record<string, unknown>).causeMessage)
+              : undefined,
+          causeDetail:
+            error instanceof Error && "causeDetail" in error
+              ? String((error as Record<string, unknown>).causeDetail)
               : undefined,
         },
         null,

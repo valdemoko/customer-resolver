@@ -261,7 +261,22 @@ WHAT TO PRODUCE:
 - documentsToGather: concrete documents or evidence worth keeping, adapted to the situation (receipts, contracts, screenshots, written messages, delivery notes, etc.).
 - whatWeCannotDo: 2 to 4 short, honest statements about the limits of this orientation (it is general information, it is not a personalised analysis of your case, it does not replace professional advice, and it does not determine what the law says about your specific situation).
 
-Output ONLY the JSON object matching the schema. No prose, no markdown, no disclaimers outside the JSON.
+OUTPUT FORMAT — exact JSON object, these keys and no others:
+{
+  "understanding": "string, 1-3 sentences, in Spanish",
+  "generalSteps": [ { "title": "string (max 200)", "detail": "string (max 1200)" } ],
+  "whereToComplain": [
+    {
+      "target": "string, exactly one entry from ALLOWED CHANNELS",
+      "channel": "string (max 400), how to reach it",
+      "why": "string (max 600), why it helps at this point"
+    }
+  ],
+  "documentsToGather": [ "string (max 400)" ],
+  "whatWeCannotDo": [ "string (max 400)" ]
+}
+
+Rules for the object: every key present; NO extra keys; strings never null (omit a key instead of writing null); write empty arrays [] when a list has nothing to add; no code fences, no prose before or after the JSON.
 `.trim();
 
 export const BUILT_IN_PROMPTS: ReadonlyArray<Omit<PromptDefinition, "contentHash">> = [

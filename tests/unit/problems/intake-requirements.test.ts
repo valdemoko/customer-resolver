@@ -92,6 +92,21 @@ describe("intake requirements", () => {
     expect(requirements.neededFactKeys.size).toBeGreaterThan(3);
   });
 
+  it("collects the preconditions of gated questions a rule depends on", () => {
+    const problemModule = registry.get("cancellation-charge");
+    const { neededFactKeys } = computeIntakeRequirements(
+      problemModule,
+      moduleCodeRules(problemModule.key),
+    );
+
+    // A rule reads the cancellation confirmation, and that question is only
+    // asked once the user answers whether there was a contract commitment.
+    // Without the precondition the gated question could never be answered and
+    // the rule reported missing data forever.
+    expect(neededFactKeys.has("cancellation.confirmation_exists")).toBe(true);
+    expect(neededFactKeys.has("contract.commitment_exists")).toBe(true);
+  });
+
   it("can collect every fact any rule reads (asked directly or derived)", () => {
     const uncollectable: string[] = [];
 

@@ -88,6 +88,23 @@ export function computeIntakeRequirements(
     }
   }
 
+  // A question can be gated behind another fact (`askIf: commitment = false`).
+  // If the precondition is never collected, the gated question can never be
+  // answered either — and the rule that reads it reports missing data forever.
+  // So the preconditions of any needed question are needed too.
+  let expanded = true;
+  while (expanded) {
+    expanded = false;
+    for (const question of module.intake) {
+      if (!referenced.has(question.factKey as string)) continue;
+      for (const dep of question.askIf ?? []) {
+        if (referenced.has(dep.factKey as string)) continue;
+        referenced.add(dep.factKey as string);
+        expanded = true;
+      }
+    }
+  }
+
   const neededFactKeys = new Set(
     [...referenced].filter((key) => !derivedFactKeys.has(key) && askableFactKeys.has(key)),
   );

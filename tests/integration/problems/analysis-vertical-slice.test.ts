@@ -107,6 +107,13 @@ describe("F4 vertical slice: cancellation-charge over real persistence", () => {
       value: { type: "boolean", value: true } as never,
       provenance: "USER_PROVIDED",
     });
+    // Precondition of the confirmation question (`askIf: commitment = false`):
+    // the questionnaire always collects it first, so a complete intake has it.
+    await caseService.addFact(created.id, {
+      key: "contract.commitment_exists" as never,
+      value: { type: "boolean", value: false } as never,
+      provenance: "USER_PROVIDED",
+    });
 
     // 3. Evidence metadata + link to the cancellation fact (no OCR in F4).
     const { evidence } = await evidenceService.addEvidence(created.id, {
