@@ -13,6 +13,7 @@ import {
   type ProblemCatalogueEntry,
 } from "@/lib/problem-catalogue";
 import { getProblemTrace } from "@/lib/trace";
+import { getGuidesForProblem } from "@/lib/guides";
 import { TraceDemo } from "@/components/TraceDemo";
 
 /* ── Problem images ─────────────────────────────────────────────── */
@@ -47,7 +48,7 @@ export async function generateMetadata({
   const problem = getProblemBySlug(slug);
   if (!problem) return {};
   return {
-    title: `${problem.title} — Análisis`,
+    title: problem.metaTitle,
     description: problem.description,
     alternates: { canonical: `/problemas/${problem.slug}` },
     openGraph: {
@@ -75,6 +76,9 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
     .filter((entry): entry is ProblemCatalogueEntry => Boolean(entry));
   // Derived from the module's own rule set and sources — never hand-written.
   const trace = getProblemTrace(problem.key, problem.title);
+  // Guides that reference this problem, so the link exists in both directions
+  // without maintaining two lists.
+  const relatedGuides = getGuidesForProblem(problem.slug);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const pageUrl = `${siteUrl}/problemas/${problem.slug}`;
@@ -435,6 +439,29 @@ export default async function ProblemPage({ params }: { params: Promise<{ slug: 
                     </span>
                     <span className="block text-xs text-[var(--color-ink-muted)] leading-relaxed">
                       {entry.description}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Guías relacionadas ────────────────────────────── */}
+          {relatedGuides.length > 0 && (
+            <div className="mt-12 pt-8 border-t border-[var(--border-light)]">
+              <h2 className="label mb-4">Antes de reclamar, entiende el proceso</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {relatedGuides.map((guide) => (
+                  <Link
+                    key={guide.slug}
+                    href={`/guias/${guide.slug}`}
+                    className="block p-4 bg-[var(--surface-warm)] border border-[var(--border-light)] hover:border-[var(--color-ink-faint)] transition-colors"
+                  >
+                    <span className="block text-sm font-medium text-[var(--color-ink)] mb-1">
+                      {guide.title}
+                    </span>
+                    <span className="block text-xs text-[var(--color-ink-muted)] leading-relaxed">
+                      {guide.description}
                     </span>
                   </Link>
                 ))}

@@ -270,6 +270,22 @@ export function HomePageClient() {
               </Link>
             </div>
           </div>
+
+          {/* Hub links — hand the reader the index and the process guides */}
+          <div className="mt-6 reveal flex flex-wrap items-center gap-x-6 gap-y-2">
+            <Link
+              href="/problemas"
+              className="text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-accent)] transition-colors"
+            >
+              Ver todos los problemas de consumo →
+            </Link>
+            <Link
+              href="/guias"
+              className="text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-accent)] transition-colors"
+            >
+              Guías: cómo reclamar y qué derechos tienes →
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -338,6 +354,10 @@ export function HomePageClient() {
          ══════════════════════════════════════════════════════════════ */}
       <section className="section bg-[var(--surface-page)]">
         <div className="max-w-[1000px] mx-auto px-5 md:px-8">
+          <div className="mb-10 reveal">
+            <p className="label">Por qué puedes confiar</p>
+            <h2>Un análisis que se puede comprobar</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 reveal-stagger">
             {[
               {

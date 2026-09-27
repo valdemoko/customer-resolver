@@ -15,6 +15,7 @@ const PROBLEM_CATEGORIES = [
   { href: "/problemas/garantia-rechazada", label: "Garantía rechazada" },
   { href: "/problemas/vuelo-cancelado", label: "Vuelo cancelado" },
   { href: "/problemas", label: "Ver todos" },
+  { href: "/guias", label: "Guías de consumo" },
   { href: "/resolver", label: "Resolver un problema" },
 ] as const;
 

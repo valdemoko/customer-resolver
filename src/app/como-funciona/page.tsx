@@ -299,6 +299,9 @@ export default function HowItWorksPage() {
           <Link href="/problemas" className="cr-btn-secondary inline-flex">
             Ver los problemas disponibles
           </Link>
+          <Link href="/guias" className="cr-btn-secondary inline-flex">
+            Guías de consumo
+          </Link>
         </div>
       </section>
     </div>

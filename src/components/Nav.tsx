@@ -10,6 +10,7 @@ import Link from "next/link";
 
 const NAV_ITEMS = [
   { href: "/problemas", label: "Problemas" },
+  { href: "/guias", label: "Guías" },
   { href: "/como-funciona", label: "Cómo funciona" },
   { href: "/fuentes", label: "Fuentes" },
   { href: "/contacto", label: "Contacto" },

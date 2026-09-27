@@ -245,7 +245,15 @@ export default function ProblemsIndexPage() {
           >
             cómo funciona
           </Link>{" "}
-          para más detalles.
+          para más detalles. Y antes de dar el primer paso, las{" "}
+          <Link
+            href="/guias"
+            className="text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] underline underline-offset-2 transition-colors"
+          >
+            guías de consumo
+          </Link>{" "}
+          explican el proceso general de reclamación, la devolución de compras online y los derechos
+          del pasajero.
         </p>
       </div>
     </div>

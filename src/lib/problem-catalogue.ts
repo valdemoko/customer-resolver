@@ -15,6 +15,13 @@ export interface ProblemCatalogueEntry {
   readonly slug: string;
   /** Public display title */
   readonly title: string;
+  /**
+   * `<title>` text for the landing page. Written for the query a person would
+   * actually type ("me cobran después de cancelar") instead of repeating the
+   * display title, which reads like a section label. The layout template
+   * appends " · Resolveo".
+   */
+  readonly metaTitle: string;
   /** Short description for cards and metadata */
   readonly description: string;
   /** Category for grouping */
@@ -72,6 +79,7 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
     key: "cancellation-charge",
     slug: "cancelacion-cargo-posterior",
     title: "Cancelación y cargo posterior",
+    metaTitle: "Cobro después de cancelar un servicio: derechos y reclamación",
     description:
       "Cancelaste un servicio y te han cobrado después. Analizamos las fechas, el contrato y la normativa aplicable.",
     category: "Pagos y facturas",
@@ -199,6 +207,7 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
     key: "no-delivery-refund",
     slug: "pedido-no-llega",
     title: "Pedido no llega o no se reembolsa",
+    metaTitle: "Pedido que no llega: exige la entrega o el reembolso",
     description:
       "Realizaste un pedido que no llegó o no se entregó correctamente y necesitas saber qué puedes hacer.",
     category: "Compras",
@@ -325,6 +334,7 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
     key: "warranty-rejection",
     slug: "garantia-rechazada",
     title: "Garantía rechazada",
+    metaTitle: "Garantía rechazada: plazos legales y cómo reclamar",
     description:
       "El vendedor ha rechazado tu solicitud relacionada con una falta de conformidad. Analizamos plazos, respuestas y vías de actuación.",
     category: "Compras",
@@ -453,6 +463,7 @@ export const PROBLEM_CATALOGUE: readonly ProblemCatalogueEntry[] = [
     key: "flight-cancel",
     slug: "vuelo-cancelado",
     title: "Vuelo cancelado por la aerolínea",
+    metaTitle: "Vuelo cancelado: compensación y derechos del pasajero",
     description:
       "La aerolínea canceló tu vuelo. Analizamos plazos de aviso, distancia, transporte alternativo y derecho a compensación.",
     category: "Transporte",

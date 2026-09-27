@@ -101,6 +101,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         {/*
+          `.reveal` starts at opacity 0 and is switched on by the homepage's
+          IntersectionObserver. With JavaScript unavailable that observer never
+          runs, so every revealing block would stay invisible — including the
+          problem list, which is the homepage's main body copy. This restores it.
+        */}
+        <noscript
+          dangerouslySetInnerHTML={{
+            __html: "<style>.reveal{opacity:1 !important;transform:none !important}</style>",
+          }}
+        />
+        {/*
           Google Privacy & Messaging (CMP for AdSense in EEA/UK/CH).
 
           Configure NEXT_PUBLIC_GOOGLE_CMP_SRC with the exact script URL from the

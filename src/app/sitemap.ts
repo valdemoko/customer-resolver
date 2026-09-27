@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { GUIDES } from "@/lib/guides";
 import { PROBLEM_CATALOGUE } from "@/lib/problem-catalogue";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -10,7 +11,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
  * a signal that never varies. Problem pages don't use this — they carry their
  * own `updatedAt` from the catalogue.
  */
-const STATIC_CONTENT_UPDATED = "2026-09-22";
+const STATIC_CONTENT_UPDATED = "2026-09-27";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // Static pages
@@ -27,6 +28,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: STATIC_CONTENT_UPDATED,
       changeFrequency: "monthly",
       priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/guias`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.6,
     },
     {
       url: `${siteUrl}/fuentes`,
@@ -87,5 +94,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...problemPages];
+  // Guides: explanatory content that answers an intent the problem pages do not.
+  // Same rule as above — the guide's own review date, never the build date.
+  const guidePages: MetadataRoute.Sitemap = GUIDES.map((g) => ({
+    url: `${siteUrl}/guias/${g.slug}`,
+    lastModified: g.updatedAt,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...problemPages, ...guidePages];
 }

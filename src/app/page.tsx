@@ -8,14 +8,14 @@ import type { Metadata } from "next";
 import { HomePageClient } from "@/components/HomePageClient";
 
 export const metadata: Metadata = {
-  title: "Resolveo — Resolución de problemas",
+  title: "Problemas de consumo: guías, derechos y cómo reclamar",
   description:
-    "Describe tu problema. Analizamos tu caso con normativa vigente y te mostramos qué puedes hacer.",
+    "Problemas de consumo: compras, garantías, vuelos y servicios. Analiza tu caso con normativa vigente, fuentes verificables y pasos concretos para reclamar.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Resolveo",
+    title: "Resolveo — Entiende tu problema de consumo y resuélvelo",
     description:
-      "Resuelve problemas con información estructurada, fuentes verificables y pasos claros.",
+      "Analiza tu problema de consumo con normativa vigente y fuentes verificables, o consulta las guías para saber tus derechos y cómo reclamar.",
     type: "website",
     locale: "es_ES",
     images: [
