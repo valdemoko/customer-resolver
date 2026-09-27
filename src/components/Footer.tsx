@@ -5,6 +5,7 @@
  * Adapted from TechnologyTools footer layout.
  */
 import Link from "next/link";
+import { LinkIcon } from "./Logo";
 
 /* ── Problem categories ────────────────────────────────────────────── */
 
@@ -50,23 +51,13 @@ export function Footer() {
           <div className="md:col-span-2">
             {/* Logo + name */}
             <div className="flex items-center gap-2 mb-3">
-              <svg
-                viewBox="0 0 32 32"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                aria-hidden="true"
+              <LinkIcon className="w-6 h-6 text-[var(--color-accent)]" />
+              <span
+                className="font-medium tracking-tight text-lg text-[var(--color-ink)]"
+                style={{ fontFamily: "var(--font-display)" }}
               >
-                <rect width="32" height="32" rx="7" fill="#1a1a18" />
-                <path
-                  d="M10 16h12M22 16l-4-4M22 16l-4 4M10 16l4-4M10 16l4 4"
-                  stroke="#2dd4bf"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="font-semibold text-sm text-[var(--color-ink)]">Resolveo</span>
+                Resolveo
+              </span>
             </div>
 
             {/* Description */}

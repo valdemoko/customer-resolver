@@ -11,7 +11,7 @@ interface LogoProps {
   variant?: "default" | "light";
 }
 
-function LinkIcon({ className }: { className?: string }) {
+export function LinkIcon({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
