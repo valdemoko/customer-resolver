@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+
+# opennext / wrangler build output
+.open-next/
+.wrangler/
 .pnpm-store/
 
 # Secrets & environment (never commit)

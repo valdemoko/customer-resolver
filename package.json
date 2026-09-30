@@ -9,6 +9,10 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -38,6 +42,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.16",
     "@next/eslint-plugin-next": "^15.5.25",
+    "@opennextjs/cloudflare": "^1.20.7",
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.9",
@@ -55,6 +60,7 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.144.0"
   }
 }
