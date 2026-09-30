@@ -1,6 +1,10 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
+	// IMPORTANTE: este nombre debe coincidir con el Worker real de la cuenta de
+	// Cloudflare (customer-resolver). Workers Builds sobrescribe "name" con el
+	// del dashboard, pero NO los service bindings: si el self-reference apunta
+	// a otro worker, el deploy falla con el error 10143.
 	"name": "customer-resolver",
 	// Keep the workers.dev preview URL disabled, as configured in the dashboard
 	"workers_dev": false,
