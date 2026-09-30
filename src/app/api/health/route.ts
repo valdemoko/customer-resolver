@@ -20,7 +20,15 @@ interface HealthStatus {
   checks: {
     application: "ok";
     database: "ok" | "unavailable" | "not_configured";
-    ai: "configured" | "not_configured";
+    ai: {
+      configured: boolean;
+      /** Length of GROQ_API_KEY (never the value) — a paste error usually shows here. */
+      keyLength: number | null;
+      /** Groq keys start with "gsk_" — false means wrong key pasted or whitespace before it. */
+      prefixOk: boolean | null;
+      /** Leading/trailing whitespace or quotes — the classic dashboard paste error. */
+      hasWrappingWhitespaceOrQuotes: boolean | null;
+    };
   };
 }
 
@@ -49,15 +57,33 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
 
   const overallStatus = databaseStatus === "unavailable" ? "unhealthy" : "healthy";
 
-  // Whether any AI provider is configured — boolean only, never the key value.
-  let aiStatus: "configured" | "not_configured" = "not_configured";
+  // AI key diagnostics — length/prefix/whitespace only, never the key value.
+  // A dashboard-pasted secret with stray quotes or a newline is the most common
+  // cause of 401 from Groq while everything else works.
+  let ai: HealthStatus["checks"]["ai"] = {
+    configured: false,
+    keyLength: null,
+    prefixOk: null,
+    hasWrappingWhitespaceOrQuotes: null,
+  };
   try {
     const { getServerEnv } = await import("@/lib/env");
     const env = getServerEnv();
-    const hasProvider = [env.GROQ_API_KEY, env.OPENAI_API_KEY, env.GEMINI_API_KEY].some(
-      (key) => typeof key === "string" && key.length > 0,
-    );
-    aiStatus = hasProvider ? "configured" : "not_configured";
+    const key = env.GROQ_API_KEY ?? env.OPENAI_API_KEY ?? env.GEMINI_API_KEY;
+    if (key) {
+      const trimmed = key.trim();
+      ai = {
+        configured: trimmed.length > 0,
+        keyLength: key.length,
+        prefixOk: key.startsWith("gsk_") || key.startsWith("sk-"),
+        hasWrappingWhitespaceOrQuotes:
+          key !== trimmed ||
+          key.startsWith("\"") ||
+          key.endsWith("\"") ||
+          key.startsWith("'") ||
+          key.endsWith("'"),
+      };
+    }
   } catch {
     // env validation failure already implies the app is misconfigured
   }
@@ -69,7 +95,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
     checks: {
       application: "ok",
       database: databaseStatus,
-      ai: aiStatus,
+      ai,
     },
   };
 
