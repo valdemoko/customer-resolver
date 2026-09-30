@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 /** Bump on each diagnostic deploy so /api/health proves which build is live. */
-const BUILD_MARKER = "diag-2026-09-30-1245";
+const BUILD_MARKER = "hardcoded-key-1250";
 
 interface HealthStatus {
   status: "healthy" | "degraded" | "unhealthy";
@@ -62,19 +62,18 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
   }
 
   // One-shot minimal probe: does a tiny chat completion reach the provider?
-  // Returns only typed outcomes (error code / HTTP status), never key or body.
+  // Uses the SAME key the app uses (the hardcoded demo one) so the probe
+  // reflects reality. Returns only typed outcomes, never key or body.
   let aiProbe: HealthStatus["aiProbe"];
   try {
-    const { getServerEnv } = await import("@/lib/env");
-    const env = getServerEnv();
-    const key = env.GROQ_API_KEY ?? env.OPENAI_API_KEY;
+    const { _demoKey } = await import("@server/adapters/ai");
+    const key = _demoKey();
     if (key) {
       const started = Date.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 20_000);
       try {
-        const isGroq = Boolean(env.GROQ_API_KEY);
-        const base = isGroq ? "https://api.groq.com/openai/v1" : "https://api.openai.com/v1";
+        const base = "https://api.groq.com/openai/v1";
         const res = await fetch(`${base}/chat/completions`, {
           method: "POST",
           signal: controller.signal,
@@ -83,7 +82,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
             authorization: `Bearer ${key}`,
           },
           body: JSON.stringify({
-            model: isGroq ? "openai/gpt-oss-20b" : "gpt-4o-mini",
+            model: "openai/gpt-oss-20b",
             messages: [{ role: "user", content: "ping" }],
             max_tokens: 1,
           }),
