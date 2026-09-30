@@ -20,6 +20,7 @@ interface HealthStatus {
   checks: {
     application: "ok";
     database: "ok" | "unavailable" | "not_configured";
+    ai: "configured" | "not_configured";
   };
 }
 
@@ -48,6 +49,19 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
 
   const overallStatus = databaseStatus === "unavailable" ? "unhealthy" : "healthy";
 
+  // Whether any AI provider is configured — boolean only, never the key value.
+  let aiStatus: "configured" | "not_configured" = "not_configured";
+  try {
+    const { getServerEnv } = await import("@/lib/env");
+    const env = getServerEnv();
+    const hasProvider = [env.GROQ_API_KEY, env.OPENAI_API_KEY, env.GEMINI_API_KEY].some(
+      (key) => typeof key === "string" && key.length > 0,
+    );
+    aiStatus = hasProvider ? "configured" : "not_configured";
+  } catch {
+    // env validation failure already implies the app is misconfigured
+  }
+
   const response: HealthStatus = {
     status: overallStatus,
     timestamp,
@@ -55,6 +69,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
     checks: {
       application: "ok",
       database: databaseStatus,
+      ai: aiStatus,
     },
   };
 
