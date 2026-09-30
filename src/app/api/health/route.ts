@@ -30,6 +30,8 @@ interface HealthStatus {
       hasWrappingWhitespaceOrQuotes: boolean | null;
     };
   };
+  /** One-shot minimal call to the AI provider — typed error code only, no internals. */
+  aiProbe?: { reached: boolean; errorCode?: string; httpStatus?: number; ms?: number };
 }
 
 export async function GET(): Promise<NextResponse<HealthStatus>> {
@@ -53,6 +55,61 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
     }
   } catch {
     databaseStatus = "unavailable";
+  }
+
+  // One-shot minimal probe: does a tiny chat completion reach the provider?
+  // Returns only typed outcomes (error code / HTTP status), never key or body.
+  let aiProbe: HealthStatus["aiProbe"];
+  try {
+    const { getServerEnv } = await import("@/lib/env");
+    const env = getServerEnv();
+    const key = env.GROQ_API_KEY ?? env.OPENAI_API_KEY;
+    if (key) {
+      const started = Date.now();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20_000);
+      try {
+        const isGroq = Boolean(env.GROQ_API_KEY);
+        const base = isGroq ? "https://api.groq.com/openai/v1" : "https://api.openai.com/v1";
+        const res = await fetch(`${base}/chat/completions`, {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model: isGroq ? "openai/gpt-oss-20b" : "gpt-4o-mini",
+            messages: [{ role: "user", content: "ping" }],
+            max_tokens: 1,
+          }),
+        });
+        aiProbe = {
+          reached: res.ok,
+          httpStatus: res.status,
+          ms: Date.now() - started,
+        };
+        if (!res.ok) {
+          const body = (await res.text().catch(() => "")).slice(0, 200);
+          console.error("[health:aiProbe] HTTP", res.status, body);
+        }
+      } catch (probeError) {
+        aiProbe = {
+          reached: false,
+          errorCode: controller.signal.aborted ? "AI_TIMEOUT" : "AI_PROVIDER_UNAVAILABLE",
+          ms: Date.now() - started,
+        };
+        console.error(
+          "[health:aiProbe] threw:",
+          probeError instanceof Error ? probeError.name : "unknown",
+          controller.signal.aborted ? "(aborted/timeout)" : "",
+        );
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  } catch {
+    // probe is best-effort
   }
 
   const overallStatus = databaseStatus === "unavailable" ? "unhealthy" : "healthy";
@@ -97,6 +154,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
       database: databaseStatus,
       ai,
     },
+    aiProbe,
   };
 
   return NextResponse.json(response, {
