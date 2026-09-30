@@ -13,10 +13,14 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+/** Bump on each diagnostic deploy so /api/health proves which build is live. */
+const BUILD_MARKER = "diag-2026-09-30-1245";
+
 interface HealthStatus {
   status: "healthy" | "degraded" | "unhealthy";
   timestamp: string;
   version: string;
+  buildMarker: string;
   checks: {
     application: "ok";
     database: "ok" | "unavailable" | "not_configured";
@@ -149,6 +153,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
     status: overallStatus,
     timestamp,
     version,
+    buildMarker: BUILD_MARKER,
     checks: {
       application: "ok",
       database: databaseStatus,
