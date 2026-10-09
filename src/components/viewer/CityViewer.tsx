@@ -16,6 +16,7 @@ import { ParcelPanel } from "./ParcelPanel";
 import { AdPanel } from "./AdPanel";
 import { PurchaseStudio } from "./PurchaseStudio";
 import { RankingDock } from "./RankingDock";
+import { SiriWave } from "@/components/ui/siri-wave";
 import { UnitTooltip } from "./UnitTooltip";
 import { OwnerSidePanel } from "./OwnerSidePanel";
 import { useMarket } from "./useMarket";
@@ -279,6 +280,13 @@ export function CityViewer({ city }: { city: CityConfig }) {
 
   const phasesDone = PHASE_IDS.filter((id) => phases[id].done > 0).length;
   const dataPhase = phases.datos;
+  // Avance de la carga (0–1): fases terminadas más la fracción de teselas leídas de la fase de datos.
+  const loadProgress = Math.min(
+    1,
+    (PHASE_IDS.filter((id) => phases[id].done > 0 && phases[id].done >= phases[id].total).length +
+      (dataPhase.done < dataPhase.total ? dataPhase.done / Math.max(1, dataPhase.total) : 0)) /
+      PHASE_IDS.length,
+  );
 
   return (
     <div className="relative h-full w-full">
@@ -293,8 +301,9 @@ export function CityViewer({ city }: { city: CityConfig }) {
 
       {/* ------------------------------------------------------- carga por fases */}
       {status === "loading" ? (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#385070]">
-          <div className="w-[min(28rem,calc(100%-2rem))] rounded-md border border-line bg-surface/97 p-5 shadow-[var(--shadow-float)]">
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 overflow-y-auto bg-[#385070] py-6">
+          <SiriWave variant="fluid-dots" size={300} progress={loadProgress} />
+          <div className="w-[min(28rem,calc(100%-2rem))] rounded-3xl border border-line-strong bg-surface/90 p-5 shadow-[var(--shadow-float)] backdrop-blur-md">
             <p className="font-mono text-xs uppercase tracking-[0.14em] text-subtle">
               {city.name} · {city.tiles?.dataVersion ?? "sin versión"}
             </p>
