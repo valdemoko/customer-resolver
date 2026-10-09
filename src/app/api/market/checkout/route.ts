@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const user = await currentUser();
     const result = await createCheckout({
       userId: user?.id ?? null,
+      userEmail: user?.email ?? null,
       unitId: String(body.unitId ?? ""),
       content: body.content,
       returnPath: body.returnPath,

@@ -25,12 +25,15 @@ export type CheckoutParams = {
   draftId: string;
   origin: string;
   returnPath: string;
+  /** Correo de la cuenta conectada: se rellena en Stripe y liga el recibo con la cuenta. */
+  customerEmail?: string | null;
 };
 
 export async function createCheckoutSession(client: Stripe, params: CheckoutParams): Promise<Stripe.Checkout.Session> {
   const separator = params.returnPath.includes("?") ? "&" : "?";
   return client.checkout.sessions.create({
     mode: "payment",
+    ...(params.customerEmail ? { customer_email: params.customerEmail } : {}),
     expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
     client_reference_id: params.draftId,
     line_items: [

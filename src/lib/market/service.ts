@@ -8,6 +8,8 @@ import { createCheckoutSession, stripeClient } from "./stripe";
 import { ContentSchema, LIMITS, UNIT_KIND_LABEL, unitKindOf } from "./types";
 import { DEFAULT_FRAMING } from "./types";
 import { lockedUntil } from "./pricing";
+import { signValue, verifySigned } from "@/lib/auth/session";
+import { belongsTo } from "./store";
 import type { Content, MarketState, UnitView } from "./types";
 import { buildingNameOf, isKnownUnit, unitCatalogCounts } from "./units";
 import { publicUnitLabel } from "./label";
@@ -64,6 +66,7 @@ function view(id: string, stored: StoredUnit | null): UnitView {
     purchases,
     priceCents: priceForPurchases(purchases),
     owned: purchases > 0 && content !== null,
+    rev: `${purchases}.${stored?.edits ?? 0}`,
     lockedUntil: purchases > 0 ? lockedUntil(stored?.updatedAt) : null,
     owner: content
       ? {
@@ -91,9 +94,10 @@ export async function getMarketState(): Promise<MarketState> {
   }
   const units = await store.listUnits();
   const latest = units.reduce((max, unit) => (unit.updatedAt > max ? unit.updatedAt : max), "");
+  const edits = units.reduce((sum, unit) => sum + (unit.edits ?? 0), 0);
   return {
     units: units.map((unit) => view(unit.id, unit)),
-    version: `${units.length}:${latest}`,
+    version: `${units.length}:${latest}:${edits}`,
     purchasesEnabled,
   };
 }
@@ -148,7 +152,7 @@ export function parseContent(raw: unknown): Content {
 }
 
 export async function createCheckout(
-  input: { unitId: string; content: unknown; returnPath?: string | undefined; unitLabel?: string | undefined; userId?: string | null | undefined },
+  input: { unitId: string; content: unknown; returnPath?: string | undefined; unitLabel?: string | undefined; userId?: string | null | undefined; userEmail?: string | null | undefined },
   deps: { stripe?: Stripe; origin?: string } = {},
 ): Promise<{ url: string; amountCents: number; draftId: string }> {
   if (!purchasesEnabled) throw new MarketError(PURCHASES_DISABLED_LABEL, 403);
@@ -184,6 +188,7 @@ export async function createCheckout(
     draftId,
     origin: deps.origin ?? requireAppOrigin(),
     returnPath,
+    customerEmail: input.userEmail ?? null,
   });
   if (!session.url) throw new MarketError("Stripe no devolvió la página de pago.", 502);
   return { url: session.url, amountCents, draftId };
@@ -191,7 +196,11 @@ export async function createCheckout(
 
 /** Aplica la compra de una sesión PAGADA. Idempotente. */
 export async function completeFromSession(
-  session: Pick<Stripe.Checkout.Session, "id" | "payment_status" | "metadata" | "amount_total"> & { payment_intent?: Stripe.Checkout.Session["payment_intent"] },
+  session: Pick<Stripe.Checkout.Session, "id" | "payment_status" | "metadata" | "amount_total"> & {
+    payment_intent?: Stripe.Checkout.Session["payment_intent"];
+    customer_details?: { email?: string | null } | null;
+    customer_email?: string | null;
+  },
   deps: { stripe?: Stripe } = {},
 ): Promise<{ applied: boolean; unit: UnitView; refunded?: boolean } | null> {
   if (session.payment_status !== "paid") return null;
@@ -199,7 +208,8 @@ export async function completeFromSession(
   const unitId = session.metadata?.unitId;
   if (!draftId || !unitId || !isKnownUnit(unitId)) return null;
   const store = await getMarketStore();
-  const result = await store.completePurchase({ sessionId: session.id, draftId, amountCents: session.amount_total ?? 0 });
+  const buyerEmail = session.customer_details?.email ?? session.customer_email ?? null;
+  const result = await store.completePurchase({ sessionId: session.id, draftId, amountCents: session.amount_total ?? 0, buyerEmail });
   if (!result) return null;
   if (result.rejected) {
     // Alguien compró el espacio mientras esta persona pagaba: el cobro no se aplica y se devuelve entero.
@@ -221,7 +231,7 @@ export async function confirmSession(sessionId: string, deps: { stripe?: Stripe 
   if (done.refunded) {
     throw new MarketError("Otra persona compró este espacio justo antes que tú. Hemos devuelto el pago completo; puedes volver a intentarlo cuando el espacio vuelva a estar disponible.", 409);
   }
-  return done;
+  return { ...done, editToken: await editTokenFor(session.id) };
 }
 
 export async function handleWebhook(rawBody: string, signature: string | null, deps: { stripe?: Stripe } = {}) {
@@ -282,8 +292,48 @@ export async function getLeaderboards(): Promise<LeaderboardsPayload> {
   };
 }
 
-/** Compras de una cuenta, para la página «Mi cuenta». */
-export async function getUserPurchases(userId: string) {
+/** Compras de una cuenta (por identificador o por el correo con el que se pagó como invitado), para «Mi cuenta». */
+export async function getUserPurchases(userId: string, email?: string | null) {
   const store = await getMarketStore();
-  return store.userPurchases(userId);
+  return store.userPurchases(userId, email);
+}
+
+/** Espacios que posee ahora una cuenta. */
+export async function getOwnedUnits(userId: string, email?: string | null): Promise<string[]> {
+  const store = await getMarketStore();
+  return store.ownedBy(userId, email);
+}
+
+/**
+ * Enlace privado de edición para quien compró sin cuenta: una firma de la sesión de
+ * pago. Solo vale mientras esa compra siga siendo la última del espacio.
+ */
+export async function editTokenFor(sessionId: string): Promise<string> {
+  return signValue(`edit:${sessionId}`);
+}
+
+/**
+ * Cambia el anuncio de un espacio YA comprado, sin pagar de nuevo. Lo puede hacer
+ * su dueño actual: la cuenta que lo compró (o el mismo correo si pagó como invitado)
+ * o quien tenga el enlace privado de edición. No cuenta como compra ni reinicia la
+ * protección de dos horas.
+ */
+export async function editUnit(input: {
+  unitId: string;
+  content: unknown;
+  userId?: string | null;
+  userEmail?: string | null;
+  token?: string | null;
+}): Promise<UnitView> {
+  if (!isKnownUnit(input.unitId)) throw new MarketError("Unidad desconocida.", 404);
+  const content = parseContent(input.content);
+  const store = await getMarketStore();
+  const owner = await store.ownership(input.unitId);
+  if (!owner) throw new MarketError("Este espacio todavía no tiene dueño.", 404);
+  const byAccount = Boolean(input.userId) && belongsTo(owner, input.userId!, input.userEmail);
+  const byToken = Boolean(input.token) && owner.sessionId !== "" && (await verifySigned(input.token ?? undefined)) === `edit:${owner.sessionId}`;
+  if (!byAccount && !byToken) throw new MarketError("Solo el dueño actual de este espacio puede editar su anuncio.", 403);
+  const updated = await store.editContent(input.unitId, content);
+  if (!updated) throw new MarketError("Este espacio todavía no tiene dueño.", 404);
+  return view(updated.id, updated);
 }

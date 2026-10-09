@@ -43,7 +43,7 @@ export function useMarket(onState: (state: MarketState) => void) {
 
   /** Vista de una unidad; si nadie la ha comprado, la de «disponible por 1,00 €». */
   const unit = useCallback(
-    (id: string): UnitView => byId.get(id) ?? { id, purchases: 0, priceCents: BASE_PRICE_CENTS, owned: false, lockedUntil: null, owner: null },
+    (id: string): UnitView => byId.get(id) ?? { id, purchases: 0, priceCents: BASE_PRICE_CENTS, owned: false, rev: "0.0", lockedUntil: null, owner: null },
     [byId],
   );
 

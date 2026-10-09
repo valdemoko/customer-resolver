@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const done = await confirmSession(request.nextUrl.searchParams.get("session_id") ?? "");
-    return NextResponse.json({ applied: done.applied, unit: done.unit });
+    return NextResponse.json({ applied: done.applied, unit: done.unit, editToken: done.editToken });
   } catch (error) {
     return fail(error);
   }

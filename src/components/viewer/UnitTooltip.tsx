@@ -69,7 +69,7 @@ export function UnitTooltip({ unitId, label, view }: { unitId: string; label: st
         <div className="mt-2 flex items-start gap-3">
           {owner.hasLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl(unitId, "logo", `${view.purchases}`)} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-xl border border-line object-cover" />
+            <img src={imageUrl(unitId, "logo", view.rev)} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-xl border border-line object-cover" />
           ) : null}
           <div className="min-w-0">
             <p className="display-face truncate text-base font-medium leading-tight text-ink">{owner.name}</p>

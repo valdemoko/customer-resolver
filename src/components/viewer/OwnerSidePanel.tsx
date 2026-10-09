@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Lock } from "lucide-react";
+import { ExternalLink, Lock, Pencil } from "lucide-react";
 import { UNIT_KIND_LABEL, unitKindOf } from "@/lib/market/types";
 import type { UnitView } from "@/lib/market/types";
 import { imageUrl } from "@/lib/scene/ads";
@@ -14,10 +14,24 @@ import { ShareLink } from "./ShareLink";
  * Si el espacio está libre no hay panel: de eso se ocupa el aviso del cursor y la
  * ficha de compra de la izquierda.
  */
-export function OwnerSidePanel({ unitId, label, view }: { readonly unitId: string; readonly label: string; readonly view: UnitView }) {
+export function OwnerSidePanel({
+  unitId,
+  label,
+  view,
+  onEdit,
+  editLink,
+}: {
+  readonly unitId: string;
+  readonly label: string;
+  readonly view: UnitView;
+  /** Si se da, quien mira es el dueño y puede editar su anuncio. */
+  readonly onEdit?: () => void;
+  /** Enlace privado de edición (compradores sin cuenta), para guardarlo o abrirlo en otro dispositivo. */
+  readonly editLink?: string;
+}) {
   const owner = view.owner;
   if (!owner) return null;
-  const version = `${view.purchases}`;
+  const version = view.rev;
   const since = owner.since ? new Date(owner.since).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "";
   const kind = UNIT_KIND_LABEL[unitKindOf(unitId)];
   const protectedUntil = lockHour(view.lockedUntil);
@@ -57,9 +71,21 @@ export function OwnerSidePanel({ unitId, label, view }: { readonly unitId: strin
             <ExternalLink size={14} strokeWidth={2} aria-hidden="true" />
           </a>
         ) : null}
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
+          {onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="btn-sweep inline-flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-on-accent"
+            >
+              <Pencil size={14} strokeWidth={2} aria-hidden="true" />
+              Editar mi anuncio
+            </button>
+          ) : null}
           <ShareLink unitId={unitId} />
+          {editLink ? <ShareLink unitId={unitId} href={editLink} label="Copiar enlace de edición" copiedLabel="Enlace de edición copiado" /> : null}
         </div>
+        {editLink ? <p className="mt-2 text-xs text-muted">El enlace de edición es privado: quien lo tenga puede cambiar tu anuncio.</p> : null}
       </div>
     </aside>
   );

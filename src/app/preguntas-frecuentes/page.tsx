@@ -23,7 +23,7 @@ const FAQ: ReadonlyArray<{ group: string; items: ReadonlyArray<{ q: string; a: R
       },
       {
         q: "¿Necesito cuenta?",
-        a: "No. Puedes comprar sin registrarte. Si entras con Google, tus compras quedan guardadas en Mi cuenta y puedes volver a verlas en el mapa.",
+        a: "No. Puedes comprar como invitado. Si luego entras con Google con el mismo correo con el que pagaste, tus compras de invitado aparecen solas en Mi cuenta. Si entras antes de pagar, también quedan guardadas.",
       },
       {
         q: "¿Cómo se paga?",
@@ -48,7 +48,7 @@ const FAQ: ReadonlyArray<{ group: string; items: ReadonlyArray<{ q: string; a: R
       },
       {
         q: "¿Puedo cambiar mi anuncio después de pagar?",
-        a: "Ahora mismo no. Revisa bien la vista previa antes de pagar.",
+        a: "Sí, sin coste, mientras el espacio siga siendo tuyo. Si compraste conectado con Google, abre tu espacio en el mapa y pulsa «Editar mi anuncio». Si compraste como invitado, el navegador en el que pagaste te lo ofrece, y puedes copiar tu enlace de edición privado para usarlo en otro dispositivo. Editar no reinicia la protección de dos horas.",
       },
       {
         q: "¿Y si dos personas pagan a la vez el mismo espacio?",

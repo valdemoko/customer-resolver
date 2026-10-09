@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Lock, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { dataUrlBytes, downscaleImage, startCheckout } from "@/lib/market/client";
+import { dataUrlBytes, downscaleImage, imageAsDataUrl, saveEdit, startCheckout } from "@/lib/market/client";
+import { imageUrl } from "@/lib/scene/ads";
 import type { ImagePreset } from "@/lib/market/client";
 import { unitHasRoof } from "@/lib/market/faces";
 import { formatCents, nextPriceCents } from "@/lib/money";
@@ -144,6 +145,9 @@ export function PurchaseStudio({
   model,
   returnPath,
   onClose,
+  mode = "buy",
+  token = null,
+  onSaved,
 }: {
   unitId: string;
   label: string;
@@ -151,7 +155,12 @@ export function PurchaseStudio({
   model: FaceModel;
   returnPath: string;
   onClose: () => void;
+  /** `edit`: el dueño cambia su anuncio ya pagado (sin cobrar). */
+  mode?: "buy" | "edit";
+  token?: string | null;
+  onSaved?: () => void;
 }) {
+  const editing = mode === "edit";
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<FaceStage | null>(null);
   const firstField = useRef<HTMLInputElement | null>(null);
@@ -159,14 +168,26 @@ export function PurchaseStudio({
 
   const flat = !model.footprint;
   const hasRoof = !flat && unitHasRoof(unitId);
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(editing ? (view.owner?.name ?? "") : "");
+  const [url, setUrl] = useState(editing ? (view.owner?.url ?? "") : "");
+  const [description, setDescription] = useState(editing ? (view.owner?.description ?? "") : "");
   // Una sola foto por espacio: hace de logo, de fachada (repetida en todas las caras) y de techo.
   const [photo, setPhoto] = useState("");
-  const [framing, setFraming] = useState<Framing>(DEFAULT_FRAMING);
+  const [framing, setFraming] = useState<Framing>(editing ? (view.owner?.framing ?? DEFAULT_FRAMING) : DEFAULT_FRAMING);
   const [working, setWorking] = useState<ImagePreset | null>(null);
-  const [accepted, setAccepted] = useState(false);
+  const [accepted, setAccepted] = useState(editing); // al editar, las condiciones ya se aceptaron al comprar
+  // Al editar, la foto actual se carga como punto de partida.
+  useEffect(() => {
+    if (!editing || !view.owner?.hasLogo) return;
+    let alive = true;
+    imageAsDataUrl(imageUrl(unitId, "logo", view.rev))
+      .then((dataUrl) => alive && setPhoto((current) => current || dataUrl))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, unitId]);
   // Cuenta de Google (opcional): si hay sesión, la compra queda guardada en «Mi cuenta».
   const [account, setAccount] = useState<{ name: string } | null | undefined>(undefined);
   const [authEnabled, setAuthEnabled] = useState(false);
@@ -280,10 +301,15 @@ export function PurchaseStudio({
     setBusy(true);
     setError(null);
     try {
+      if (editing) {
+        await saveEdit({ unitId, content, token });
+        onSaved?.();
+        return;
+      }
       const result = await startCheckout({ unitId, unitLabel: label, content, returnPath });
       window.location.assign(result.url);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "No se pudo iniciar el pago.");
+      setError(failure instanceof Error ? failure.message : editing ? "No se pudieron guardar los cambios." : "No se pudo iniciar el pago.");
       setBusy(false);
     }
   }
@@ -295,7 +321,7 @@ export function PurchaseStudio({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Comprar ${label}`}
+      aria-label={`${editing ? "Editar" : "Comprar"} ${label}`}
       className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/60 p-0 backdrop-blur-[3px] sm:p-5"
     >
       <div className="owner-card flex h-full w-full max-w-6xl flex-col overflow-hidden border border-line-strong bg-surface shadow-[var(--shadow-float)] sm:rounded-3xl lg:flex-row">
@@ -303,7 +329,7 @@ export function PurchaseStudio({
         <section className="blueprint relative flex min-h-[34vh] flex-1 flex-col lg:min-h-0">
           <header className="flex items-start justify-between gap-3 p-5">
             <div>
-              <p className="text-xs text-muted">Vista previa de tu anuncio</p>
+              <p className="text-xs text-muted">{editing ? "Editar tu anuncio" : "Vista previa de tu anuncio"}</p>
               <h2 className="display-face text-2xl font-medium leading-tight tracking-[-0.02em] text-ink">{label}</h2>
             </div>
             <button
@@ -336,7 +362,11 @@ export function PurchaseStudio({
           </div>
 
           <div className="space-y-4 p-5">
-            {account ? (
+            {editing ? (
+              <p className="rounded-2xl border border-line bg-sunken/40 px-3.5 py-2.5 text-xs text-muted">
+                Cambia lo que quieras. Se guarda al instante, no se cobra nada y la protección de tu espacio no cambia.
+              </p>
+            ) : account ? (
               <p className="rounded-2xl border border-line bg-sunken/40 px-3.5 py-2.5 text-xs text-muted">
                 Comprando como <span className="font-medium text-ink">{account.name}</span>. La compra quedará en Mi cuenta.
               </p>
@@ -397,6 +427,7 @@ export function PurchaseStudio({
               {photo ? <FramingControls framing={framing} onChange={setFraming} /> : null}
             </div>
 
+            {editing ? null : (
             <label className="flex cursor-pointer items-start gap-2.5 text-sm">
               <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[var(--c-accent)]" />
               <span className="text-muted">
@@ -405,9 +436,11 @@ export function PurchaseStudio({
                 <a href="/legal/normas-de-contenido" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">normas de contenido</a>.
               </span>
             </label>
+            )}
           </div>
 
           <div className="mt-auto border-t border-line bg-surface p-5">
+            {editing ? null : (
             <div className="mb-3 flex items-end justify-between">
               <div>
                 <p className="text-xs text-muted">Pago único</p>
@@ -415,16 +448,17 @@ export function PurchaseStudio({
               </div>
               <p className="max-w-[10rem] text-right text-xs text-muted">El siguiente comprador pagará {following}.</p>
             </div>
+            )}
             {error ? (
               <p role="alert" className="mb-3 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
                 {error}
               </p>
             ) : null}
             <Button variant="primary" className="h-12 w-full" onClick={() => void pay()} disabled={busy || working !== null}>
-              <Lock size={15} strokeWidth={2} aria-hidden="true" />
-              {busy ? "Abriendo Stripe…" : `Pagar ${price} con Stripe`}
+              {editing ? null : <Lock size={15} strokeWidth={2} aria-hidden="true" />}
+              {editing ? (busy ? "Guardando…" : "Guardar cambios") : busy ? "Abriendo Stripe…" : `Pagar ${price} con Stripe`}
             </Button>
-            <p className="mt-2 text-center text-xs text-subtle">El cobro lo gestiona Stripe. No guardamos datos de tu tarjeta.</p>
+            {editing ? null : <p className="mt-2 text-center text-xs text-subtle">El cobro lo gestiona Stripe. No guardamos datos de tu tarjeta.</p>}
           </div>
         </section>
       </div>

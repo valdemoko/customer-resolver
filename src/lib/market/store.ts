@@ -17,6 +17,8 @@ export type StoredUnit = {
   purchases: number;
   content: Content | null;
   updatedAt: string;
+  /** Ediciones del anuncio tras la compra (no cuentan como compra ni reinician la protección). */
+  edits: number;
 };
 
 export type Draft = {
@@ -33,7 +35,7 @@ export type Draft = {
 export type CompleteResult = { applied: boolean; unit: StoredUnit; amountCents: number | null; rejected?: "stale" };
 
 /** Una compra completada (nada privado: el nombre es el que el comprador publica en el mapa). */
-export type PurchaseRecord = { unitId: string; amountCents: number; buyer: string; createdAt: string; userId?: string | null };
+export type PurchaseRecord = { unitId: string; amountCents: number; buyer: string; createdAt: string; userId?: string | null; sessionId?: string; buyerEmail?: string | null };
 
 /** Una compra de una cuenta, con su estado actual: `current` es que el espacio sigue siendo suyo. */
 export type UserPurchase = { unitId: string; amountCents: number; name: string; createdAt: string; current: boolean };
@@ -88,14 +90,31 @@ export function computeLeaderboards(log: PurchaseRecord[], units: StoredUnit[], 
   };
 }
 
+/** Quién compró por última vez un espacio (el dueño actual). */
+export type Ownership = { sessionId: string; userId: string | null; buyerEmail: string | null };
+
+const sameEmail = (a: string | null | undefined, b: string | null | undefined) => Boolean(a && b && a.trim().toLowerCase() === b.trim().toLowerCase());
+
+/** ¿Pertenece esta compra a la cuenta? Por identificador, o, si se compró como invitado, por el mismo correo. */
+export function belongsTo(entry: { userId?: string | null; buyerEmail?: string | null }, userId: string, email?: string | null): boolean {
+  if (entry.userId) return entry.userId === userId;
+  return sameEmail(entry.buyerEmail, email);
+}
+
 export interface MarketStore {
   leaderboards(limit: number): Promise<Leaderboards>;
   listUnits(): Promise<StoredUnit[]>;
   getUnit(id: string): Promise<StoredUnit | null>;
   saveDraft(draft: Draft): Promise<void>;
   getDraft(id: string): Promise<Draft | null>;
-  completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null>;
-  userPurchases(userId: string): Promise<UserPurchase[]>;
+  completePurchase(args: { sessionId: string; draftId: string; amountCents: number; buyerEmail?: string | null }): Promise<CompleteResult | null>;
+  userPurchases(userId: string, email?: string | null): Promise<UserPurchase[]>;
+  /** Dueño actual del espacio (última compra) o `null`. */
+  ownership(unitId: string): Promise<Ownership | null>;
+  /** Cambia el contenido del anuncio sin tocar compras, precio ni protección. */
+  editContent(unitId: string, content: Content): Promise<StoredUnit | null>;
+  /** Espacios que posee ahora la cuenta. */
+  ownedBy(userId: string, email?: string | null): Promise<string[]>;
 }
 
 /* ------------------------------------------------------------------ memoria */
@@ -127,7 +146,7 @@ export class MemoryStore implements MarketStore {
     return this.drafts.get(id) ?? null;
   }
 
-  async completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null> {
+  async completePurchase(args: { sessionId: string; draftId: string; amountCents: number; buyerEmail?: string | null }): Promise<CompleteResult | null> {
     const done = this.sessions.get(args.sessionId);
     if (done) {
       const unit = this.units.get(done.unitId);
@@ -144,27 +163,51 @@ export class MemoryStore implements MarketStore {
       purchases: (previous?.purchases ?? 0) + 1,
       content: draft.content,
       updatedAt: new Date().toISOString(),
+      edits: 0,
     };
     this.units.set(unit.id, unit);
     this.sessions.set(args.sessionId, { unitId: unit.id, amountCents: args.amountCents });
-    this.log.push({ unitId: unit.id, amountCents: args.amountCents, buyer: draft.content.name, createdAt: unit.updatedAt, userId: draft.userId ?? null });
+    this.log.push({ unitId: unit.id, amountCents: args.amountCents, buyer: draft.content.name, createdAt: unit.updatedAt, userId: draft.userId ?? null, sessionId: args.sessionId, buyerEmail: args.buyerEmail ?? null });
     await this.persist();
     return { applied: true, unit, amountCents: args.amountCents };
   }
 
-  async userPurchases(userId: string): Promise<UserPurchase[]> {
-    const latestUser = new Map<string, string | null>();
-    for (const entry of this.log) latestUser.set(entry.unitId, entry.userId ?? null);
+  async userPurchases(userId: string, email?: string | null): Promise<UserPurchase[]> {
+    const latest = new Map<string, PurchaseRecord>();
+    for (const entry of this.log) latest.set(entry.unitId, entry);
     return this.log
-      .filter((entry) => entry.userId === userId)
+      .filter((entry) => belongsTo(entry, userId, email))
       .map((entry) => ({
         unitId: entry.unitId,
         amountCents: entry.amountCents,
         name: entry.buyer,
         createdAt: entry.createdAt,
-        current: latestUser.get(entry.unitId) === userId,
+        current: latest.get(entry.unitId) === entry,
       }))
       .reverse();
+  }
+
+  async ownership(unitId: string): Promise<Ownership | null> {
+    for (let i = this.log.length - 1; i >= 0; i -= 1) {
+      const entry = this.log[i]!;
+      if (entry.unitId === unitId) return { sessionId: entry.sessionId ?? "", userId: entry.userId ?? null, buyerEmail: entry.buyerEmail ?? null };
+    }
+    return null;
+  }
+
+  async editContent(unitId: string, content: Content): Promise<StoredUnit | null> {
+    const unit = this.units.get(unitId);
+    if (!unit || unit.purchases < 1) return null;
+    const next: StoredUnit = { ...unit, content, edits: (unit.edits ?? 0) + 1 };
+    this.units.set(unitId, next);
+    await this.persist();
+    return next;
+  }
+
+  async ownedBy(userId: string, email?: string | null): Promise<string[]> {
+    const latest = new Map<string, PurchaseRecord>();
+    for (const entry of this.log) latest.set(entry.unitId, entry);
+    return [...latest.values()].filter((entry) => belongsTo(entry, userId, email)).map((entry) => entry.unitId);
   }
 
   protected async persist(): Promise<void> {
@@ -226,14 +269,29 @@ export class FileStore extends MemoryStore {
     return super.getDraft(id);
   }
 
-  override async completePurchase(args: { sessionId: string; draftId: string; amountCents: number }) {
+  override async completePurchase(args: { sessionId: string; draftId: string; amountCents: number; buyerEmail?: string | null }) {
     await this.load();
     return super.completePurchase(args);
   }
 
-  override async userPurchases(userId: string) {
+  override async userPurchases(userId: string, email?: string | null) {
     await this.load();
-    return super.userPurchases(userId);
+    return super.userPurchases(userId, email);
+  }
+
+  override async ownership(unitId: string) {
+    await this.load();
+    return super.ownership(unitId);
+  }
+
+  override async editContent(unitId: string, content: Content) {
+    await this.load();
+    return super.editContent(unitId, content);
+  }
+
+  override async ownedBy(userId: string, email?: string | null) {
+    await this.load();
+    return super.ownedBy(userId, email);
   }
 
   protected override async persist(): Promise<void> {
@@ -288,6 +346,8 @@ export class NeonStore implements MarketStore {
       await this.sql`alter table market_drafts add column if not exists user_id text`;
       await this.sql`alter table market_purchases add column if not exists user_id text`;
       await this.sql`create index if not exists market_purchases_user_idx on market_purchases (user_id)`;
+      await this.sql`alter table market_purchases add column if not exists buyer_email text`;
+      await this.sql`alter table market_units add column if not exists edits integer not null default 0`;
     })();
     return this.ready;
   }
@@ -298,6 +358,7 @@ export class NeonStore implements MarketStore {
       purchases: Number(row.purchases),
       content: (row.content as Content | null) ?? null,
       updatedAt: new Date(String(row.updated_at)).toISOString(),
+      edits: Number(row.edits ?? 0),
     };
   }
 
@@ -345,13 +406,13 @@ export class NeonStore implements MarketStore {
 
   async listUnits(): Promise<StoredUnit[]> {
     await this.ensure();
-    const rows = await this.sql`select id, purchases, content, updated_at from market_units where purchases > 0`;
+    const rows = await this.sql`select id, purchases, content, updated_at, edits from market_units where purchases > 0`;
     return rows.map((row) => this.toUnit(row));
   }
 
   async getUnit(id: string): Promise<StoredUnit | null> {
     await this.ensure();
-    const rows = await this.sql`select id, purchases, content, updated_at from market_units where id = ${id}`;
+    const rows = await this.sql`select id, purchases, content, updated_at, edits from market_units where id = ${id}`;
     return rows[0] ? this.toUnit(rows[0]) : null;
   }
 
@@ -378,13 +439,13 @@ export class NeonStore implements MarketStore {
       : null;
   }
 
-  async completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null> {
+  async completePurchase(args: { sessionId: string; draftId: string; amountCents: number; buyerEmail?: string | null }): Promise<CompleteResult | null> {
     await this.ensure();
     // Una sola sentencia: registra la compra (única por sesión) y, solo si es
     // nueva, sube el contador y sustituye el contenido de la unidad.
     const applied = await this.sql`with inserted as (
-        insert into market_purchases (session_id, unit_id, amount_cents, content, user_id)
-        select ${args.sessionId}, d.unit_id, ${args.amountCents}, d.content, d.user_id
+        insert into market_purchases (session_id, unit_id, amount_cents, content, user_id, buyer_email)
+        select ${args.sessionId}, d.unit_id, ${args.amountCents}, d.content, d.user_id, ${args.buyerEmail ?? null}
         from market_drafts d where d.id = ${args.draftId}
           and not exists (select 1 from market_units mu where mu.id = d.unit_id and mu.purchases > d.purchases_at_creation)
         on conflict (session_id) do nothing
@@ -394,24 +455,26 @@ export class NeonStore implements MarketStore {
       select unit_id, 1, content, now() from inserted
       on conflict (id) do update
         set purchases = market_units.purchases + 1, content = excluded.content, updated_at = now()
-      returning id, purchases, content, updated_at`;
+      returning id, purchases, content, updated_at, edits`;
     if (applied[0]) return { applied: true, unit: this.toUnit(applied[0]), amountCents: args.amountCents };
-    const existing = await this.sql`select u.id, u.purchases, u.content, u.updated_at, p.amount_cents
+    const existing = await this.sql`select u.id, u.purchases, u.content, u.updated_at, u.edits, p.amount_cents
       from market_purchases p join market_units u on u.id = p.unit_id where p.session_id = ${args.sessionId}`;
     const row = existing[0];
     if (row) return { applied: false, unit: this.toUnit(row), amountCents: Number(row.amount_cents) };
     // Sin compra registrada: o no hay borrador, o alguien se adelantó (el pago debe devolverse).
-    const stale = await this.sql`select u.id, u.purchases, u.content, u.updated_at
+    const stale = await this.sql`select u.id, u.purchases, u.content, u.updated_at, u.edits
       from market_drafts d join market_units u on u.id = d.unit_id
       where d.id = ${args.draftId} and u.purchases > d.purchases_at_creation`;
     return stale[0] ? { applied: false, rejected: "stale", unit: this.toUnit(stale[0]), amountCents: args.amountCents } : null;
   }
 
-  async userPurchases(userId: string): Promise<UserPurchase[]> {
+  async userPurchases(userId: string, email?: string | null): Promise<UserPurchase[]> {
     await this.ensure();
+    const mail = email ? email.trim().toLowerCase() : null;
     const rows = await this.sql`select p.unit_id, p.amount_cents, p.created_at, p.content->>'name' as name,
         (p.id = (select max(q.id) from market_purchases q where q.unit_id = p.unit_id)) as current
-      from market_purchases p where p.user_id = ${userId}
+      from market_purchases p
+      where p.user_id = ${userId} or (p.user_id is null and ${mail}::text is not null and lower(p.buyer_email) = ${mail}::text)
       order by p.created_at desc, p.id desc limit 200`;
     return rows.map((row) => ({
       unitId: String(row.unit_id),
@@ -420,5 +483,28 @@ export class NeonStore implements MarketStore {
       createdAt: new Date(String(row.created_at)).toISOString(),
       current: Boolean(row.current),
     }));
+  }
+
+  async ownership(unitId: string): Promise<Ownership | null> {
+    await this.ensure();
+    const rows = await this.sql`select session_id, user_id, buyer_email from market_purchases where unit_id = ${unitId} order by id desc limit 1`;
+    const row = rows[0];
+    return row ? { sessionId: String(row.session_id), userId: row.user_id ? String(row.user_id) : null, buyerEmail: row.buyer_email ? String(row.buyer_email) : null } : null;
+  }
+
+  async editContent(unitId: string, content: Content): Promise<StoredUnit | null> {
+    await this.ensure();
+    const rows = await this.sql`update market_units set content = ${JSON.stringify(content)}::jsonb, edits = edits + 1
+      where id = ${unitId} and purchases > 0 returning id, purchases, content, updated_at, edits`;
+    return rows[0] ? this.toUnit(rows[0]) : null;
+  }
+
+  async ownedBy(userId: string, email?: string | null): Promise<string[]> {
+    await this.ensure();
+    const mail = email ? email.trim().toLowerCase() : null;
+    const rows = await this.sql`select p.unit_id from market_purchases p
+      where p.id = (select max(q.id) from market_purchases q where q.unit_id = p.unit_id)
+        and (p.user_id = ${userId} or (p.user_id is null and ${mail}::text is not null and lower(p.buyer_email) = ${mail}::text))`;
+    return rows.map((row) => String(row.unit_id));
   }
 }

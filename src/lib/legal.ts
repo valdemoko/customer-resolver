@@ -84,7 +84,7 @@ export const legalDocs: LegalDoc[] = [
         body: [
           "Navegación: al visitar el sitio los servidores reciben datos técnicos inevitables (dirección IP, navegador, fecha y página solicitada). No usamos herramientas de analítica ni de publicidad de terceros.",
           "Cuenta (opcional): si entras con Google recibimos tu identificador de Google, tu correo, tu nombre y tu foto de perfil. No recibimos ni guardamos ninguna contraseña. Estos datos se guardan en una cookie de sesión y el identificador se asocia a tus compras.",
-          "Compras: nombre del anunciante, descripción, web e imágenes que subes (son públicos en el mapa), el espacio comprado, el importe y la fecha. El pago lo procesa Stripe: nunca vemos ni guardamos los datos de tu tarjeta. Stripe puede pedirte tu correo para enviarte el recibo.",
+          "Compras: nombre del anunciante, descripción, web e imágenes que subes (son públicos en el mapa), el espacio comprado, el importe y la fecha. El pago lo procesa Stripe: nunca vemos ni guardamos los datos de tu tarjeta. Stripe nos facilita el correo con el que pagas y lo guardamos junto a la compra para asociarla a tu cuenta si luego entras con Google con ese mismo correo, y para verificar que eres el dueño cuando editas tu anuncio.",
           "Tus contenidos públicos: lo que escribas en el nombre, la descripción y la web, y las fotos que subas, serán visibles para cualquier visitante. No incluyas datos personales de terceros ni tuyos que no quieras hacer públicos.",
         ],
       },
@@ -101,7 +101,7 @@ export const legalDocs: LegalDoc[] = [
         heading: "Cuánto tiempo se conservan",
         body: [
           "Los datos de las compras (espacio, importe, fecha y contenido publicado) se conservan mientras dure la relación y, después, durante los plazos legales aplicables a las obligaciones fiscales y mercantiles, que pueden llegar a seis años.",
-          "Los datos de la sesión caducan a los 30 días o cuando cierras sesión. Puedes pedir el borrado de tu cuenta en cualquier momento, salvo lo que debamos conservar por ley.",
+          "Los datos de la sesión caducan a los 30 días o cuando cierras sesión. El enlace privado de edición de tu anuncio se guarda en tu navegador (almacenamiento local) y vale hasta que otra persona compre ese espacio. Puedes pedir el borrado de tu cuenta en cualquier momento, salvo lo que debamos conservar por ley.",
         ],
       },
       {
@@ -146,7 +146,7 @@ export const legalDocs: LegalDoc[] = [
           "Resolveo no usa cookies de analítica, de publicidad ni de seguimiento. Solo se usa almacenamiento estrictamente necesario, que no requiere tu consentimiento (art. 22.2 LSSI):",
           "rs_session (cookie, 30 días): mantiene tu sesión si entras con Google. Solo existe si inicias sesión.",
           "rs_oauth (cookie, 10 minutos): protege el paso de inicio de sesión con Google frente a falsificaciones. Se borra al terminar.",
-          "Ciudades guardadas (almacenamiento local del navegador): recuerda las ciudades que marcas como guardadas. No sale de tu navegador.",
+          "Ciudades guardadas y enlaces de edición (almacenamiento local del navegador): recuerdan las ciudades que marcas como guardadas y, si compras como invitado, el enlace privado para editar tu anuncio. No salen de tu navegador.",
         ],
       },
       {

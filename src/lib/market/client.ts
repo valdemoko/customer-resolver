@@ -32,8 +32,42 @@ export async function startCheckout(input: {
   );
 }
 
-export async function confirmCheckout(sessionId: string): Promise<{ applied: boolean; unit: UnitView }> {
+export async function confirmCheckout(sessionId: string): Promise<{ applied: boolean; unit: UnitView; editToken?: string }> {
   return json(await fetch(`/api/market/confirm?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" }));
+}
+
+/** Guarda los cambios del anuncio de un espacio ya comprado (sin cobrar). */
+export async function saveEdit(input: { unitId: string; content: Content; token?: string | null }): Promise<{ unit: UnitView }> {
+  return json(
+    await fetch("/api/market/edit", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
+/** Espacios que posee ahora la cuenta conectada. */
+export async function fetchMine(): Promise<string[]> {
+  try {
+    const data = (await json(await fetch("/api/market/mine", { cache: "no-store" }))) as { unitIds: string[] };
+    return data.unitIds;
+  } catch {
+    return [];
+  }
+}
+
+/** Convierte la imagen publicada de un espacio en un data URL, para poder editarla. */
+export async function imageAsDataUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("No se pudo leer la foto actual.");
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("No se pudo leer la foto actual."));
+    reader.readAsDataURL(blob);
+  });
 }
 
 /** Tamaños de destino por tipo de imagen: lado mayor en píxeles y peso objetivo en bytes. */

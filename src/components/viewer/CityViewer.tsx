@@ -15,11 +15,12 @@ import { BuildingPanel } from "./BuildingPanel";
 import { ParcelPanel } from "./ParcelPanel";
 import { AdPanel } from "./AdPanel";
 import { PurchaseStudio } from "./PurchaseStudio";
+import { readEditTokens, saveEditToken, tokenFor, type EditTokens } from "@/lib/market/edit-tokens";
 import { RankingDock } from "./RankingDock";
 import { UnitTooltip } from "./UnitTooltip";
 import { OwnerSidePanel } from "./OwnerSidePanel";
 import { useMarket } from "./useMarket";
-import { confirmCheckout } from "@/lib/market/client";
+import { confirmCheckout, fetchMine } from "@/lib/market/client";
 import type { UnitView } from "@/lib/market/types";
 import { unitLabel } from "@/lib/market/label";
 
@@ -67,7 +68,11 @@ export function CityViewer({ city }: { city: CityConfig }) {
   const [selectedAd, setSelectedAd] = useState<string | null>(null);
   const [hoverUnit, setHoverUnit] = useState<string | null>(null);
   const [studioUnit, setStudioUnit] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ kind: "ok" | "warn"; text: string; action?: { label: string; href: string } } | null>(null);
+  const [editUnitId, setEditUnitId] = useState<string | null>(null);
+  const [mine, setMine] = useState<ReadonlySet<string>>(new Set());
+  const [editTokens, setEditTokens] = useState<EditTokens>({});
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [manualPause, setManualPause] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -247,9 +252,22 @@ export function CityViewer({ city }: { city: CityConfig }) {
       void confirmCheckout(sessionId)
         .then(async (result) => {
           await market.refresh();
+          if (result.editToken) {
+            saveEditToken(result.unit.id, result.editToken, result.unit.owner?.since ?? null);
+            setEditTokens(readEditTokens());
+          }
+          const me = (await fetch("/api/auth/me", { cache: "no-store" }).then((r) => r.json()).catch(() => null)) as { user: unknown; enabled: boolean } | null;
+          if (me?.user) void fetchMine().then((ids) => setMine(new Set(ids)));
           setNotice({
             kind: "ok",
-            text: result.unit.owner ? `Ya es tuyo: «${result.unit.owner.name}» luce en la ciudad.` : "Pago recibido.",
+            text: result.unit.owner
+              ? me?.user
+                ? `Ya es tuyo: «${result.unit.owner.name}» luce en la ciudad. Lo tienes en Mi cuenta.`
+                : `Ya es tuyo: «${result.unit.owner.name}» luce en la ciudad. Puedes editarlo desde su ficha en este navegador.`
+              : "Pago recibido.",
+            ...(!me?.user && me?.enabled
+              ? { action: { label: "Entra con Google para guardarlo en tu cuenta", href: `/api/auth/google?next=${encodeURIComponent(`/city/${city.slug}/viewer?unit=${result.unit.id}`)}` } }
+              : {}),
           });
           engineRef.current?.selectUnit(unitId ?? result.unit.id);
         })
@@ -264,7 +282,7 @@ export function CityViewer({ city }: { city: CityConfig }) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(null), 7000);
+    const timer = window.setTimeout(() => setNotice(null), notice.action ? 16000 : 7000);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -282,12 +300,54 @@ export function CityViewer({ city }: { city: CityConfig }) {
   );
   const studioView: UnitView | null = studioUnit ? market.unit(studioUnit) : null;
   const studioLabel = studioUnit ? unitLabel(studioUnit, { building: selected, parcel: selectedParcel }) : "";
+  const editModel = useMemo(
+    () => (editUnitId ? (engineRef.current?.studioModel(editUnitId) ?? null) : null),
+    [editUnitId],
+  );
+  const editView: UnitView | null = editUnitId ? market.unit(editUnitId) : null;
+  const editLabel = editUnitId ? unitLabel(editUnitId, { building: selected, parcel: selectedParcel }) : "";
   const hoverView = hoverUnit && !studioUnit ? market.unit(hoverUnit) : null;
   const hoverLabel = hoverUnit ? unitLabel(hoverUnit, { building: null, parcel: null }) : "";
   // Espacio seleccionado (edificio, local o anuncio móvil), para el panel del anunciante de la derecha.
   const selectedUnitId = unitOfSelected ?? (selectedParcel ? `p:${selectedParcel.id}` : selectedAd);
   const selectedView = selectedUnitId ? market.unit(selectedUnitId) : null;
   // A la derecha: el anunciante del espacio bajo el ratón (si está comprado) o, si no, el del seleccionado.
+  /* ------------------------------------------- propiedad y edición del anuncio */
+  useEffect(() => {
+    setEditTokens(readEditTokens());
+    let alive = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user: unknown } | null) => {
+        if (!alive) return;
+        setSignedIn(Boolean(data?.user));
+        if (data?.user) void fetchMine().then((ids) => alive && setMine(new Set(ids)));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  // Tras cada compra (de cualquiera) puede cambiar quién posee qué.
+  const marketVersion = market.state?.version;
+  useEffect(() => {
+    if (signedIn) void fetchMine().then((ids) => setMine(new Set(ids)));
+  }, [marketVersion, signedIn]);
+
+  // Enlace privado de edición (?edit=…&unit=…): se guarda en este navegador.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("edit");
+    const unitId = params.get("unit");
+    if (!token || !unitId) return;
+    saveEditToken(unitId, token, null);
+    setEditTokens(readEditTokens());
+    const next = new URL(window.location.href);
+    next.searchParams.delete("edit");
+    window.history.replaceState(null, "", next.toString());
+  }, [status]);
+
   const sideUnit = hoverView?.owned && hoverUnit ? hoverUnit : selectedView?.owned && selectedUnitId ? selectedUnitId : null;
   const sideView = sideUnit ? market.unit(sideUnit) : null;
   const sideLabel = sideUnit ? unitLabel(sideUnit, { building: sideUnit === selectedUnitId ? selected : null, parcel: sideUnit === selectedUnitId ? selectedParcel : null }) : "";
@@ -434,18 +494,56 @@ export function CityViewer({ city }: { city: CityConfig }) {
 
       {/* Libre: aviso junto al cursor con su precio. Comprado: panel del anunciante a la derecha. */}
       {hoverView && hoverUnit && !hoverView.owned ? <UnitTooltip unitId={hoverUnit} label={hoverLabel} view={hoverView} /> : null}
-      {sideUnit && sideView ? <OwnerSidePanel unitId={sideUnit} label={sideLabel} view={sideView} /> : null}
+      {sideUnit && sideView
+        ? (() => {
+            const token = tokenFor(editTokens, sideUnit, sideView.owner?.since);
+            const canEdit = mine.has(sideUnit) || token !== null;
+            const editLink = token && !mine.has(sideUnit) ? `${window.location.origin}/city/${city.slug}/viewer?unit=${encodeURIComponent(sideUnit)}&edit=${encodeURIComponent(token)}` : undefined;
+            return (
+              <OwnerSidePanel
+                unitId={sideUnit}
+                label={sideLabel}
+                view={sideView}
+                {...(canEdit ? { onEdit: () => setEditUnitId(sideUnit) } : {})}
+                {...(editLink ? { editLink } : {})}
+              />
+            );
+          })()
+        : null}
 
       {notice ? (
-        <p
+        <div
           role="status"
           className={cn(
             "stamp-in absolute left-1/2 top-3 z-40 max-w-[min(28rem,calc(100%-6rem))] -translate-x-1/2 rounded-md border bg-surface px-3 py-2 text-sm text-ink shadow-[var(--shadow-float)]",
             notice.kind === "ok" ? "border-available/50" : "border-premium/40",
           )}
         >
-          {notice.text}
-        </p>
+          <p>{notice.text}</p>
+          {notice.action ? (
+            <a href={notice.action.href} className="mt-1.5 inline-block font-medium text-accent-ink underline underline-offset-2">
+              {notice.action.label}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+
+      {editUnitId && editModel && editView ? (
+        <PurchaseStudio
+          unitId={editUnitId}
+          label={editLabel}
+          view={editView}
+          model={editModel}
+          returnPath={`/city/${city.slug}/viewer`}
+          mode="edit"
+          token={tokenFor(editTokens, editUnitId, editView.owner?.since)}
+          onClose={() => setEditUnitId(null)}
+          onSaved={() => {
+            setEditUnitId(null);
+            void market.refresh();
+            setNotice({ kind: "ok", text: "Cambios guardados. Tu anuncio ya está actualizado en el mapa." });
+          }}
+        />
       ) : null}
 
       {studioUnit && studioModel && studioView ? (

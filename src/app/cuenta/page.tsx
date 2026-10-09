@@ -39,7 +39,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Sear
   let storeError = false;
   if (user) {
     try {
-      purchases = await getUserPurchases(user.id);
+      purchases = await getUserPurchases(user.id, user.email);
     } catch {
       storeError = true;
     }

@@ -11,7 +11,7 @@ import { imageUrl } from "@/lib/scene/ads";
 export function OwnerCard({ unitId, view }: { unitId: string; view: UnitView }) {
   const owner = view.owner;
   if (!owner) return null;
-  const version = `${view.purchases}`;
+  const version = view.rev;
   const since = owner.since ? new Date(owner.since).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "";
   return (
     <article className="owner-card relative mt-3 overflow-hidden rounded-md border border-accent/40 bg-accent-soft/60 p-3">

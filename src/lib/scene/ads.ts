@@ -114,7 +114,7 @@ export class AdLayer {
     // Una unidad cuyo contenido cambió pierde sus mallas y texturas.
     for (const [id, live] of this.live) {
       const view = this.units.get(id);
-      const stamp = view ? `${view.purchases}` : "";
+      const stamp = view ? view.rev : "";
       if (live.version !== stamp) this.drop(id);
     }
     this.lastUpdate = 0;
@@ -124,7 +124,7 @@ export class AdLayer {
   texture(unitId: string, key: string): THREE.Texture | null {
     const view = this.units.get(unitId);
     if (!view?.owned) return null;
-    const url = imageUrl(unitId, key, `${view.purchases}`);
+    const url = imageUrl(unitId, key, view.rev);
     let texture = this.textures.get(url);
     if (!texture) {
       texture = this.loader.load(url);
@@ -218,7 +218,7 @@ export class AdLayer {
     }
     if (meshes.length === 0) return;
     this.group.add(group);
-    this.live.set(unitId, { group, version: `${view.purchases}`, meshes });
+    this.live.set(unitId, { group, version: view.rev, meshes });
   }
 
   /** Se llama varias veces por segundo con el foco de la cámara. */

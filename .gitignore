@@ -45,3 +45,6 @@ cloudflare-env.d.ts
 test-dom*.html
 docs/verification/shots/
 data-pipeline/node_modules/
+
+# graphify
+graphify-out/

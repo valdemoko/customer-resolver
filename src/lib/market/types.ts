@@ -113,6 +113,8 @@ export type UnitView = {
   /** Precio de la PRÓXIMA compra, en céntimos. */
   priceCents: number;
   owned: boolean;
+  /** Cambia con cada compra y con cada edición: sirve para refrescar fotos y caché. */
+  rev: string;
   /** Hasta cuándo nadie puede comprar este espacio (2 h tras la última compra), o `null`. */
   lockedUntil: string | null;
   owner: null | {
