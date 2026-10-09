@@ -9,12 +9,12 @@
  *  · address  Domicilio postal (calle, número, código postal, ciudad, país).
  *  · email    Correo de contacto (el que recibe avisos, reclamaciones y derechos RGPD).
  */
-export const legalEntity = {
+export const legalEntity: { name: string; taxId: string; address: string; email: string } = {
   name: "",
   taxId: "",
   address: "",
-  email: "",
-} as const;
+  email: "contacto.webproyectos@gmail.com",
+};
 
 /** Fecha de la última revisión de los textos legales. */
 export const LEGAL_UPDATED = "10 de octubre de 2026";
