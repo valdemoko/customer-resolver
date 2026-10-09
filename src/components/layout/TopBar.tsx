@@ -28,6 +28,20 @@ export function TopBar() {
   const mounted = useMounted();
   const count = mounted ? favorites.length : 0;
   const [scrolled, setScrolled] = useState(false);
+  const [account, setAccount] = useState<{ name: string; picture: string } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user: { name: string; picture: string } | null } | null) => {
+        if (alive) setAccount(data?.user ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -81,8 +95,14 @@ export function TopBar() {
             href="/cuenta"
             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line-strong px-3.5 text-sm text-ink transition-colors hover:border-accent/60 hover:text-accent-ink"
           >
-            <User size={15} strokeWidth={1.75} aria-hidden="true" />
-            <span className="hidden sm:inline">Acceso</span>
+            {account?.picture ? (
+              // Foto de perfil de Google: URL externa, sin optimizador.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={account.picture} alt="" referrerPolicy="no-referrer" className="h-5 w-5 rounded-full" />
+            ) : (
+              <User size={15} strokeWidth={1.75} aria-hidden="true" />
+            )}
+            <span className="hidden max-w-[7rem] truncate sm:inline">{account ? account.name.split(" ")[0] : "Entrar"}</span>
           </Link>
         </div>
       </div>

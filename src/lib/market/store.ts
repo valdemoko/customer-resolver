@@ -25,12 +25,17 @@ export type Draft = {
   content: Content;
   purchasesAtCreation: number;
   createdAt: string;
+  /** Cuenta (Google) que inició la compra, si estaba conectada. */
+  userId?: string | null;
 };
 
 export type CompleteResult = { applied: boolean; unit: StoredUnit; amountCents: number | null };
 
 /** Una compra completada (nada privado: el nombre es el que el comprador publica en el mapa). */
-export type PurchaseRecord = { unitId: string; amountCents: number; buyer: string; createdAt: string };
+export type PurchaseRecord = { unitId: string; amountCents: number; buyer: string; createdAt: string; userId?: string | null };
+
+/** Una compra de una cuenta, con su estado actual: `current` es que el espacio sigue siendo suyo. */
+export type UserPurchase = { unitId: string; amountCents: number; name: string; createdAt: string; current: boolean };
 
 /** Datos públicos agregados para la portada y la página de la ciudad. */
 export type Leaderboards = {
@@ -89,6 +94,7 @@ export interface MarketStore {
   saveDraft(draft: Draft): Promise<void>;
   getDraft(id: string): Promise<Draft | null>;
   completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null>;
+  userPurchases(userId: string): Promise<UserPurchase[]>;
 }
 
 /* ------------------------------------------------------------------ memoria */
@@ -137,9 +143,24 @@ export class MemoryStore implements MarketStore {
     };
     this.units.set(unit.id, unit);
     this.sessions.set(args.sessionId, { unitId: unit.id, amountCents: args.amountCents });
-    this.log.push({ unitId: unit.id, amountCents: args.amountCents, buyer: draft.content.name, createdAt: unit.updatedAt });
+    this.log.push({ unitId: unit.id, amountCents: args.amountCents, buyer: draft.content.name, createdAt: unit.updatedAt, userId: draft.userId ?? null });
     await this.persist();
     return { applied: true, unit, amountCents: args.amountCents };
+  }
+
+  async userPurchases(userId: string): Promise<UserPurchase[]> {
+    const latestUser = new Map<string, string | null>();
+    for (const entry of this.log) latestUser.set(entry.unitId, entry.userId ?? null);
+    return this.log
+      .filter((entry) => entry.userId === userId)
+      .map((entry) => ({
+        unitId: entry.unitId,
+        amountCents: entry.amountCents,
+        name: entry.buyer,
+        createdAt: entry.createdAt,
+        current: latestUser.get(entry.unitId) === userId,
+      }))
+      .reverse();
   }
 
   protected async persist(): Promise<void> {
@@ -206,6 +227,11 @@ export class FileStore extends MemoryStore {
     return super.completePurchase(args);
   }
 
+  override async userPurchases(userId: string) {
+    await this.load();
+    return super.userPurchases(userId);
+  }
+
   protected override async persist(): Promise<void> {
     const { mkdir, writeFile } = await import("node:fs/promises");
     const { dirname } = await import("node:path");
@@ -255,6 +281,9 @@ export class NeonStore implements MarketStore {
         content jsonb not null,
         created_at timestamptz not null default now()
       )`;
+      await this.sql`alter table market_drafts add column if not exists user_id text`;
+      await this.sql`alter table market_purchases add column if not exists user_id text`;
+      await this.sql`create index if not exists market_purchases_user_idx on market_purchases (user_id)`;
     })();
     return this.ready;
   }
@@ -324,14 +353,14 @@ export class NeonStore implements MarketStore {
 
   async saveDraft(draft: Draft): Promise<void> {
     await this.ensure();
-    await this.sql`insert into market_drafts (id, unit_id, content, purchases_at_creation, created_at)
-      values (${draft.id}, ${draft.unitId}, ${JSON.stringify(draft.content)}::jsonb, ${draft.purchasesAtCreation}, ${draft.createdAt})
+    await this.sql`insert into market_drafts (id, unit_id, content, purchases_at_creation, created_at, user_id)
+      values (${draft.id}, ${draft.unitId}, ${JSON.stringify(draft.content)}::jsonb, ${draft.purchasesAtCreation}, ${draft.createdAt}, ${draft.userId ?? null})
       on conflict (id) do nothing`;
   }
 
   async getDraft(id: string): Promise<Draft | null> {
     await this.ensure();
-    const rows = await this.sql`select id, unit_id, content, purchases_at_creation, created_at from market_drafts where id = ${id}`;
+    const rows = await this.sql`select id, unit_id, content, purchases_at_creation, created_at, user_id from market_drafts where id = ${id}`;
     const row = rows[0];
     return row
       ? {
@@ -340,6 +369,7 @@ export class NeonStore implements MarketStore {
           content: row.content as Content,
           purchasesAtCreation: Number(row.purchases_at_creation),
           createdAt: new Date(String(row.created_at)).toISOString(),
+          userId: row.user_id ? String(row.user_id) : null,
         }
       : null;
   }
@@ -349,8 +379,8 @@ export class NeonStore implements MarketStore {
     // Una sola sentencia: registra la compra (única por sesión) y, solo si es
     // nueva, sube el contador y sustituye el contenido de la unidad.
     const applied = await this.sql`with inserted as (
-        insert into market_purchases (session_id, unit_id, amount_cents, content)
-        select ${args.sessionId}, d.unit_id, ${args.amountCents}, d.content
+        insert into market_purchases (session_id, unit_id, amount_cents, content, user_id)
+        select ${args.sessionId}, d.unit_id, ${args.amountCents}, d.content, d.user_id
         from market_drafts d where d.id = ${args.draftId}
         on conflict (session_id) do nothing
         returning unit_id, content
@@ -365,5 +395,20 @@ export class NeonStore implements MarketStore {
       from market_purchases p join market_units u on u.id = p.unit_id where p.session_id = ${args.sessionId}`;
     const row = existing[0];
     return row ? { applied: false, unit: this.toUnit(row), amountCents: Number(row.amount_cents) } : null;
+  }
+
+  async userPurchases(userId: string): Promise<UserPurchase[]> {
+    await this.ensure();
+    const rows = await this.sql`select p.unit_id, p.amount_cents, p.created_at, p.content->>'name' as name,
+        (p.id = (select max(q.id) from market_purchases q where q.unit_id = p.unit_id)) as current
+      from market_purchases p where p.user_id = ${userId}
+      order by p.created_at desc, p.id desc limit 200`;
+    return rows.map((row) => ({
+      unitId: String(row.unit_id),
+      amountCents: Number(row.amount_cents),
+      name: String(row.name ?? ""),
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      current: Boolean(row.current),
+    }));
   }
 }

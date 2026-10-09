@@ -146,7 +146,7 @@ export function parseContent(raw: unknown): Content {
 }
 
 export async function createCheckout(
-  input: { unitId: string; content: unknown; returnPath?: string | undefined; unitLabel?: string | undefined },
+  input: { unitId: string; content: unknown; returnPath?: string | undefined; unitLabel?: string | undefined; userId?: string | null | undefined },
   deps: { stripe?: Stripe; origin?: string } = {},
 ): Promise<{ url: string; amountCents: number; draftId: string }> {
   if (!purchasesEnabled) throw new MarketError(PURCHASES_DISABLED_LABEL, 403);
@@ -164,6 +164,7 @@ export async function createCheckout(
     content,
     purchasesAtCreation: purchases,
     createdAt: new Date().toISOString(),
+    userId: input.userId ?? null,
   });
 
   const label = (input.unitLabel ?? UNIT_KIND_LABEL[unitKindOf(input.unitId)]).slice(0, 80);
@@ -260,4 +261,10 @@ export async function getLeaderboards(): Promise<LeaderboardsPayload> {
     owners: board.owners,
     latest: board.latest.map((row) => ({ ...row, ...describe(row.unitId) })),
   };
+}
+
+/** Compras de una cuenta, para la página «Mi cuenta». */
+export async function getUserPurchases(userId: string) {
+  const store = await getMarketStore();
+  return store.userPurchases(userId);
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { PURCHASES_DISABLED_LABEL } from "@/lib/purchases-label";
 import { formatCents, nextPriceCents } from "@/lib/money";
 import type { UnitView } from "@/lib/market/types";
+import { ShareLink } from "./ShareLink";
 
 /**
  * Bloque de compra de la ficha: estado de la unidad, precio y botón. Si ya tiene
@@ -51,6 +52,7 @@ export function PurchaseBox({
       {view.owned && purchasesEnabled ? (
         <p className="mt-1.5 text-xs text-muted">El anuncio actual se sustituye por el tuyo al completar el pago.</p>
       ) : null}
+      <ShareLink unitId={unitId} className="mt-3 w-full justify-center" />
     </section>
   );
 }

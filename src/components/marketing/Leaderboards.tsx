@@ -171,6 +171,7 @@ function Row({
   value,
   tone,
   bar,
+  href,
 }: {
   readonly index: number;
   readonly fresh: boolean;
@@ -180,12 +181,14 @@ function Row({
   readonly value: React.ReactNode;
   readonly tone: Tone;
   readonly bar?: number;
+  /** Si se da, toda la fila lleva a ese espacio en el mapa. */
+  readonly href?: string;
 }) {
   const leadClasses = `rk-shine rounded-2xl border bg-gradient-to-r to-transparent p-4 ${tone.ring} ${tone.glow}`;
   return (
     <li
       style={{ ["--i" as string]: index }}
-      className={`rk-row ${fresh ? "rk-fresh" : ""} ${lead ? leadClasses : "rounded-2xl px-3.5 py-2.5"} flex items-center gap-3`}
+      className={`rk-row relative ${href ? "group/row transition-colors hover:bg-sunken/60" : ""} ${fresh ? "rk-fresh" : ""} ${lead ? leadClasses : "rounded-2xl px-3.5 py-2.5"} flex items-center gap-3`}
     >
       <Medal n={index + 1} />
       <div className="min-w-0 flex-1">
@@ -200,6 +203,12 @@ function Row({
         )}
       </div>
       <div className={`tnum shrink-0 text-right font-mono ${lead ? `text-xl font-semibold ${tone.text}` : "text-sm text-ink"}`}>{value}</div>
+      {href ? (
+        <>
+          <ArrowUpRight size={14} strokeWidth={2.2} aria-hidden="true" className="shrink-0 text-subtle transition-transform group-hover/row:-translate-y-0.5 group-hover/row:translate-x-0.5 group-hover/row:text-ink" />
+          <Link href={href} aria-label={`Ver ${title} en el mapa`} className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" />
+        </>
+      ) : null}
     </li>
   );
 }
@@ -239,6 +248,7 @@ function Valuable({ rows }: { readonly rows: LeaderboardsPayload["valuable"] }) 
               fresh={fresh.has(`${row.unitId}:${row.paidCents}`)}
               tone={tone}
               title={row.label}
+              href={`/city/malaga/viewer?unit=${encodeURIComponent(row.unitId)}`}
               sub={`${row.kind}${row.owner ? ` · ${row.owner}` : ""}${row.purchases > 1 ? ` · ${row.purchases} compras` : ""}`}
               value={<CountUp value={row.paidCents} unit="eur" />}
             />
@@ -295,6 +305,7 @@ function Latest({ rows }: { readonly rows: LeaderboardsPayload["latest"] }) {
               fresh={fresh.has(`${row.unitId}:${row.createdAt}`)}
               tone={tone}
               title={row.buyer}
+              href={`/city/malaga/viewer?unit=${encodeURIComponent(row.unitId)}`}
               sub={
                 <>
                   {row.label} ·{" "}

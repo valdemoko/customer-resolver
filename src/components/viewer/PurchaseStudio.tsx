@@ -167,6 +167,23 @@ export function PurchaseStudio({
   const [framing, setFraming] = useState<Framing>(DEFAULT_FRAMING);
   const [working, setWorking] = useState<ImagePreset | null>(null);
   const [accepted, setAccepted] = useState(false);
+  // Cuenta de Google (opcional): si hay sesión, la compra queda guardada en «Mi cuenta».
+  const [account, setAccount] = useState<{ name: string } | null | undefined>(undefined);
+  const [authEnabled, setAuthEnabled] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user: { name: string } | null; enabled: boolean } | null) => {
+        if (!alive) return;
+        setAccount(data?.user ?? null);
+        setAuthEnabled(Boolean(data?.enabled));
+      })
+      .catch(() => alive && setAccount(null));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -319,6 +336,22 @@ export function PurchaseStudio({
           </div>
 
           <div className="space-y-4 p-5">
+            {account ? (
+              <p className="rounded-2xl border border-line bg-sunken/40 px-3.5 py-2.5 text-xs text-muted">
+                Comprando como <span className="font-medium text-ink">{account.name}</span>. La compra quedará en Mi cuenta.
+              </p>
+            ) : account === null && authEnabled ? (
+              <p className="rounded-2xl border border-line bg-sunken/40 px-3.5 py-2.5 text-xs text-muted">
+                Si quieres guardar esta compra en tu cuenta,{" "}
+                <a
+                  href={`/api/auth/google?next=${encodeURIComponent(`/city/malaga/viewer?unit=${unitId}`)}`}
+                  className="font-medium text-accent-ink underline underline-offset-2"
+                >
+                  entra con Google
+                </a>{" "}
+                antes de rellenar el formulario. No es obligatorio.
+              </p>
+            ) : null}
             <label className="block text-sm">
               <span className="font-medium text-ink">Nombre del anunciante</span>
               <input ref={firstField} value={name} onChange={(event) => setName(event.target.value)} maxLength={LIMITS.name} autoComplete="organization" className={field} />

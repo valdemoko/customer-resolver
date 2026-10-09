@@ -37,7 +37,7 @@ export function AttributionButton({ attributions }: { attributions: Attribution[
       ref={rootRef}
       // En móvil arriba a la izquierda, bajo el botón de vuelta: la hoja inferior
       // de la ficha ocupa la esquina de abajo y taparía el icono.
-      className="absolute left-3 top-14 z-30 flex flex-col-reverse items-start gap-2 sm:bottom-3 sm:left-auto sm:right-3 sm:top-auto sm:flex-col sm:items-end"
+      className="absolute left-[3.6rem] top-[0.95rem] z-30 flex flex-col-reverse items-start gap-2 sm:bottom-3 sm:left-auto sm:right-3 sm:top-auto sm:flex-col sm:items-end"
     >
       {open ? (
         <div

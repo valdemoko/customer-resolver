@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react";
 import { UNIT_KIND_LABEL, unitKindOf } from "@/lib/market/types";
 import type { UnitView } from "@/lib/market/types";
 import { imageUrl } from "@/lib/scene/ads";
+import { ShareLink } from "./ShareLink";
 
 /**
  * Panel de la derecha con los datos del anunciante de un espacio ya comprado:
@@ -48,6 +49,9 @@ export function OwnerSidePanel({ unitId, label, view }: { readonly unitId: strin
             <ExternalLink size={14} strokeWidth={2} aria-hidden="true" />
           </a>
         ) : null}
+        <div className="mt-3">
+          <ShareLink unitId={unitId} />
+        </div>
       </div>
     </aside>
   );

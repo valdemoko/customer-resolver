@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { currentUser } from "@/lib/auth/server";
 import { createCheckout } from "@/lib/market/service";
 import { fail } from "../helpers";
 
@@ -11,7 +12,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { unitId?: string; content?: unknown; returnPath?: string; unitLabel?: string };
+    const user = await currentUser();
     const result = await createCheckout({
+      userId: user?.id ?? null,
       unitId: String(body.unitId ?? ""),
       content: body.content,
       returnPath: body.returnPath,
