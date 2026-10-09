@@ -1,0 +1,27 @@
+{
+  "name": "alzado-data-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pipeline reproducible de datos geográficos por ciudad: descarga, fusión, control de calidad y paquete PMTiles.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "pipeline": "node run.mjs all",
+    "test": "node --test test/*.test.mjs",
+    "step:osm": "node run.mjs osm",
+    "step:catastro": "node run.mjs catastro",
+    "step:layers": "node run.mjs layers",
+    "step:tiles": "node run.mjs tiles",
+    "step:verify": "node run.mjs verify",
+    "step:publish": "node run.mjs publish"
+  },
+  "dependencies": {
+    "@turf/turf": "7.4.0",
+    "fast-xml-parser": "5.11.2",
+    "geojson-vt": "5.0.4",
+    "pmtiles": "4.5.0",
+    "vt-pbf": "3.1.3"
+  }
+}

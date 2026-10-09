@@ -1,20 +1,18 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-const isProduction = process.env.NODE_ENV === "production";
+import { appOrigin } from "@/lib/env";
 
 export default function robots(): MetadataRoute.Robots {
-  if (!isProduction) {
-    return { rules: { userAgent: "*", disallow: "/" } };
-  }
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/case/", "/casos/", "/health"],
+        // Nada de rutas de usuario, administración ni el taller de diseño
+        // debe indexarse. La autorización real se comprueba en servidor.
+        disallow: ["/api/", "/cuenta", "/admin", "/design", "/carrito", "/pago"],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: `${appOrigin()}/sitemap.xml`,
+    host: appOrigin(),
   };
 }

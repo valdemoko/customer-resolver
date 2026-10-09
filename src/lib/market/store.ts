@@ -1,0 +1,369 @@
+import type { Content } from "./types";
+
+/**
+ * Almacén del mercado. Tres implementaciones con el mismo contrato:
+ *
+ *  · `NeonStore`   producción: Postgres serverless (variable `DATABASE_URL`).
+ *  · `FileStore`   desarrollo local sin base de datos (`.data/market.json`). Nunca
+ *                  en producción: en un Worker no hay sistema de archivos.
+ *  · `MemoryStore` pruebas.
+ *
+ * `completePurchase` es IDEMPOTENTE por `sessionId`: Stripe puede avisar dos veces
+ * (webhook y retorno del navegador) y la compra se aplica una sola.
+ */
+
+export type StoredUnit = {
+  id: string;
+  purchases: number;
+  content: Content | null;
+  updatedAt: string;
+};
+
+export type Draft = {
+  id: string;
+  unitId: string;
+  content: Content;
+  purchasesAtCreation: number;
+  createdAt: string;
+};
+
+export type CompleteResult = { applied: boolean; unit: StoredUnit; amountCents: number | null };
+
+/** Una compra completada (nada privado: el nombre es el que el comprador publica en el mapa). */
+export type PurchaseRecord = { unitId: string; amountCents: number; buyer: string; createdAt: string };
+
+/** Datos públicos agregados para la portada y la página de la ciudad. */
+export type Leaderboards = {
+  stats: { purchases: number; unitsOwned: number; owners: number; revenueCents: number };
+  /** Unidades por el mayor importe pagado por ellas (un solo pago, no la suma). */
+  valuable: Array<{ unitId: string; paidCents: number; purchases: number; owner: string | null }>;
+  /** Anunciantes por número de unidades que poseen ahora. */
+  owners: Array<{ name: string; units: number }>;
+  /** Las últimas compras completadas, de la más reciente a la más antigua. */
+  latest: Array<{ unitId: string; buyer: string; amountCents: number; createdAt: string }>;
+};
+
+const ownerKey = (name: string) => name.trim().toLowerCase();
+
+/** Cálculo de referencia (memoria y archivo); Neon lo hace en SQL con el mismo orden y desempates. */
+export function computeLeaderboards(log: PurchaseRecord[], units: StoredUnit[], limit: number): Leaderboards {
+  const owned = units.filter((unit) => unit.purchases > 0 && unit.content);
+  const perUnit = new Map<string, { paid: number; n: number }>();
+  for (const entry of log) {
+    const current = perUnit.get(entry.unitId) ?? { paid: 0, n: 0 };
+    perUnit.set(entry.unitId, { paid: Math.max(current.paid, entry.amountCents), n: current.n + 1 });
+  }
+  const byOwner = new Map<string, { name: string; units: number }>();
+  for (const unit of owned) {
+    const name = unit.content!.name;
+    const key = ownerKey(name);
+    const current = byOwner.get(key);
+    if (current) current.units += 1;
+    else byOwner.set(key, { name, units: 1 });
+  }
+  const ownerOf = new Map(owned.map((unit) => [unit.id, unit.content!.name]));
+  return {
+    stats: {
+      purchases: log.length,
+      unitsOwned: owned.length,
+      owners: byOwner.size,
+      revenueCents: log.reduce((sum, entry) => sum + entry.amountCents, 0),
+    },
+    valuable: [...perUnit]
+      .map(([unitId, value]) => ({ unitId, paidCents: value.paid, purchases: value.n, owner: ownerOf.get(unitId) ?? null }))
+      .sort((a, b) => b.paidCents - a.paidCents || b.purchases - a.purchases || a.unitId.localeCompare(b.unitId))
+      .slice(0, limit),
+    owners: [...byOwner.values()].sort((a, b) => b.units - a.units || a.name.localeCompare(b.name)).slice(0, limit),
+    latest: [...log]
+      .map((entry, index) => ({ entry, index }))
+      .sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt) || b.index - a.index)
+      .slice(0, limit)
+      .map(({ entry }) => ({ unitId: entry.unitId, buyer: entry.buyer, amountCents: entry.amountCents, createdAt: entry.createdAt })),
+  };
+}
+
+export interface MarketStore {
+  leaderboards(limit: number): Promise<Leaderboards>;
+  listUnits(): Promise<StoredUnit[]>;
+  getUnit(id: string): Promise<StoredUnit | null>;
+  saveDraft(draft: Draft): Promise<void>;
+  getDraft(id: string): Promise<Draft | null>;
+  completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null>;
+}
+
+/* ------------------------------------------------------------------ memoria */
+
+export class MemoryStore implements MarketStore {
+  protected units = new Map<string, StoredUnit>();
+  protected drafts = new Map<string, Draft>();
+  protected sessions = new Map<string, { unitId: string; amountCents: number }>();
+  protected log: PurchaseRecord[] = [];
+
+  async leaderboards(limit: number): Promise<Leaderboards> {
+    return computeLeaderboards(this.log, [...this.units.values()], limit);
+  }
+
+  async listUnits(): Promise<StoredUnit[]> {
+    return [...this.units.values()].filter((unit) => unit.purchases > 0);
+  }
+
+  async getUnit(id: string): Promise<StoredUnit | null> {
+    return this.units.get(id) ?? null;
+  }
+
+  async saveDraft(draft: Draft): Promise<void> {
+    this.drafts.set(draft.id, draft);
+    await this.persist();
+  }
+
+  async getDraft(id: string): Promise<Draft | null> {
+    return this.drafts.get(id) ?? null;
+  }
+
+  async completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null> {
+    const done = this.sessions.get(args.sessionId);
+    if (done) {
+      const unit = this.units.get(done.unitId);
+      return unit ? { applied: false, unit, amountCents: done.amountCents } : null;
+    }
+    const draft = this.drafts.get(args.draftId);
+    if (!draft) return null;
+    const previous = this.units.get(draft.unitId);
+    const unit: StoredUnit = {
+      id: draft.unitId,
+      purchases: (previous?.purchases ?? 0) + 1,
+      content: draft.content,
+      updatedAt: new Date().toISOString(),
+    };
+    this.units.set(unit.id, unit);
+    this.sessions.set(args.sessionId, { unitId: unit.id, amountCents: args.amountCents });
+    this.log.push({ unitId: unit.id, amountCents: args.amountCents, buyer: draft.content.name, createdAt: unit.updatedAt });
+    await this.persist();
+    return { applied: true, unit, amountCents: args.amountCents };
+  }
+
+  protected async persist(): Promise<void> {
+    /* en memoria no hay nada que guardar */
+  }
+}
+
+/* ------------------------------------------------------------------ archivo */
+
+export class FileStore extends MemoryStore {
+  private loaded = false;
+
+  constructor(private readonly path: string) {
+    super();
+  }
+
+  private async load(): Promise<void> {
+    if (this.loaded) return;
+    this.loaded = true;
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const data = JSON.parse(await readFile(this.path, "utf8")) as {
+        units: StoredUnit[];
+        drafts: Draft[];
+        sessions: Array<[string, { unitId: string; amountCents: number }]>;
+        log?: PurchaseRecord[];
+      };
+      this.units = new Map(data.units.map((unit) => [unit.id, unit]));
+      this.drafts = new Map(data.drafts.map((draft) => [draft.id, draft]));
+      this.sessions = new Map(data.sessions);
+      this.log = data.log ?? [];
+    } catch {
+      /* primera ejecución: archivo inexistente */
+    }
+  }
+
+  override async leaderboards(limit: number) {
+    await this.load();
+    return super.leaderboards(limit);
+  }
+
+  override async listUnits() {
+    await this.load();
+    return super.listUnits();
+  }
+
+  override async getUnit(id: string) {
+    await this.load();
+    return super.getUnit(id);
+  }
+
+  override async saveDraft(draft: Draft) {
+    await this.load();
+    return super.saveDraft(draft);
+  }
+
+  override async getDraft(id: string) {
+    await this.load();
+    return super.getDraft(id);
+  }
+
+  override async completePurchase(args: { sessionId: string; draftId: string; amountCents: number }) {
+    await this.load();
+    return super.completePurchase(args);
+  }
+
+  protected override async persist(): Promise<void> {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { dirname } = await import("node:path");
+    await mkdir(dirname(this.path), { recursive: true });
+    await writeFile(
+      this.path,
+      JSON.stringify({
+        units: [...this.units.values()],
+        drafts: [...this.drafts.values()].slice(-200),
+        sessions: [...this.sessions.entries()],
+        log: this.log.slice(-1000),
+      }),
+    );
+  }
+}
+
+/* --------------------------------------------------------------------- Neon */
+
+type SqlTag = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<Array<Record<string, unknown>>>;
+
+export class NeonStore implements MarketStore {
+  private ready: Promise<void> | null = null;
+
+  constructor(private readonly sql: SqlTag) {}
+
+  /** Crea las tablas la primera vez (idempotente). */
+  private ensure(): Promise<void> {
+    this.ready ??= (async () => {
+      await this.sql`create table if not exists market_units (
+        id text primary key,
+        purchases integer not null default 0,
+        content jsonb,
+        updated_at timestamptz not null default now()
+      )`;
+      await this.sql`create table if not exists market_drafts (
+        id text primary key,
+        unit_id text not null,
+        content jsonb not null,
+        purchases_at_creation integer not null,
+        created_at timestamptz not null default now()
+      )`;
+      await this.sql`create table if not exists market_purchases (
+        id bigserial primary key,
+        session_id text not null unique,
+        unit_id text not null,
+        amount_cents integer not null,
+        content jsonb not null,
+        created_at timestamptz not null default now()
+      )`;
+    })();
+    return this.ready;
+  }
+
+  private toUnit(row: Record<string, unknown>): StoredUnit {
+    return {
+      id: String(row.id),
+      purchases: Number(row.purchases),
+      content: (row.content as Content | null) ?? null,
+      updatedAt: new Date(String(row.updated_at)).toISOString(),
+    };
+  }
+
+  async leaderboards(limit: number): Promise<Leaderboards> {
+    await this.ensure();
+    // Cinco consultas agregadas en paralelo (sin consultas por fila). El orden y
+    // los desempates coinciden con `computeLeaderboards`.
+    const [totals, owned, valuable, owners, latest] = await Promise.all([
+      this.sql`select count(*)::int as purchases, coalesce(sum(amount_cents), 0)::bigint as revenue from market_purchases`,
+      this.sql`select count(*)::int as units, count(distinct lower(trim(content->>'name')))::int as owners
+        from market_units where purchases > 0 and content is not null`,
+      this.sql`select p.unit_id, max(p.amount_cents)::int as paid, count(*)::int as n, u.content->>'name' as owner
+        from market_purchases p left join market_units u on u.id = p.unit_id
+        group by p.unit_id, u.content->>'name'
+        order by paid desc, n desc, p.unit_id asc limit ${limit}`,
+      this.sql`select min(content->>'name') as name, count(*)::int as units
+        from market_units where purchases > 0 and content is not null
+        group by lower(trim(content->>'name'))
+        order by units desc, name asc limit ${limit}`,
+      this.sql`select unit_id, content->>'name' as buyer, amount_cents, created_at
+        from market_purchases order by created_at desc, id desc limit ${limit}`,
+    ]);
+    return {
+      stats: {
+        purchases: Number(totals[0]?.purchases ?? 0),
+        unitsOwned: Number(owned[0]?.units ?? 0),
+        owners: Number(owned[0]?.owners ?? 0),
+        revenueCents: Number(totals[0]?.revenue ?? 0),
+      },
+      valuable: valuable.map((row) => ({
+        unitId: String(row.unit_id),
+        paidCents: Number(row.paid),
+        purchases: Number(row.n),
+        owner: row.owner ? String(row.owner) : null,
+      })),
+      owners: owners.map((row) => ({ name: String(row.name), units: Number(row.units) })),
+      latest: latest.map((row) => ({
+        unitId: String(row.unit_id),
+        buyer: String(row.buyer ?? ""),
+        amountCents: Number(row.amount_cents),
+        createdAt: new Date(String(row.created_at)).toISOString(),
+      })),
+    };
+  }
+
+  async listUnits(): Promise<StoredUnit[]> {
+    await this.ensure();
+    const rows = await this.sql`select id, purchases, content, updated_at from market_units where purchases > 0`;
+    return rows.map((row) => this.toUnit(row));
+  }
+
+  async getUnit(id: string): Promise<StoredUnit | null> {
+    await this.ensure();
+    const rows = await this.sql`select id, purchases, content, updated_at from market_units where id = ${id}`;
+    return rows[0] ? this.toUnit(rows[0]) : null;
+  }
+
+  async saveDraft(draft: Draft): Promise<void> {
+    await this.ensure();
+    await this.sql`insert into market_drafts (id, unit_id, content, purchases_at_creation, created_at)
+      values (${draft.id}, ${draft.unitId}, ${JSON.stringify(draft.content)}::jsonb, ${draft.purchasesAtCreation}, ${draft.createdAt})
+      on conflict (id) do nothing`;
+  }
+
+  async getDraft(id: string): Promise<Draft | null> {
+    await this.ensure();
+    const rows = await this.sql`select id, unit_id, content, purchases_at_creation, created_at from market_drafts where id = ${id}`;
+    const row = rows[0];
+    return row
+      ? {
+          id: String(row.id),
+          unitId: String(row.unit_id),
+          content: row.content as Content,
+          purchasesAtCreation: Number(row.purchases_at_creation),
+          createdAt: new Date(String(row.created_at)).toISOString(),
+        }
+      : null;
+  }
+
+  async completePurchase(args: { sessionId: string; draftId: string; amountCents: number }): Promise<CompleteResult | null> {
+    await this.ensure();
+    // Una sola sentencia: registra la compra (única por sesión) y, solo si es
+    // nueva, sube el contador y sustituye el contenido de la unidad.
+    const applied = await this.sql`with inserted as (
+        insert into market_purchases (session_id, unit_id, amount_cents, content)
+        select ${args.sessionId}, d.unit_id, ${args.amountCents}, d.content
+        from market_drafts d where d.id = ${args.draftId}
+        on conflict (session_id) do nothing
+        returning unit_id, content
+      )
+      insert into market_units (id, purchases, content, updated_at)
+      select unit_id, 1, content, now() from inserted
+      on conflict (id) do update
+        set purchases = market_units.purchases + 1, content = excluded.content, updated_at = now()
+      returning id, purchases, content, updated_at`;
+    if (applied[0]) return { applied: true, unit: this.toUnit(applied[0]), amountCents: args.amountCents };
+    const existing = await this.sql`select u.id, u.purchases, u.content, u.updated_at, p.amount_cents
+      from market_purchases p join market_units u on u.id = p.unit_id where p.session_id = ${args.sessionId}`;
+    const row = existing[0];
+    return row ? { applied: false, unit: this.toUnit(row), amountCents: Number(row.amount_cents) } : null;
+  }
+}

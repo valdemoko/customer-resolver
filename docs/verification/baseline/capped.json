@@ -1,0 +1,53 @@
+{
+  "label": "base-capped",
+  "measuredAt": "2026-10-09T11:59:37.132Z",
+  "conditions": {
+    "browser": "Chrome 154.0.8037.98",
+    "gpu": "ANGLE (AMD, AMD Radeon RX 6600 (0x000073FF) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "viewport": "1440x900",
+    "uncapped": false,
+    "seconds": 12,
+    "server": "http://localhost:3210"
+  },
+  "timeToReadyMs": 1161,
+  "dataset": {
+    "island": "malaga",
+    "islandReady": "true",
+    "islandFirstFrameMs": "1107",
+    "fpsAvg": "180",
+    "fpsP5": "179",
+    "drawCalls": "22",
+    "triangles": "374470",
+    "memoryMb": "46"
+  },
+  "stats": {
+    "fpsAvg": 180,
+    "fpsP5": 179,
+    "drawCalls": 22,
+    "triangles": 374470,
+    "memoryMb": 46,
+    "clouds": 16,
+    "pixelRatio": 1,
+    "shadows": true,
+    "qualityLevel": 0
+  },
+  "summary": {
+    "islandAreaM2": 1495567,
+    "buildings": 2175,
+    "buildingsEstimated": 44,
+    "landmarks": 8,
+    "trees": 738,
+    "streets": 3383,
+    "waterPolygons": 11,
+    "detailZoom": 17,
+    "tilesLoaded": 48,
+    "tilesMissing": 1,
+    "decodeMs": 242
+  },
+  "perf": null,
+  "memory": 53,
+  "firstFrameMs": 1107,
+  "transferredBytesApprox": 1509045,
+  "jsBytesApprox": 0,
+  "consoleErrors": []
+}

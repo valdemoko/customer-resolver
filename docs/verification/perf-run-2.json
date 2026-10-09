@@ -1,0 +1,337 @@
+{
+  "measuredAt": "2026-10-09T14:35:09.269Z",
+  "browser": "Chrome 154.0.8037.98",
+  "server": "http://localhost:3210",
+  "note": "Fotogramas sin límite de vsync; GPU de la máquina; localhost sin red.",
+  "coldLoad": {
+    "runs": [
+      {
+        "firstFrameMs": 4834,
+        "readyMs": 4936,
+        "js": 419211,
+        "jsFiles": 14,
+        "pmtiles": 1737205,
+        "glb": 9336,
+        "total": 3174922,
+        "thirdParty": 0
+      },
+      {
+        "firstFrameMs": 5456,
+        "readyMs": 5533,
+        "js": 419211,
+        "jsFiles": 14,
+        "pmtiles": 1737205,
+        "glb": 9336,
+        "total": 3174922,
+        "thirdParty": 0
+      },
+      {
+        "firstFrameMs": 6862,
+        "readyMs": 6982,
+        "js": 419211,
+        "jsFiles": 14,
+        "pmtiles": 1737205,
+        "glb": 9336,
+        "total": 3174922,
+        "thirdParty": 0
+      }
+    ],
+    "medianFirstFrameMs": 5456
+  },
+  "scenarios": [
+    {
+      "scenario": "vista inicial (todo activo)",
+      "fpsAvg": 1626,
+      "fpsP5": 370,
+      "frameCpuMs": 0.809,
+      "updateCpuMs": 0.023,
+      "renderCallMs": 0.786,
+      "samples": 7354,
+      "drawCalls": 100,
+      "triangles": 742701,
+      "treesDrawn": 374,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "vista inicial · sin nubes",
+      "fpsAvg": 1634,
+      "fpsP5": 417,
+      "frameCpuMs": 0.677,
+      "updateCpuMs": 0.015,
+      "renderCallMs": 0.662,
+      "samples": 9231,
+      "drawCalls": 96,
+      "triangles": 740341,
+      "treesDrawn": 374,
+      "cloudsActive": 0,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "vista inicial · sin árboles",
+      "fpsAvg": 518,
+      "fpsP5": 104,
+      "frameCpuMs": 0.743,
+      "updateCpuMs": 0.015,
+      "renderCallMs": 0.728,
+      "samples": 8184,
+      "drawCalls": 95,
+      "triangles": 734493,
+      "treesDrawn": 0,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "Paseo del Parque (zoom medio, muchos árboles)",
+      "fpsAvg": 1285,
+      "fpsP5": 435,
+      "frameCpuMs": 0.952,
+      "updateCpuMs": 0.087,
+      "renderCallMs": 0.865,
+      "samples": 5850,
+      "drawCalls": 63,
+      "triangles": 489048,
+      "treesDrawn": 2014,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "calle (zoom máximo)",
+      "fpsAvg": 1752,
+      "fpsP5": 769,
+      "frameCpuMs": 0.572,
+      "updateCpuMs": 0.055,
+      "renderCallMs": 0.516,
+      "samples": 9373,
+      "drawCalls": 51,
+      "triangles": 389205,
+      "treesDrawn": 1181,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "puerto: dársena, agua y cruceros (zoom medio)",
+      "fpsAvg": 938,
+      "fpsP5": 455,
+      "frameCpuMs": 0.786,
+      "updateCpuMs": 0.063,
+      "renderCallMs": 0.723,
+      "samples": 7170,
+      "drawCalls": 50,
+      "triangles": 281715,
+      "treesDrawn": 153,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "puerto · sin barcos pequeños",
+      "fpsAvg": 1573,
+      "fpsP5": 769,
+      "frameCpuMs": 0.649,
+      "updateCpuMs": 0.052,
+      "renderCallMs": 0.597,
+      "samples": 8562,
+      "drawCalls": 48,
+      "triangles": 276357,
+      "treesDrawn": 153,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "Muelle Uno (locales de planta baja a 60 m)",
+      "fpsAvg": 2461,
+      "fpsP5": 1667,
+      "frameCpuMs": 0.353,
+      "updateCpuMs": 0.025,
+      "renderCallMs": 0.328,
+      "samples": 14900,
+      "drawCalls": 41,
+      "triangles": 261207,
+      "treesDrawn": 1377,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "Alcazaba (murallas, torres y almenas)",
+      "fpsAvg": 1298,
+      "fpsP5": 667,
+      "frameCpuMs": 0.617,
+      "updateCpuMs": 0.061,
+      "renderCallMs": 0.557,
+      "samples": 9319,
+      "drawCalls": 62,
+      "triangles": 572140,
+      "treesDrawn": 2336,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    }
+  ],
+  "errorsDesktop": [],
+  "memoryInfo": {
+    "geometries": 73,
+    "textures": 3,
+    "programs": 13
+  },
+  "summary": {
+    "coveredAreaM2": 6157522,
+    "buildings": 5371,
+    "buildingsEstimated": 133,
+    "landmarks": 5,
+    "treesMapped": 3961,
+    "treesEstimated": 3861,
+    "streets": 0,
+    "waterPolygons": 176,
+    "detailZoom": 17,
+    "tilesLoaded": 211,
+    "tilesMissing": 14,
+    "decodeMs": 1455,
+    "zones": 32,
+    "exaggeration": 1.25,
+    "waterMasses": 176,
+    "waterByKind": {
+      "sea": 97,
+      "fountain": 45,
+      "water": 14,
+      "river": 11,
+      "basin": 1,
+      "stream": 3,
+      "pond": 4,
+      "reservoir": 1
+    },
+    "fortresses": 2,
+    "parcels": 5184,
+    "parcelsBySource": {
+      "catastro_unit": 0,
+      "osm_poi": 1171,
+      "estimated": 4013
+    },
+    "cruiseShips": 3,
+    "smallBoats": 90,
+    "groundClasses": 14
+  },
+  "treePlan": {
+    "mapped": 3532,
+    "mappedRows": 429,
+    "estimatedParks": 3667,
+    "estimatedStreets": 194,
+    "dropped": 0,
+    "bySpecies": {
+      "palm": 1001,
+      "orange": 1375,
+      "street": 2465,
+      "round": 2233,
+      "pine": 748
+    }
+  },
+  "cloudInfo": {
+    "placed": 30,
+    "active": 30,
+    "trianglesPerVariant": [
+      100,
+      80,
+      60,
+      40
+    ]
+  },
+  "waterStats": {
+    "masses": 176,
+    "byKind": {
+      "sea": 97,
+      "fountain": 45,
+      "water": 14,
+      "river": 11,
+      "basin": 1,
+      "stream": 3,
+      "pond": 4,
+      "reservoir": 1
+    },
+    "triangles": 4137,
+    "wallSegments": 1338,
+    "shoreFieldPx": 2048,
+    "shoreFieldMs": 147
+  },
+  "groundStats": {
+    "classes": 14,
+    "polygons": 12681,
+    "triangles": 148092,
+    "drawCalls": 14
+  },
+  "shipInfo": {
+    "placements": [
+      {
+        "inWaterShare": 0,
+        "quayGapM": 3,
+        "berth": "berth-1",
+        "quay": "Muelle 2 - Guadiaro",
+        "lengthM": 330,
+        "berthLengthM": 443.0959527190279,
+        "center": [
+          203.55159444664855,
+          -331.7494247806735
+        ],
+        "headingDeg": 341
+      },
+      {
+        "inWaterShare": 0.16363636363636364,
+        "quayGapM": 3,
+        "berth": "berth-2",
+        "quay": "Muelle de Zona de Levante",
+        "lengthM": 215,
+        "berthLengthM": 239.02958654719296,
+        "center": [
+          426.36724150478943,
+          1148.2487349579
+        ],
+        "headingDeg": 278
+      },
+      {
+        "inWaterShare": 0,
+        "quayGapM": 3,
+        "berth": "berth-3",
+        "quay": "Muelle de Zona de Levante",
+        "lengthM": 180,
+        "berthLengthM": 204.45767636051966,
+        "center": [
+          330.26038453445426,
+          745.645028748237
+        ],
+        "headingDeg": 130
+      }
+    ],
+    "stats": {
+      "cruise": 3,
+      "cruiseTriangles": 825,
+      "smallPlaced": 90,
+      "smallTriangles": 5358
+    }
+  },
+  "parcelStats": {
+    "total": 5184,
+    "bySource": {
+      "catastro_unit": 0,
+      "osm_poi": 1171,
+      "estimated": 4013
+    },
+    "skippedNoBuilding": 4,
+    "skippedTooLow": 0,
+    "triangles": 10368
+  },
+  "mobile": {
+    "firstFrameMs": 11791,
+    "readyMs": 11948,
+    "scenario": "móvil emulado (CPU ×4, 390×780 @2x)",
+    "fpsAvg": 178,
+    "fpsP5": 149,
+    "frameCpuMs": 3.727,
+    "updateCpuMs": 0.224,
+    "renderCallMs": 3.503,
+    "samples": 1772,
+    "drawCalls": 54,
+    "triangles": 374626,
+    "treesDrawn": 270,
+    "cloudsActive": 14,
+    "qualityLevel": 0,
+    "errors": [],
+    "caveat": "Emulación en un ordenador de sobremesa: CPU limitada 4×, pero la GPU es la de la máquina. No sustituye a un móvil real."
+  }
+}

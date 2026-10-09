@@ -1,40 +1,47 @@
-# Dependencies
+# dependencias
 node_modules/
-
-# opennext / wrangler build output
-.open-next/
-.wrangler/
 .pnpm-store/
 
-# Secrets & environment (never commit)
-.env
-.env.local
-.env.*.local
-.env.production
-.env.development
-
-# Build artifacts
+# build
 .next/
 out/
 dist/
-build/
 *.tsbuildinfo
 next-env.d.ts
 
-# Test artifacts
-playwright-report/
-test-results/
-coverage/
-blob-report/
+# entorno y secretos (NUNCA commitear)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
 
-# Logs & temporary
-*.log
-npm-debug.log*
-pnpm-debug.log*
+# datos crudos y artefactos del pipeline (se regeneran con `pnpm pipeline`)
+data-pipeline/raw/
+data-pipeline/build/
+public/tiles/*.pmtiles
+
+# sistema
 .DS_Store
 Thumbs.db
+*.log
+coverage/
 
-# Editors
+# editores
+.vscode/*
+!.vscode/extensions.json
 .idea/
-.vscode/
-*.swp
+
+# Cloudflare / OpenNext
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts
+
+# herramientas y capturas locales
+.claude/
+.freebuff/
+test-dom*.html
+docs/verification/shots/
+data-pipeline/node_modules/

@@ -1,0 +1,291 @@
+{
+  "measuredAt": "2026-10-09T14:42:22.444Z",
+  "browser": "Chrome 154.0.8037.98",
+  "server": "http://localhost:3210",
+  "note": "Fotogramas sin límite de vsync; GPU de la máquina; localhost sin red.",
+  "memory5min": {
+    "seconds": 311,
+    "samples": [
+      {
+        "heapMb": 314.6,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 12
+        },
+        "fps": 953
+      },
+      {
+        "heapMb": 317.4,
+        "gpu": {
+          "geometries": 73,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1094
+      },
+      {
+        "heapMb": 337.7,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 429
+      },
+      {
+        "heapMb": 326,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 596
+      },
+      {
+        "heapMb": 332.4,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 717
+      },
+      {
+        "heapMb": 336.2,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 460
+      },
+      {
+        "heapMb": 341.6,
+        "gpu": {
+          "geometries": 73,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1338
+      },
+      {
+        "heapMb": 331.8,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1291
+      },
+      {
+        "heapMb": 324.5,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 764
+      },
+      {
+        "heapMb": 123.8,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 821
+      },
+      {
+        "heapMb": 124,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1040
+      },
+      {
+        "heapMb": 121.6,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 909
+      },
+      {
+        "heapMb": 125.2,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1295
+      },
+      {
+        "heapMb": 124.3,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1274
+      },
+      {
+        "heapMb": 125.8,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1210
+      },
+      {
+        "heapMb": 124.7,
+        "gpu": {
+          "geometries": 73,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 983
+      },
+      {
+        "heapMb": 123.7,
+        "gpu": {
+          "geometries": 73,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1138
+      },
+      {
+        "heapMb": 127.3,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1289
+      },
+      {
+        "heapMb": 124.9,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 765
+      },
+      {
+        "heapMb": 126.2,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 918
+      },
+      {
+        "heapMb": 126.6,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1207
+      },
+      {
+        "heapMb": 128.1,
+        "gpu": {
+          "geometries": 73,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1061
+      },
+      {
+        "heapMb": 126.2,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1252
+      },
+      {
+        "heapMb": 126.4,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1045
+      },
+      {
+        "heapMb": 126.4,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 635
+      },
+      {
+        "heapMb": 122.7,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1240
+      },
+      {
+        "heapMb": 125.5,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 933
+      },
+      {
+        "heapMb": 131.5,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 975
+      },
+      {
+        "heapMb": 126.7,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1136
+      },
+      {
+        "heapMb": 124.6,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 839
+      },
+      {
+        "heapMb": 123.6,
+        "gpu": {
+          "geometries": 72,
+          "textures": 3,
+          "programs": 13
+        },
+        "fps": 1003
+      }
+    ],
+    "errors": []
+  }
+}

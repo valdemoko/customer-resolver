@@ -1,0 +1,349 @@
+{
+  "$comment": "Contrato geográfico compartido entre la aplicación y el pipeline de datos. Es la ÚNICA definición del área de Málaga: si el pipeline y la app tuvieran cada uno su copia, acabarían discrepando y el visor pediría teselas que no existen. Coordenadas en WGS84 (EPSG:4326), orden [longitud, latitud]. Área cubierta: centro histórico de Málaga, incluyendo Calle Larios, Plaza de la Constitución, Plaza de la Marina, entorno de la Catedral y calles comerciales adyacentes.",
+  "slug": "malaga",
+  "name": "Málaga",
+  "center": [
+    -4.4228,
+    36.7196
+  ],
+  "bounds": {
+    "west": -4.43833,
+    "south": 36.69907,
+    "east": -4.39867,
+    "north": 36.73093
+  },
+  "initialView": {
+    "$comment": "Centro en Calle Larios, con la coordenada independiente publicada por Wikipedia para «Calle Marqués de Larios» (36.719828, -4.421622). El rumbo 346° mira calle arriba hacia la Plaza de la Constitución. Se documenta el origen porque la vista inicial no es una decisión estética: es una afirmación sobre dónde está la calle.",
+    "center": [
+      -4.421622,
+      36.719828
+    ],
+    "zoom": 16.4,
+    "pitch": 55,
+    "bearing": 346
+  },
+  "cameraLimits": {
+    "minZoom": 14.5,
+    "maxZoom": 19.5,
+    "minPitch": 0,
+    "maxPitch": 72,
+    "bounds": {
+      "west": -4.446,
+      "south": 36.7055,
+      "east": -4.394,
+      "north": 36.7355
+    }
+  },
+  "zooms": {
+    "min": 13,
+    "max": 17
+  },
+  "zones": [
+    {
+      "id": "centro-historico",
+      "name": "Centro histórico",
+      "bounds": {
+        "west": -4.4275,
+        "south": 36.715,
+        "east": -4.4155,
+        "north": 36.7255
+      },
+      "detail": "full"
+    },
+    {
+      "id": "larios-constitucion",
+      "name": "Calle Larios y Plaza de la Constitución",
+      "bounds": {
+        "west": -4.4262,
+        "south": 36.7168,
+        "east": -4.4175,
+        "north": 36.7226
+      },
+      "detail": "full"
+    },
+    {
+      "id": "catedral-puerto",
+      "name": "Catedral, Plaza de la Marina y puerto",
+      "bounds": {
+        "west": -4.4271,
+        "south": 36.7135,
+        "east": -4.4128,
+        "north": 36.7224
+      },
+      "detail": "full"
+    },
+    {
+      "id": "alcazaba-gibralfaro",
+      "name": "Alcazaba y Gibralfaro",
+      "bounds": {
+        "west": -4.4195,
+        "south": 36.7195,
+        "east": -4.408,
+        "north": 36.7275
+      },
+      "detail": "reduced"
+    }
+  ],
+  "scene": {
+    "$comment": "Escena 3D continua y CIRCULAR (B.4). El círculo (centro y radio) es la zona bien definida; la banda de difuminado es RADIAL y uniforme y vive fuera del círculo. El paquete de datos se extrae con círculo + banda + margen y se recorta al círculo en el pipeline. El radio incluye el centro histórico, el puerto, Muelle Uno y la Alcazaba.",
+    "center": [
+      -4.4185,
+      36.715
+    ],
+    "seed": 20261009,
+    "detailZoom": 17,
+    "coverage": {
+      "circle": {
+        "center": [
+          -4.4185,
+          36.715
+        ],
+        "radiusM": 1400
+      },
+      "fadeBandM": 250,
+      "extractMarginM": 120
+    },
+    "camera": {
+      "minDistanceM": 28,
+      "maxDistanceM": 3500,
+      "minPitchDeg": 4,
+      "maxPitchDeg": 80,
+      "initialAzimuthDeg": 195,
+      "initialPitchDeg": 34,
+      "initialDistanceM": 3300,
+      "minHeightM": 2.5,
+      "panBelowDistanceM": 3000,
+      "rotationSeconds": 105,
+      "idleReturnMs": 5000,
+      "returnDurationMs": 1500
+    },
+    "clouds": {
+      "desktop": 30,
+      "mobile": 14,
+      "driftSeconds": 600
+    },
+    "trees": {
+      "maxDesktop": 9000,
+      "maxMobile": 3500,
+      "palmStreets": [
+        "Paseo del Parque",
+        "Alameda Principal"
+      ]
+    },
+    "heightOverrides": [
+      {
+        "osmId": "relation/9237518",
+        "name": "Plaza de toros de La Malagueta",
+        "heightM": 20,
+        "note": "OpenStreetMap la da con 3 m (kind=stadium) y el Catastro deriva 1 planta: es incompatible con un coso de tres alturas de graderío. 20 m es una ESTIMACIÓN para que sus fachadas sirvan de soporte publicitario; no hay fuente verificada."
+      }
+    ],
+    "landmarks": [
+      {
+        "id": "catedral",
+        "name": "Catedral de Málaga",
+        "osmId": "way/1015333951",
+        "heightM": 84,
+        "heightSource": "Altura de la torre norte: 84 m (92 m hasta el arpón) y bóvedas de 41,79 m, según es.wikipedia.org/wiki/Catedral_de_Málaga (consultado el 2026-10-09). La torre sur está inacabada y su altura no tiene fuente: es una estimación. Modelo propio simplificado: la huella es la de OpenStreetMap; no se modela ninguna fachada.",
+        "modelUrl": "/models/malaga/catedral.glb",
+        "facing": "W",
+        "fidelity": "detailed"
+      },
+      {
+        "id": "ayuntamiento",
+        "name": "Ayuntamiento de Málaga",
+        "osmId": "way/183870930",
+        "heightM": null,
+        "heightSource": "Sin altura verificada en una fuente independiente: se mantiene la del paquete de datos (plantas declaradas en OpenStreetMap). Volumen extruido simplificado con tono propio.",
+        "modelUrl": null,
+        "facing": null,
+        "fidelity": "simplified"
+      },
+      {
+        "id": "palacio-episcopal",
+        "name": "Palacio Episcopal de Málaga",
+        "osmId": "relation/12349070",
+        "heightM": null,
+        "heightSource": "Sin altura verificada en una fuente independiente: se mantiene la del paquete de datos (plantas declaradas en OpenStreetMap). Volumen extruido simplificado con tono propio.",
+        "modelUrl": null,
+        "facing": null,
+        "fidelity": "simplified"
+      }
+    ],
+    "shadows": true,
+    "verticalExaggeration": {
+      "factor": 1.25,
+      "note": "Escala visual uniforme y configurable de la altura de los edificios en 3D. NO modifica los datos: la altura real y su origen se conservan y son los que muestra el panel."
+    },
+    "water": {
+      "levelsM": {
+        "sea": -1.6,
+        "dock": -1.6,
+        "river": -1,
+        "stream": -0.5,
+        "pond": -0.5,
+        "reservoir": -0.6,
+        "basin": -0.4,
+        "fountain": -0.35,
+        "water": -0.5
+      },
+      "note": "Nivel de la superficie respecto al suelo de muelles y orillas (y = 0). Valor visual: OSM no publica cotas de lámina."
+    },
+    "locales": {
+      "estimatedTargetWidthM": 6,
+      "zones": [
+        {
+          "id": "larios-constitucion",
+          "name": "Calle Larios y Plaza de la Constitución",
+          "center": [
+            -4.4218,
+            36.7205
+          ],
+          "radiusM": 260,
+          "frontage": "any"
+        },
+        {
+          "id": "catedral",
+          "name": "Entorno de la Catedral",
+          "center": [
+            -4.4195,
+            36.7202
+          ],
+          "radiusM": 170,
+          "frontage": "any"
+        },
+        {
+          "id": "plaza-marina",
+          "name": "Plaza de la Marina",
+          "center": [
+            -4.4207,
+            36.7167
+          ],
+          "radiusM": 170,
+          "frontage": "any"
+        },
+        {
+          "id": "muelle-uno",
+          "name": "Muelle Uno",
+          "osmPolygon": "way/1076878144",
+          "paddingM": 12,
+          "frontage": "any"
+        },
+        {
+          "id": "alameda",
+          "name": "Alameda Principal",
+          "center": [
+            -4.4247,
+            36.7163
+          ],
+          "radiusM": 200,
+          "frontage": "any"
+        },
+        {
+          "id": "calles-comerciales",
+          "name": "Calles comerciales adyacentes",
+          "center": [
+            -4.4235,
+            36.7195
+          ],
+          "radiusM": 520,
+          "frontage": "pedestrian"
+        }
+      ]
+    },
+    "ships": {
+      "cruise": [
+        {
+          "lengthM": 330,
+          "beamM": 38,
+          "heightM": 52,
+          "hull": "#f1f3f5",
+          "accent": "#2b5d9e",
+          "deck": "#e3e7ea"
+        },
+        {
+          "lengthM": 260,
+          "beamM": 33,
+          "heightM": 44,
+          "hull": "#2f4a6b",
+          "accent": "#f1f3f5",
+          "deck": "#dfe4e8"
+        },
+        {
+          "lengthM": 190,
+          "beamM": 28,
+          "heightM": 36,
+          "hull": "#d6dadd",
+          "accent": "#4b6b8a",
+          "deck": "#eceff1"
+        }
+      ],
+      "small": {
+        "maxDesktop": 90,
+        "maxMobile": 30
+      },
+      "note": "Modelos genéricos propios: sin nombres, logotipos ni librea de navieras reales."
+    },
+    "fortresses": [
+      {
+        "id": "alcazaba",
+        "name": "Alcazaba de Málaga",
+        "parts": [
+          "alcazaba",
+          "coracha"
+        ],
+        "enclosureOsmId": "way/436786724",
+        "wallHeightM": {
+          "outer": 7,
+          "inner": 9
+        },
+        "towerHeightM": 13,
+        "keepOsmId": "way/194708337",
+        "keepHeightM": 17,
+        "gateHeightM": 8,
+        "heightSource": "Alturas ESTIMADAS (sin fuente técnica): OpenStreetMap cartografía la planta (murallas, torres, puertas) pero no las alturas, y las fuentes consultadas (Wikipedia, guías oficiales) no las publican. Una fuente divulgativa sin referencias cita >3 m (recinto exterior) y >10 m (interior): no se usa.",
+        "fidelity": "simplified"
+      },
+      {
+        "id": "gibralfaro",
+        "name": "Castillo de Gibralfaro",
+        "parts": [
+          "gibralfaro"
+        ],
+        "enclosureOsmId": "way/403541689",
+        "wallHeightM": {
+          "outer": 8,
+          "inner": 8
+        },
+        "towerHeightM": 12,
+        "keepOsmId": null,
+        "keepHeightM": 17,
+        "gateHeightM": 8,
+        "heightSource": "Torre Mayor: 17 m (es.wikipedia.org/wiki/Castillo_de_Gibralfaro, consultado el 2026-10-09). Resto de alturas ESTIMADAS. Cota de la colina: 130 m s. n. m. según la misma fuente, no representada (terreno plano).",
+        "fidelity": "simplified"
+      }
+    ],
+    "market": {
+      "basePriceCents": 100,
+      "cruisePanelsPerShip": 8,
+      "sailUnits": 120,
+      "planes": 3,
+      "movingBoats": {
+        "desktop": 14,
+        "mobile": 6
+      },
+      "cruiseCycleSeconds": 900,
+      "planeAltitudeM": [
+        210,
+        280,
+        340
+      ],
+      "planeOrbitM": [
+        1050,
+        1200,
+        1320
+      ],
+      "note": "Unidades publicitarias: edificios, locales, tramos de muralla, paneles de crucero, velas y carteles de avioneta. Precio inicial 1,00 € y +25 % por cada compra (money.ts)."
+    }
+  }
+}

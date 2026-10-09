@@ -1,0 +1,376 @@
+/* ==========================================================================
+   Portada y página de ciudad — movimiento y ambiente.
+   Todo lo que se mueve sin que el usuario lo pida está en reposo con
+   `prefers-reduced-motion`; todo lo que revela contenido es visible sin JS.
+   ========================================================================== */
+
+:root {
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- Fondo: pizarra con curvas de nivel (ver SiteChrome) ---- */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(90% 60% at 12% -8%, rgb(255 140 96 / 0.07) 0%, transparent 60%),
+    linear-gradient(180deg, #16233a 0%, #111b2d 46%, #0d1524 100%);
+}
+.ambient .contours {
+  position: absolute;
+  left: -6%;
+  width: 112%;
+  height: 170vh;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  will-change: transform;
+  transform: translate3d(0, calc(var(--sy, 0) * var(--k, -0.1) * 1px), 0);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+}
+.ambient .contours.a {
+  top: -10vh;
+  background-image: url("/brand/contours-a.svg");
+  opacity: 0.075;
+  animation: contour-drift 90s ease-in-out infinite alternate;
+}
+.ambient .contours.b {
+  top: 60vh;
+  background-image: url("/brand/contours-b.svg");
+  opacity: 0.05;
+  transform: translate3d(0, calc(var(--sy, 0) * var(--k, -0.22) * 1px), 0) scaleX(-1);
+  animation: contour-drift 120s ease-in-out infinite alternate-reverse;
+}
+@keyframes contour-drift {
+  from { background-position: 0 0; }
+  to { background-position: 3% 2%; }
+}
+
+/* ---- Aura del cursor: un resplandor cálido y suave, sin aro ---- */
+.cursor-aura {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  width: 620px;
+  height: 620px;
+  margin: -310px 0 0 -310px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(255 150 110 / 0.11), rgb(255 150 110 / 0.04) 55%, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 500ms ease;
+  will-change: transform;
+}
+.cursor-on .cursor-aura {
+  opacity: 1;
+}
+
+/* ---- Barra de progreso de lectura ---- */
+.scroll-progress {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  height: 2px;
+  width: 100%;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--sp, 0));
+  background: var(--c-accent);
+  pointer-events: none;
+}
+
+/* ---- Revelado al hacer scroll ---- */
+.reveal {
+  transition:
+    opacity 900ms var(--ease-spring),
+    transform 900ms var(--ease-spring),
+    filter 900ms var(--ease-spring),
+    clip-path 1000ms var(--ease-spring);
+  transition-delay: var(--d, 0ms);
+}
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .reveal:not([data-in]) {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translate3d(0, 34px, 0);
+  }
+  .reveal[data-v="scale"]:not([data-in]) {
+    transform: scale(0.9);
+  }
+  .reveal[data-v="left"]:not([data-in]) {
+    transform: translate3d(-56px, 0, 0);
+  }
+  .reveal[data-v="right"]:not([data-in]) {
+    transform: translate3d(56px, 0, 0);
+  }
+  .reveal[data-v="clip"]:not([data-in]) {
+    transform: translate3d(0, 20px, 0);
+    filter: none;
+  }
+  /* El recorte va en el hijo: un IntersectionObserver no ve un elemento recortado por completo. */
+  .reveal[data-v="clip"] > * {
+    transition: clip-path 1000ms var(--ease-spring) var(--d, 0ms);
+  }
+  .reveal[data-v="clip"]:not([data-in]) > * {
+    clip-path: inset(0 0 100% 0 round 26px);
+  }
+  .reveal[data-v="clip"][data-in] > * {
+    clip-path: inset(0 0 0 0 round 26px);
+  }
+}
+
+/* Titulares que entran palabra a palabra */
+.split .w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+.split .wi {
+  display: inline-block;
+  transition: transform 900ms var(--ease-spring), opacity 700ms ease;
+  transition-delay: calc(var(--i, 0) * 70ms + var(--d, 0ms));
+}
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .split:not([data-in]) .wi {
+    transform: translate3d(0, 112%, 0) rotate(4deg);
+    opacity: 0;
+  }
+}
+
+/* ---- Tarjeta con foco de luz que sigue al ratón ---- */
+.spot {
+  position: relative;
+  isolation: isolate;
+}
+.spot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgb(255 150 110 / 0.09), transparent 62%);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.spot:hover::before {
+  opacity: 1;
+}
+
+/* ---- Ticker ---- */
+@keyframes ticker {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 48s linear infinite;
+}
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+/* ---- Clasificaciones ---- */
+@keyframes row-in {
+  from { opacity: 0; transform: translate3d(26px, 0, 0) scale(0.97); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.rk-row {
+  animation: row-in 700ms var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 150ms);
+  transition: transform 220ms var(--ease-out), background-color 220ms ease;
+}
+.rk-row:hover {
+  transform: translate3d(5px, 0, 0);
+  background-color: rgb(255 150 110 / 0.08);
+}
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.rk-bar {
+  transform-origin: 0 50%;
+  animation: bar-grow 1100ms var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 350ms);
+}
+@keyframes shine {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to { transform: translateX(260%) skewX(-18deg); }
+}
+.rk-shine {
+  position: relative;
+  overflow: hidden;
+}
+.rk-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.16), transparent);
+  animation: shine 3.6s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(82 220 162 / 0.6); }
+  100% { box-shadow: 0 0 0 10px rgb(82 220 162 / 0); }
+}
+.live-dot {
+  animation: live-pulse 1.8s ease-out infinite;
+}
+@keyframes fresh {
+  0% { background-color: rgb(255 150 110 / 0.35); }
+  100% { background-color: transparent; }
+}
+.rk-fresh {
+  animation: fresh 2200ms ease-out 1;
+}
+@keyframes ghost {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+.rk-ghost {
+  animation: ghost 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 260ms);
+}
+
+/* ---- CTA ---- */
+.cta-arrow {
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.cta:hover .cta-arrow,
+.cta:focus-visible .cta-arrow {
+  transform: translate(3px, -3px);
+}
+/* ---- Botones: relleno que barre al pasar el ratón + flecha que gira ---- */
+.btn-sweep {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: color 300ms ease, box-shadow 300ms ease, transform 300ms var(--ease-spring);
+}
+.btn-sweep::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sweep, #f2ede3);
+  transform: translate3d(-101%, 0, 0);
+  border-radius: inherit;
+  transition: transform 520ms var(--ease-spring);
+}
+.btn-sweep:not(:disabled):hover,
+.btn-sweep:not(:disabled):focus-visible {
+  color: #1d0d06;
+}
+.btn-sweep:disabled::before {
+  display: none;
+}
+.btn-sweep:not(:disabled):active {
+  transform: scale(0.98);
+}
+.btn-sweep:not(:disabled):hover::before,
+.btn-sweep:not(:disabled):focus-visible::before {
+  transform: translate3d(0, 0, 0);
+}
+.btn-sweep .btn-dot {
+  transition: transform 520ms var(--ease-spring), background-color 300ms ease;
+}
+.btn-sweep:hover .btn-dot,
+.btn-sweep:focus-visible .btn-dot {
+  transform: rotate(45deg) scale(1.08);
+}
+.link-draw {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 420ms var(--ease-spring);
+}
+.link-draw:hover,
+.link-draw:focus-visible {
+  background-size: 100% 1px;
+}
+
+/* ---- Tarjetas inclinables ---- */
+.tilt {
+  transform-style: preserve-3d;
+  transition: transform 500ms var(--ease-spring), border-color 300ms ease;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translate3d(0, var(--lift, 0px), 0);
+}
+.tilt[data-hover="true"] {
+  transition: transform 120ms linear, border-color 300ms ease;
+  --lift: -4px;
+}
+
+/* ---- Marcador del mapa ---- */
+@keyframes beacon {
+  0% { transform: scale(0.35); opacity: 0.9; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.beacon-ring {
+  animation: beacon 2.8s var(--ease-out) infinite;
+}
+.beacon-ring:nth-child(2) {
+  animation-delay: 1.4s;
+}
+
+@keyframes chevron {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+.scroll-cue {
+  animation: chevron 1.8s ease-in-out infinite;
+}
+
+/* ---- Portada: el texto se va con el scroll mientras el mapa se deshace ---- */
+.hero-copy {
+  opacity: calc(1 - var(--hero-p, 0) * 1.7);
+  transform: translate3d(0, calc(var(--hero-p, 0) * -70px), 0);
+  filter: blur(calc(var(--hero-p, 0) * 8px));
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient .contours,
+  .ticker-track,
+  .rk-row,
+  .rk-bar,
+  .rk-shine::after,
+  .live-dot,
+  .rk-fresh,
+  .rk-ghost,
+    .beacon-ring,
+  .scroll-cue {
+    animation: none;
+  }
+  .reveal,
+  .split .wi {
+    transition: none;
+  }
+  .cursor-aura {
+    display: none;
+  }
+  .hero-copy {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ---- Sello de la ciudad inaugural ---- */
+@keyframes seal-spin {
+  to { transform: rotate(360deg); }
+}
+.seal-spin {
+  animation: seal-spin 40s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .seal-spin { animation: none; }
+}

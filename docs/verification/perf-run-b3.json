@@ -1,0 +1,461 @@
+{
+  "measuredAt": "2026-10-09T12:39:49.173Z",
+  "browser": "Chrome 154.0.8037.98",
+  "server": "http://localhost:3210",
+  "note": "Fotogramas sin límite de vsync; GPU de la máquina; localhost sin red.",
+  "coldLoad": {
+    "runs": [
+      {
+        "firstFrameMs": 1108,
+        "readyMs": 1125,
+        "js": 407900,
+        "jsFiles": 14,
+        "pmtiles": 597606,
+        "glb": 9336,
+        "total": 2023982,
+        "thirdParty": 0
+      },
+      {
+        "firstFrameMs": 1123,
+        "readyMs": 1477,
+        "js": 407900,
+        "jsFiles": 14,
+        "pmtiles": 597606,
+        "glb": 9336,
+        "total": 2023982,
+        "thirdParty": 0
+      },
+      {
+        "firstFrameMs": 1357,
+        "readyMs": 1377,
+        "js": 407900,
+        "jsFiles": 14,
+        "pmtiles": 597606,
+        "glb": 9336,
+        "total": 2023982,
+        "thirdParty": 0
+      }
+    ],
+    "medianFirstFrameMs": 1123
+  },
+  "scenarios": [
+    {
+      "scenario": "vista inicial (todo activo)",
+      "fpsAvg": 4733,
+      "fpsP5": 256,
+      "frameCpuMs": 0.443,
+      "updateCpuMs": 0.005,
+      "renderCallMs": 0.438,
+      "samples": 14799,
+      "drawCalls": 58,
+      "triangles": 497715,
+      "treesDrawn": 3341,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "vista inicial · sin nubes",
+      "fpsAvg": 5381,
+      "fpsP5": 238,
+      "frameCpuMs": 0.443,
+      "updateCpuMs": 0.005,
+      "renderCallMs": 0.438,
+      "samples": 14910,
+      "drawCalls": 54,
+      "triangles": 495355,
+      "treesDrawn": 3341,
+      "cloudsActive": 0,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "vista inicial · sin árboles",
+      "fpsAvg": 5214,
+      "fpsP5": 263,
+      "frameCpuMs": 0.426,
+      "updateCpuMs": 0.003,
+      "renderCallMs": 0.423,
+      "samples": 15483,
+      "drawCalls": 58,
+      "triangles": 435395,
+      "treesDrawn": 309,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "Paseo del Parque (zoom medio, muchos árboles)",
+      "fpsAvg": 5584,
+      "fpsP5": 526,
+      "frameCpuMs": 0.217,
+      "updateCpuMs": 0.01,
+      "renderCallMs": 0.207,
+      "samples": 24772,
+      "drawCalls": 33,
+      "triangles": 272022,
+      "treesDrawn": 1430,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    },
+    {
+      "scenario": "calle (zoom máximo)",
+      "fpsAvg": 5964,
+      "fpsP5": 385,
+      "frameCpuMs": 0.287,
+      "updateCpuMs": 0.013,
+      "renderCallMs": 0.274,
+      "samples": 21145,
+      "drawCalls": 30,
+      "triangles": 267106,
+      "treesDrawn": 764,
+      "cloudsActive": 30,
+      "qualityLevel": 0
+    }
+  ],
+  "errorsDesktop": [],
+  "memoryInfo": {
+    "geometries": 41,
+    "textures": 2,
+    "programs": 7
+  },
+  "summary": {
+    "coveredAreaM2": 1962236,
+    "buildings": 3791,
+    "buildingsEstimated": 55,
+    "landmarks": 3,
+    "treesMapped": 2462,
+    "treesEstimated": 3932,
+    "streets": 3885,
+    "waterPolygons": 19,
+    "detailZoom": 17,
+    "tilesLoaded": 66,
+    "tilesMissing": 4,
+    "decodeMs": 390,
+    "zones": 22
+  },
+  "treePlan": {
+    "mapped": 2223,
+    "mappedRows": 239,
+    "estimatedParks": 3731,
+    "estimatedStreets": 201,
+    "dropped": 0,
+    "bySpecies": {
+      "palm": 541,
+      "orange": 635,
+      "street": 1197,
+      "round": 1028,
+      "pine": 2993
+    }
+  },
+  "cloudInfo": {
+    "placed": 30,
+    "active": 30,
+    "trianglesPerVariant": [
+      100,
+      80,
+      60,
+      40
+    ]
+  },
+  "mobile": {
+    "firstFrameMs": 4069,
+    "readyMs": 4120,
+    "scenario": "móvil emulado (CPU ×4, 390×780 @2x)",
+    "fpsAvg": 816,
+    "fpsP5": 385,
+    "frameCpuMs": 0.551,
+    "updateCpuMs": 0.037,
+    "renderCallMs": 0.513,
+    "samples": 9840,
+    "drawCalls": 25,
+    "triangles": 232200,
+    "treesDrawn": 993,
+    "cloudsActive": 14,
+    "qualityLevel": 0,
+    "errors": [],
+    "caveat": "Emulación en un ordenador de sobremesa: CPU limitada 4×, pero la GPU es la de la máquina. No sustituye a un móvil real."
+  },
+  "memory5min": {
+    "seconds": 310,
+    "samples": [
+      {
+        "heapMb": 75.7,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4731
+      },
+      {
+        "heapMb": 56.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4966
+      },
+      {
+        "heapMb": 63.4,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4608
+      },
+      {
+        "heapMb": 54.4,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4179
+      },
+      {
+        "heapMb": 54.9,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4657
+      },
+      {
+        "heapMb": 75.9,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4960
+      },
+      {
+        "heapMb": 65.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4245
+      },
+      {
+        "heapMb": 69.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5015
+      },
+      {
+        "heapMb": 78,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4765
+      },
+      {
+        "heapMb": 62.9,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5059
+      },
+      {
+        "heapMb": 65.8,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4937
+      },
+      {
+        "heapMb": 62.3,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5140
+      },
+      {
+        "heapMb": 72,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5026
+      },
+      {
+        "heapMb": 69.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5219
+      },
+      {
+        "heapMb": 77.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5335
+      },
+      {
+        "heapMb": 54,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4959
+      },
+      {
+        "heapMb": 71.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4992
+      },
+      {
+        "heapMb": 62.1,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5195
+      },
+      {
+        "heapMb": 53.2,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5143
+      },
+      {
+        "heapMb": 55.4,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5122
+      },
+      {
+        "heapMb": 58.4,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5097
+      },
+      {
+        "heapMb": 53.3,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4229
+      },
+      {
+        "heapMb": 76.1,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4724
+      },
+      {
+        "heapMb": 72.6,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4413
+      },
+      {
+        "heapMb": 57,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4780
+      },
+      {
+        "heapMb": 65.9,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4456
+      },
+      {
+        "heapMb": 73.9,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4781
+      },
+      {
+        "heapMb": 55.5,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4149
+      },
+      {
+        "heapMb": 59.9,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5094
+      },
+      {
+        "heapMb": 65.1,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 4014
+      },
+      {
+        "heapMb": 75.1,
+        "gpu": {
+          "geometries": 42,
+          "textures": 2,
+          "programs": 8
+        },
+        "fps": 5173
+      }
+    ],
+    "errors": []
+  }
+}

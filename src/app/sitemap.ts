@@ -1,107 +1,40 @@
 import type { MetadataRoute } from "next";
-import { GUIDES } from "@/lib/guides";
-import { PROBLEM_CATALOGUE } from "@/lib/problem-catalogue";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { cities } from "@/lib/cities/registry";
+import { appOrigin } from "@/lib/env";
 
 /**
- * Last date the copy of a *static* page changed. Bump it whenever the text of
- * any static page is edited: emitting the build timestamp instead (as this
- * used to) makes every <lastmod> identical and meaningless, and Google devalues
- * a signal that never varies. Problem pages don't use this — they carry their
- * own `updatedAt` from the catalogue.
+ * Solo se incluyen páginas con contenido real. No hay páginas vacías ni
+ * duplicadas: una ciudad entra en el sitemap cuando tiene ficha propia, y su
+ * ficha siempre describe cobertura, fuentes y estado.
  */
-const STATIC_CONTENT_UPDATED = "2026-09-27";
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  // Static pages
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: siteUrl, lastModified: STATIC_CONTENT_UPDATED, changeFrequency: "weekly", priority: 1 },
+  const origin = appOrigin();
+  const now = new Date();
+
+  return [
     {
-      url: `${siteUrl}/problemas`,
-      lastModified: STATIC_CONTENT_UPDATED,
+      url: `${origin}/`,
+      lastModified: now,
       changeFrequency: "weekly",
-      priority: 0.9,
+      priority: 1,
     },
     {
-      url: `${siteUrl}/como-funciona`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${siteUrl}/guias`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/fuentes`,
-      lastModified: STATIC_CONTENT_UPDATED,
+      url: `${origin}/como-funciona`,
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
-      url: `${siteUrl}/autor`,
-      lastModified: STATIC_CONTENT_UPDATED,
+      url: `${origin}/atribuciones`,
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.3,
     },
-    {
-      url: `${siteUrl}/correcciones`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
-      url: `${siteUrl}/sobre`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
-      url: `${siteUrl}/contacto`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
-      url: `${siteUrl}/privacidad`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
-    {
-      url: `${siteUrl}/cookies`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
-    {
-      url: `${siteUrl}/terminos`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
+    ...cities.map((city) => ({
+      url: `${origin}/city/${city.slug}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: city.status === "available" ? 0.9 : 0.6,
+    })),
   ];
-
-  // Dynamic problem landing pages (from shared catalogue): each one carries the
-  // real date on which its public content was last reviewed.
-  const problemPages: MetadataRoute.Sitemap = PROBLEM_CATALOGUE.map((p) => ({
-    url: `${siteUrl}/problemas/${p.slug}`,
-    lastModified: p.updatedAt,
-    changeFrequency: "monthly" as const,
-    priority: 0.8,
-  }));
-
-  // Guides: explanatory content that answers an intent the problem pages do not.
-  // Same rule as above — the guide's own review date, never the build date.
-  const guidePages: MetadataRoute.Sitemap = GUIDES.map((g) => ({
-    url: `${siteUrl}/guias/${g.slug}`,
-    lastModified: g.updatedAt,
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
-
-  return [...staticPages, ...problemPages, ...guidePages];
 }

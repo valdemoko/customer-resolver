@@ -1,0 +1,158 @@
+{
+  "generatedAt": "2026-10-09",
+  "orthophoto": {
+    "source": "PNOA (IGN), WMS OI.OrthoimageCoverage",
+    "bbox": {
+      "south": 36.7125,
+      "west": -4.419,
+      "north": 36.7205,
+      "east": -4.409
+    },
+    "size": [
+      1500,
+      1200
+    ],
+    "metersPerPixel": 0.594
+  },
+  "coastVerticesInImage": 37,
+  "coastSamplesUsed": 156,
+  "p75": 2.62,
+  "distanceToVisibleShoreM": {
+    "median": 1.19,
+    "p90": 7.91,
+    "max": 16.58
+  },
+  "controlPoints": [
+    {
+      "n": 1,
+      "kind": "esquina",
+      "lonlat": [
+        -4.418791,
+        36.716965
+      ],
+      "px": [
+        31,
+        530
+      ],
+      "distanceToVisibleShoreM": 4.16
+    },
+    {
+      "n": 2,
+      "kind": "esquina",
+      "lonlat": [
+        -4.415626,
+        36.713824
+      ],
+      "px": [
+        506,
+        1001
+      ],
+      "distanceToVisibleShoreM": 0.84
+    },
+    {
+      "n": 3,
+      "kind": "esquina",
+      "lonlat": [
+        -4.415174,
+        36.713584
+      ],
+      "px": [
+        574,
+        1037
+      ],
+      "distanceToVisibleShoreM": 2.62
+    },
+    {
+      "n": 4,
+      "kind": "esquina",
+      "lonlat": [
+        -4.41379,
+        36.718443
+      ],
+      "px": [
+        781,
+        309
+      ],
+      "distanceToVisibleShoreM": 1.19
+    },
+    {
+      "n": 5,
+      "kind": "esquina",
+      "lonlat": [
+        -4.413235,
+        36.717759
+      ],
+      "px": [
+        865,
+        411
+      ],
+      "distanceToVisibleShoreM": 1.19
+    },
+    {
+      "n": 6,
+      "kind": "esquina",
+      "lonlat": [
+        -4.410759,
+        36.716085
+      ],
+      "px": [
+        1236,
+        662
+      ],
+      "distanceToVisibleShoreM": 14.39
+    },
+    {
+      "n": 7,
+      "kind": "esquina",
+      "lonlat": [
+        -4.411316,
+        36.715335
+      ],
+      "px": [
+        1153,
+        775
+      ],
+      "distanceToVisibleShoreM": 2.52
+    },
+    {
+      "n": 8,
+      "kind": "mitad de arista",
+      "lonlat": [
+        -4.417181,
+        36.717512
+      ],
+      "px": [
+        273,
+        448
+      ],
+      "distanceToVisibleShoreM": 2.38
+    },
+    {
+      "n": 9,
+      "kind": "mitad de arista",
+      "lonlat": [
+        -4.413808,
+        36.716737
+      ],
+      "px": [
+        779,
+        564
+      ],
+      "distanceToVisibleShoreM": 0.84
+    },
+    {
+      "n": 10,
+      "kind": "mitad de arista",
+      "lonlat": [
+        -4.414812,
+        36.718163
+      ],
+      "px": [
+        628,
+        351
+      ],
+      "distanceToVisibleShoreM": 0.59
+    }
+  ],
+  "note": "Segmentación del agua por color; las sombras y el barco amarrado pueden confundirse. Consistencia posicional, no levantamiento."
+}

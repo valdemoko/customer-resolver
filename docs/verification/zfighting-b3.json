@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-10-09",
+  "method": "Sobre las capas heredadas del paso 03 (las que dibujaba la B.3), dentro del círculo de la escena. Se suman áreas de solape entre polígonos de la MISMA altura y COLOR distinto.",
+  "circleAreaM2": 6157522,
+  "verdeConTonoDistinto_0_30m": {
+    "areaM2": 27148,
+    "pairs": 116,
+    "worstM2": 3356
+  },
+  "usosDeDistintoTipo_0_08m": {
+    "areaM2": 1130,
+    "pairs": 12,
+    "worstM2": 252
+  },
+  "cintasDeCalle_0_50m": {
+    "peatonal×calzada": 14865,
+    "senda×calzada": 34225,
+    "peatonal×senda": 11530
+  },
+  "totalCoplanarOverlapM2": 88898,
+  "shareOfGround": 0.01443730217447277
+}

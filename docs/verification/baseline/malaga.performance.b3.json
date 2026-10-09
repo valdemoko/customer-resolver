@@ -1,0 +1,49 @@
+{
+  "$comment": "Mediciones del catálogo y del visor 3D sobre el build de producción de la Fase B.3. Las produce tools/measure-catalog.mjs y tools/measure-perf.mjs; detalle en docs/performance.md.",
+  "city": "malaga",
+  "measuredAt": "2026-10-09",
+  "build": {
+    "framework": "Next.js 16.4.0 (Turbopack)",
+    "mode": "production",
+    "server": "next start -p 3210",
+    "node": "v24.14.1",
+    "browser": "Chrome 154.0.8037.98 (GPU AMD Radeon RX 6600, ANGLE D3D11)",
+    "viewport": "1440x900",
+    "network": "localhost (sin latencia de red ni CDN)",
+    "dataVersion": "2026.10.1",
+    "tilePackageBytes": 1648989
+  },
+  "metrics": {
+    "lcpMs": 272,
+    "lcpMsSecondLoad": 68,
+    "cls": 0,
+    "catalogTtfbMs": 50,
+    "catalogHtmlBytes": 9443,
+    "initialJsBytes": 205709,
+    "initialJsTransferBytes": 209009,
+    "initialJsFiles": 11,
+    "catalogRequests": 40,
+    "thirdPartyRequests": 0,
+    "viewerJsBytes": 407900,
+    "viewerJsFiles": 14,
+    "viewerDownloadedForFirstViewBytes": 2023982,
+    "memoryAfter5MinMb": 75.1,
+    "memoryAfterSeconds": 310,
+    "memoryAt10sMb": 75.7,
+    "firstUsefulViewMs": 1123
+  },
+  "budgets": {
+    "lcpMs": 2500,
+    "cls": 0.1,
+    "viewerMemoryMb": 512,
+    "tilePackageBytes": 12582912
+  },
+  "method": {
+    "viewer": "Primer fotograma: performance.now() del propio motor (data-island-first-frame-ms), mediana de 3 cargas en frío. Memoria: usedJSHeapSize cada 10 s durante 5 min con ratón y zoom; el máximo de los últimos 60 s se publica.",
+    "limitations": [
+      "Localhost: los tiempos no representan una red móvil; los bytes sí.",
+      "Una máquina, un navegador, GPU de sobremesa.",
+      "El móvil es una emulación (CPU ×4), no un dispositivo real."
+    ]
+  }
+}

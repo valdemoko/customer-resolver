@@ -1,104 +1,107 @@
-# Resolveo
+# Alzado
 
-> **Consumer Problem Resolution Engine** — convierte "me ha pasado esto" en un caso
-> estructurado: datos, evidencia, reglas deterministas, fuentes verificables y acciones
-> concretas. No es un chatbot: la IA es una herramienta interna, no el producto.
+Plataforma de publicidad en ciudades 3D. El usuario explora ciudades reales en un
+mapa tridimensional y elige la fachada donde anunciarse.
 
-**Estado actual:** Fase 0 (scaffold de producción). Los motores de dominio (Case,
-Evidence, Rules, Document Intelligence, AI orchestration) se implementan en fases
-posteriores. Ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) y
-[`docs/STRESS_TEST.md`](docs/STRESS_TEST.md).
+**Estado: fase A terminada.** El catálogo funciona. El visor 3D, la base de
+datos, la autenticación y los pagos no están implementados todavía. El detalle
+exacto de lo que hay y de lo que no, en
+[docs/reports/phase-a.md](docs/reports/phase-a.md).
 
-## Stack
+---
 
-- **Next.js 15** (App Router, RSC) + **TypeScript estricto**
-- **Tailwind CSS** + (Radix/react-aria en fases posteriores)
-- **Zod** para validación (env, contratos, entrada de API)
-- **PostgreSQL + Drizzle** (preparado; se conecta en Fase 1)
-- **Vitest** + **Playwright** · **ESLint** con boundaries arquitectónicas · **Prettier**
-- **pnpm** como package manager · Node 24 LTS
-
-## Requisitos
-
-- Node 24 (ver `.nvmrc`; usa `nvm use`)
-- pnpm 10 (Corepack: `corepack enable pnpm`)
-
-## Instalación
+## Arrancar
 
 ```bash
 pnpm install
-cp .env.example .env.local   # placeholders; no hay secretos reales en el repo
+cp .env.example .env.local   # opcional en desarrollo
 pnpm dev                     # http://localhost:3000
 ```
 
+Sin `.env.local` el proyecto funciona: `APP_ORIGIN` tiene un valor por defecto de
+desarrollo. En producción sí es obligatorio para las rutas sensibles.
+
 ## Comandos
 
-| Comando             | Descripción                                 |
-| ------------------- | ------------------------------------------- |
-| `pnpm dev`          | Servidor de desarrollo                      |
-| `pnpm build`        | Build de producción                         |
-| `pnpm start`        | Sirve el build de producción                |
-| `pnpm lint`         | ESLint (incluye boundaries arquitectónicas) |
-| `pnpm typecheck`    | TypeScript estricto, sin emitir             |
-| `pnpm test`         | Tests unitarios/integración (Vitest)        |
-| `pnpm test:watch`   | Tests en modo watch                         |
-| `pnpm test:e2e`     | Tests E2E (Playwright)                      |
-| `pnpm format`       | Formatea todo (Prettier)                    |
-| `pnpm format:check` | Verifica el formato                         |
+| Comando | Qué hace |
+| --- | --- |
+| `pnpm dev` | Servidor de desarrollo |
+| `pnpm build` | Compilación de producción |
+| `pnpm start` | Sirve la compilación |
+| `pnpm typecheck` | TypeScript en modo estricto, sin emitir |
+| `pnpm test` | Tests unitarios (Vitest) |
+| `pnpm lint` | ESLint |
 
 ## Estructura
 
 ```
-docs/            Arquitectura, stress test, guías de desarrollo
 src/
-  app/           App Router (páginas, route handlers) — capa de composición
-  core/          Dominio puro: sin React/Next/DB/red. Testeable aislado
-  problems/      Problem Modules (Fase 4+) — no modifican el core
-  server/        Infraestructura: db, storage, auth (por fases)
-  lib/           env (Zod), logging, errores — base compartida
-tests/
-  unit/          Unit + tests arquitectónicos (boundaries, independencia del core)
-  e2e/           Playwright (smoke en Fase 0)
+  app/                  rutas (App Router)
+    page.tsx            portada = catálogo
+    city/[slug]/        ficha de ciudad
+    design/             taller de diseño (solo desarrollo)
+    legal/[slug]/       borradores legales marcados
+  components/
+    brand/              wordmark
+    catalog/            tarjeta, miniatura, catálogo
+    layout/             barra superior, buscador
+    ui/                 botones, estados vacíos, esqueletos, píldoras de estado
+  lib/
+    cities/             esquema, registro y datos por ciudad
+    money.ts            precios en céntimos con enteros
+    legal.ts            borradores legales
+  stores/               estado de interfaz (Zustand)
+data-pipeline/          (pendiente) generación reproducible de datos por ciudad
+docs/
+  decisions.md          registro de decisiones con motivo, coste y licencia
+  reports/              informes por fase
 ```
 
-**Regla de dependencias** (impuesta por ESLint + test): `app → server → domain → core ← problems`.
-El core nunca importa frameworks, infraestructura ni proveedores.
+## Añadir una ciudad
 
-## Testing
+1. Crea `src/lib/cities/data/<slug>.ts` con la configuración.
+2. Añádela al array de `src/lib/cities/registry.ts`.
 
-```bash
-pnpm test        # unit + integración (incluye tests de boundaries)
-pnpm test:e2e    # E2E con servidor propio en :3100
-```
+No hay que tocar el motor. La configuración se valida con Zod **al importar**:
+si promete algo imposible —por ejemplo, marcar una ciudad como disponible sin
+paquete de datos publicado— la compilación falla. Es deliberado.
 
-## Contribuir
+## Reglas del proyecto
 
-1. Crea una rama desde `main`.
-2. `pnpm lint && pnpm typecheck && pnpm test` deben pasar antes del PR.
-3. CI ejecuta lint, format, typecheck, tests, build y E2E en cada PR.
-4. Los cambios de arquitectura se documentan en `docs/ARCHITECTURE.md`
-   (sección _Architecture Decision Changes_).
+Recogidas en [docs/decisions.md](docs/decisions.md):
 
-No se aceptan secretos en el repositorio. Todas las claves viven en variables de
-entorno de servidor (ver `.env.example`).
+- Ningún dato ficticio en la interfaz. Si un dato no existe, se omite o se
+  muestra un estado vacío diseñado.
+- Nada de imágenes de stock: las miniaturas son renders de la propia escena.
+- Nada de afirmar «optimizado» sin números medidos.
+- El dinero siempre en enteros de céntimos.
+- Ninguna fuente de datos sin su licencia y su atribución documentadas.
+- No existe ningún modo de compra simulado que aparente una compra real.
 
-## Analítica y consentimiento
+## Atribución
 
-Son dos cosas distintas, y el proyecto las mantiene separadas:
+Los datos geográficos de las ciudades son de sus respectivas fuentes y se
+atribuyen en la propia interfaz, en el mapa y en la ficha de cada ciudad. Ver la
+tabla completa de fuentes y licencias en
+[docs/decisions.md](docs/decisions.md#fuentes-de-datos-geográficos).
 
-- **Plausible** (`NEXT_PUBLIC_PLAUSIBLE_DOMAIN`): analítica sin cookies ni
-  identificadores persistentes. No se condiciona al consentimiento publicitario y
-  no se carga en desarrollo.
-- **Google Privacy & Messaging** (`NEXT_PUBLIC_GOOGLE_CMP_SRC`): CMP certificado
-  para anuncios en EEA/UK/CH. Se configura pegando la etiqueta exacta que genera
-  AdSense; el código no construye ni inventa esa URL. Mientras la variable no esté
-  definida, no se renderiza ninguna etiqueta.
-- **Google AdSense** (`NEXT_PUBLIC_ADSENSE_CLIENT`): etiqueta `adsbygoogle.js`,
-  oculta salvo que la variable esté definida con un `ca-pub-…` válido. `ads.txt`
-  identifica el dominio; no carga nada por sí solo. Solo debe activarse con el CMP
-  certificado ya configurado y después de actualizar las políticas de privacidad y
-  cookies.
 
-No se implementa TCF ni Consent Mode a mano: el CMP certificado ya los cubre, y
-reimplementarlos sería una simulación. La decisión de publicidad tampoco se usa
-para cargar Plausible.
+## Visor 3D de la ciudad (Fase B.3)
+
+Escena Three.js en `src/lib/scene/` (ciudad continua con bordes difuminados; ver
+`docs/decisions.md`). Herramientas de verificación, que usan el Chrome instalado
+(`playwright-core`, sin descargar navegadores):
+
+| Comando | Qué hace |
+| --- | --- |
+| `node tools/verify-viewer.mjs --url http://localhost:3210` | Comprobaciones de comportamiento y capturas en `docs/verification/shots/` |
+| `node tools/measure-perf.mjs --url http://localhost:3210 [--long]` | FPS sin vsync, coste por fotograma, carga en frío, móvil emulado y memoria a 5 min |
+| `node tools/measure-catalog.mjs --url http://localhost:3210` | LCP, CLS y peso del catálogo |
+| `node tools/build-landmark-glb.mjs` | Regenera el modelo GLB de la catedral |
+| `node tools/landmark-overlay.mjs` | Superpone la huella sobre la ortofoto PNOA |
+
+Se miden sobre `pnpm build && pnpm start -p 3210`, nunca sobre `pnpm dev`.
+
+## Compras y Stripe
+
+Las compras están apagadas por defecto («Compras próximamente»); no hay modo simulado. Para encenderlas hacen falta `PURCHASES_ENABLED=true`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `DATABASE_URL` (Neon) y `APP_ORIGIN`, siempre como secretos del entorno y nunca en el repositorio. El webhook de Stripe es `POST /api/market/webhook` (evento `checkout.session.completed`). Detalle y decisiones en `docs/decisions.md` (Fase C). Comprobaciones del navegador: `node tools/verify-market.mjs` y `node tools/verify-studio.mjs`.

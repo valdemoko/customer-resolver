@@ -1,80 +1,44 @@
 /**
- * Shared environment schema (Zod).
+ * Interruptor maestro de compras.
  *
- * Secrets stay server-only: nothing here is imported by client components.
- * Actual .env files are not committed (see .gitignore) — this only validates shape.
- *
- * NOTE (Phase 0): only NEXT_PUBLIC_SITE_URL is required. Everything else is
- * optional-with-placeholder until its phase implements it (Fase 1: DATABASE_URL;
- * Fase 5: R2; Fase 6: AI keys). Placeholders are NOT secrets and contain no real values.
+ * Regla de producto: NO existe un modo "simulado" que aparente una compra real.
+ * Con el interruptor en false, la API rechaza crear pedidos y la interfaz
+ * muestra "Compras próximamente". Nada más.
  */
-import { z } from "zod";
+export const purchasesEnabled: boolean = process.env.PURCHASES_ENABLED === "true";
 
-const serverEnvSchema = z.object({
-  // Fase 1 (database) — optional in Phase 0, validated when present.
-  DATABASE_URL: z.string().url().optional(),
+/** Etiqueta que la interfaz debe mostrar cuando las compras están apagadas. */
+export const PURCHASES_DISABLED_LABEL = "Compras próximamente";
 
-  // Fase 5 (object storage) — placeholders documented in .env.example.
-  R2_ACCOUNT_ID: z.string().optional(),
-  R2_BUCKET_DOCUMENTS: z.string().optional(),
-  R2_ACCESS_KEY_ID: z.string().optional(),
-  R2_SECRET_ACCESS_KEY: z.string().optional(),
-
-  // Fase 6 (AI providers) — placeholders documented in .env.example.
-  // Keys are never required: without them the AI layer degrades to typed
-  // AI_PROVIDER_UNAVAILABLE errors (development/test keep working).
-  GROQ_API_KEY: z.string().optional(),
-  OPENAI_API_KEY: z.string().optional(),
-  GEMINI_API_KEY: z.string().optional(),
-
-  // Fase 6 (AI orchestration tuning) — server-side only.
-  AI_DEFAULT_PROVIDER: z.string().optional(),
-  AI_DEFAULT_MODEL: z.string().optional(),
-  AI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).optional(),
-  AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).optional(),
-
-  // Email (Fase 2) — placeholder.
-  RESEND_API_KEY: z.string().optional(),
-});
-
-const publicEnvSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().optional(),
-});
-
-export type ServerEnv = z.infer<typeof serverEnvSchema>;
-export type PublicEnv = z.infer<typeof publicEnvSchema>;
-
-let cachedServerEnv: ServerEnv | undefined;
-
-/** Validate and return server environment. Call only from server code. */
-export function getServerEnv(): ServerEnv {
-  if (cachedServerEnv) return cachedServerEnv;
-  const parsed = serverEnvSchema.safeParse(process.env);
-  if (!parsed.success) {
-    throw new Error(
-      `Invalid server environment: ${parsed.error.issues
-        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-        .join("; ")}`,
-    );
-  }
-  cachedServerEnv = parsed.data;
-  return cachedServerEnv;
+/**
+ * Origen público de la aplicación. Nunca se deriva de la cabecera Host de la
+ * petición: se lee de entorno para evitar envenenamiento de host en callbacks
+ * de autenticación, canonical y webhooks.
+ *
+ * Si no está definido se usa un valor por defecto explícito para que el build
+ * y el desarrollo local funcionen sin configuración. Las rutas que NO pueden
+ * tolerar un origen equivocado (callbacks de autenticación, redirecciones de
+ * pago, webhooks) deben llamar a `requireAppOrigin()` en su lugar.
+ */
+export function appOrigin(): string {
+  const raw = process.env.APP_ORIGIN?.trim();
+  if (raw) return raw.replace(/\/+$/, "");
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+  return "http://localhost:3000";
 }
 
-let cachedPublicEnv: PublicEnv | undefined;
-
-/** Validate and return public environment (safe for client). */
-export function getPublicEnv(): PublicEnv {
-  if (cachedPublicEnv) return cachedPublicEnv;
-  const parsed = publicEnvSchema.safeParse(process.env);
-  if (!parsed.success) {
+/**
+ * Igual que `appOrigin()`, pero falla si no hay configuración explícita en
+ * producción. Se usa en los puntos donde un origen equivocado es un fallo de
+ * seguridad, no un detalle estético.
+ */
+export function requireAppOrigin(): string {
+  const configured = process.env.APP_ORIGIN?.trim();
+  if (!configured && process.env.NODE_ENV === "production" && !process.env.VERCEL_URL) {
     throw new Error(
-      `Invalid public environment: ${parsed.error.issues
-        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-        .join("; ")}`,
+      "APP_ORIGIN es obligatorio en producción. Configúralo con el origen público exacto (por ejemplo https://resolveo.site), sin barra final.",
     );
   }
-  cachedPublicEnv = parsed.data;
-  return cachedPublicEnv;
+  return appOrigin();
 }
