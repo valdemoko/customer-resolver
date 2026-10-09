@@ -14,7 +14,7 @@
 
 import * as THREE from "three";
 import type { Face } from "@/lib/market/faces";
-import { coverUV, imageKeyFor, roofUVs } from "@/lib/market/faces";
+import { frameUV, imageKeyFor, roofUVs } from "@/lib/market/faces";
 import type { UnitView } from "@/lib/market/types";
 
 export const OWNED_TEXTURE_SIZE = 8192;
@@ -175,7 +175,7 @@ export class AdLayer {
       // La foto cubre la cara sin deformarse: se recorta lo que sobra.
       const surface = face.widthM / Math.max(0.1, height);
       whenImageReady(texture, (aspect) => {
-        const [u0, v0, u1, v1] = coverUV(surface, aspect);
+        const [u0, v0, u1, v1] = frameUV(surface, aspect, view.owner?.framing);
         uv.array.set([u0, v0, u1, v0, u1, v1, u0, v1]);
         uv.needsUpdate = true;
       });
@@ -205,7 +205,7 @@ export class AdLayer {
         geometry.setIndex(indices.flat());
         geometry.computeBoundingSphere();
         whenImageReady(texture, (aspect) => {
-          roofUVs(points, aspect).forEach(([u, v], i) => uv.setXY(i, u, v));
+          roofUVs(points, aspect, view.owner?.framing).forEach(([u, v], i) => uv.setXY(i, u, v));
           uv.needsUpdate = true;
         });
         const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, toneMapped: false });

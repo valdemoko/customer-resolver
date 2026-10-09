@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, Lock, Trash2, X } from "lucide-react";
+import { ImagePlus, Lock, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { dataUrlBytes, downscaleImage, startCheckout } from "@/lib/market/client";
 import type { ImagePreset } from "@/lib/market/client";
 import { unitHasRoof } from "@/lib/market/faces";
 import { formatCents, nextPriceCents } from "@/lib/money";
 import { FaceStage } from "@/lib/market/stage";
-import type { Content, UnitView } from "@/lib/market/types";
-import { LIMITS } from "@/lib/market/types";
+import type { Content, Framing, UnitView } from "@/lib/market/types";
+import { DEFAULT_FRAMING, LIMITS } from "@/lib/market/types";
 import type { FaceModel } from "@/lib/scene/ads";
 
 const kB = (dataUrl: string) => `${Math.max(1, Math.round(dataUrlBytes(dataUrl) / 1000))} kB`;
@@ -61,6 +61,75 @@ function ImageSlot({
   );
 }
 
+/** Un control deslizante con etiqueta y extremos legibles (izquierda ↔ derecha…). */
+function Slider({
+  label,
+  low,
+  high,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  readonly label: string;
+  readonly low: string;
+  readonly high: string;
+  readonly value: number;
+  readonly min: number;
+  readonly max: number;
+  readonly step: number;
+  readonly onChange: (value: number) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="flex items-baseline justify-between text-xs text-muted">
+        <span className="font-medium text-ink">{label}</span>
+        <span className="flex gap-2">
+          <span>{low}</span>
+          <span aria-hidden="true">·</span>
+          <span>{high}</span>
+        </span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        aria-label={label}
+        className="mt-1.5 h-2 w-full cursor-pointer accent-[var(--c-accent)]"
+      />
+    </label>
+  );
+}
+
+/** Encuadre de la foto: ampliar y moverla a izquierda/derecha y arriba/abajo. Se ve al instante en el modelo 3D. */
+function FramingControls({ framing, onChange }: { readonly framing: Framing; readonly onChange: (framing: Framing) => void }) {
+  const changed = framing.x !== 0.5 || framing.y !== 0.5 || framing.zoom !== 1;
+  return (
+    <fieldset className="space-y-3 rounded-2xl border border-line bg-sunken/40 p-3.5">
+      <legend className="sr-only">Encuadre de la foto</legend>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-ink">Encuadre de la foto</p>
+        <button
+          type="button"
+          onClick={() => onChange(DEFAULT_FRAMING)}
+          disabled={!changed}
+          className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted transition-colors hover:text-ink disabled:opacity-40"
+        >
+          <RotateCcw size={12} aria-hidden="true" /> Centrar
+        </button>
+      </div>
+      <Slider label="Ampliar" low="Entera" high="Más cerca" min={1} max={3} step={0.05} value={framing.zoom} onChange={(zoom) => onChange({ ...framing, zoom })} />
+      <Slider label="Mover" low="Izquierda" high="Derecha" min={0} max={1} step={0.01} value={framing.x} onChange={(x) => onChange({ ...framing, x })} />
+      <Slider label="Subir o bajar" low="Arriba" high="Abajo" min={0} max={1} step={0.01} value={framing.y} onChange={(y) => onChange({ ...framing, y })} />
+      <p className="text-xs text-muted">Amplía para poder mover la foto. El mismo encuadre vale para la fachada, el techo y los paneles.</p>
+    </fieldset>
+  );
+}
+
 /**
  * Estudio de compra: el comprador ve su espacio en 3D, carga UNA foto (hace de
  * logo, de fachada en todas las caras y de techo, así pesa poco), rellena su ficha
@@ -86,6 +155,7 @@ export function PurchaseStudio({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<FaceStage | null>(null);
   const firstField = useRef<HTMLInputElement | null>(null);
+  const framingRef = useRef<Framing>(DEFAULT_FRAMING);
 
   const flat = !model.footprint;
   const hasRoof = !flat && unitHasRoof(unitId);
@@ -94,6 +164,7 @@ export function PurchaseStudio({
   const [description, setDescription] = useState("");
   // Una sola foto por espacio: hace de logo, de fachada (repetida en todas las caras) y de techo.
   const [photo, setPhoto] = useState("");
+  const [framing, setFraming] = useState<Framing>(DEFAULT_FRAMING);
   const [working, setWorking] = useState<ImagePreset | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -119,11 +190,17 @@ export function PurchaseStudio({
       return;
     }
     stageRef.current = stage;
+    stage.setFraming(framingRef.current);
     return () => {
       stage.dispose();
       stageRef.current = null;
     };
   }, [model, flat]);
+
+  useEffect(() => {
+    framingRef.current = framing;
+    stageRef.current?.setFraming(framing);
+  }, [framing]);
 
   useEffect(() => {
     // La misma foto en la fachada y en el techo.
@@ -164,8 +241,9 @@ export function PurchaseStudio({
       // Una sola foto guardada una sola vez: el servidor y el visor la usan de logo, fachada y techo.
       sameForAll: Boolean(photo), // sin foto no hay imagen común: el servidor la exige solo si se declara
       images: photo ? { all: photo } : {},
+      framing,
     }),
-    [name, url, description, photo],
+    [name, url, description, photo, framing],
   );
 
   const problem =
@@ -275,11 +353,15 @@ export function PurchaseStudio({
                 busy={working === "facade"}
                 size={72}
                 onPick={(file) => void pick(file, "facade", setPhoto)}
-                onClear={() => setPhoto("")}
+                onClear={() => {
+                  setPhoto("");
+                  setFraming(DEFAULT_FRAMING);
+                }}
               />
               {totalBytes > 0 ? (
                 <p className="px-1 text-xs text-muted">La foto se comprime en tu navegador antes de subirla: {Math.max(1, Math.round(totalBytes / 1000))} kB.</p>
               ) : null}
+              {photo ? <FramingControls framing={framing} onChange={setFraming} /> : null}
             </div>
 
             <label className="flex cursor-pointer items-start gap-2.5 text-sm">

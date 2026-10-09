@@ -51,7 +51,7 @@ page.on("console", (m) => m.type() === "error" && !m.text().startsWith("Failed t
 page.on("pageerror", (e) => errors.push(e.message.slice(0, 200)));
 
 let units = [];
-const owner = (id, faces) => ({ id, purchases: 1, priceCents: 125, owned: true, owner: { name: "Panadería Prueba", url: "https://example.com", description: "Pan de masa madre.", hasLogo: false, faces, sameForAll: true, since: new Date().toISOString() } });
+const owner = (id, faces) => ({ id, purchases: 1, priceCents: 125, owned: true, owner: { name: "Panadería Prueba", url: "https://example.com", description: "Pan de masa madre.", hasLogo: false, faces, sameForAll: true, framing: { x: 0, y: 0.5, zoom: 2 }, since: new Date().toISOString() } });
 let board = { available: true, generatedAt: new Date().toISOString(), catalog: {}, stats: { purchases: 1, unitsOwned: 1, owners: 1, revenueCents: 125 }, valuable: [], owners: [], latest: [] };
 await page.route("**/api/market/leaderboards", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify(board) }));
 await page.route("**/api/market/state", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ units, version: String(units.length), purchasesEnabled: false }) }));

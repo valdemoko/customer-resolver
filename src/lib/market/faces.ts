@@ -109,11 +109,36 @@ export function coverUV(surface: number, image: number): [number, number, number
 }
 
 /**
+ * Ventana de la imagen que se ve en una superficie: el recorte «cover» a zoom 1,
+ * reducido por `zoom` y desplazado dentro de la foto según `x` / `y`. Con x = y = 0,5
+ * y zoom 1 es exactamente `coverUV`. Devuelve [u0, v0, u1, v1] (v = 0 abajo).
+ */
+export function frameUV(
+  surface: number,
+  image: number,
+  framing: { x: number; y: number; zoom: number } = { x: 0.5, y: 0.5, zoom: 1 },
+): [number, number, number, number] {
+  const [bu0, bv0, bu1, bv1] = coverUV(surface, image);
+  const zoom = Math.min(3, Math.max(1, framing.zoom));
+  const w = (bu1 - bu0) / zoom;
+  const h = (bv1 - bv0) / zoom;
+  const x = Math.min(1, Math.max(0, framing.x));
+  const y = Math.min(1, Math.max(0, framing.y));
+  const u0 = x * (1 - w);
+  const v1 = 1 - y * (1 - h); // y = 0 es la parte de arriba de la foto
+  return [u0, v1 - h, u0 + w, v1];
+}
+
+/**
  * Coordenadas de textura de una huella para pintar una foto en el techo. Se gira
  * la huella para alinearla con su lado más largo, se toma la caja que la envuelve
- * y se encuadra la imagen en «cover». Devuelve un [u, v] por punto de entrada.
+ * y se encuadra la imagen (cover + encuadre del anunciante). Devuelve un [u, v] por punto.
  */
-export function roofUVs(points: Array<[number, number]>, imageAspect: number): Array<[number, number]> {
+export function roofUVs(
+  points: Array<[number, number]>,
+  imageAspect: number,
+  framing: { x: number; y: number; zoom: number } = { x: 0.5, y: 0.5, zoom: 1 },
+): Array<[number, number]> {
   if (points.length < 3) return points.map(() => [0, 0]);
   let best = 0;
   let angle = 0;
@@ -135,7 +160,7 @@ export function roofUVs(points: Array<[number, number]>, imageAspect: number): A
   const maxY = Math.max(...rotated.map((p) => p[1]));
   const width = Math.max(1e-6, maxX - minX);
   const height = Math.max(1e-6, maxY - minY);
-  const [u0, v0, u1, v1] = coverUV(width / height, imageAspect);
+  const [u0, v0, u1, v1] = frameUV(width / height, imageAspect, framing);
   return rotated.map(([x, y]) => [u0 + ((x - minX) / width) * (u1 - u0), v0 + ((y - minY) / height) * (v1 - v0)]);
 }
 

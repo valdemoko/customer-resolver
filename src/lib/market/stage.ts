@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Face } from "./faces";
-import { coverUV, roofUVs } from "./faces";
+import { frameUV, roofUVs } from "./faces";
+import type { Framing } from "./types";
 
 /**
  * Escenario 3D del estudio de compra: el edificio (o el cartel) de la unidad que
@@ -51,6 +52,7 @@ export class FaceStage {
   private readonly placeholderTexture: THREE.CanvasTexture;
   private facadeTexture: THREE.Texture | null = null;
   private roofTexture: THREE.Texture | null = null;
+  private framing: Framing = { x: 0.5, y: 0.5, zoom: 1 };
   private azimuth = 0.7;
   private elevation = 0.5;
   private radius = 60;
@@ -183,6 +185,12 @@ export class FaceStage {
     });
   }
 
+  /** Encuadre de la foto (se aplica a fachada y techo al instante). */
+  setFraming(framing: Framing): void {
+    this.framing = framing;
+    this.refresh();
+  }
+
   private refresh(): void {
     const facade = this.facadeTexture;
     const image = facade?.image as { width: number; height: number } | undefined;
@@ -190,7 +198,7 @@ export class FaceStage {
       const material = mesh.material as THREE.MeshBasicMaterial;
       const uv = mesh.geometry.getAttribute("uv") as THREE.BufferAttribute;
       if (facade && image) {
-        const [u0, v0, u1, v1] = coverUV(width / height, image.width / image.height);
+        const [u0, v0, u1, v1] = frameUV(width / height, image.width / image.height, this.framing);
         uv.array.set([u0, v0, u1, v0, u1, v1, u0, v1]);
         material.map = facade;
       } else {
@@ -205,7 +213,7 @@ export class FaceStage {
       const material = this.roofMesh.mesh.material as THREE.MeshBasicMaterial;
       const roofImage = this.roofTexture?.image as { width: number; height: number } | undefined;
       if (this.roofTexture && roofImage) {
-        const uvs = roofUVs(this.roofMesh.points, roofImage.width / roofImage.height);
+        const uvs = roofUVs(this.roofMesh.points, roofImage.width / roofImage.height, this.framing);
         const attribute = this.roofMesh.mesh.geometry.getAttribute("uv") as THREE.BufferAttribute;
         uvs.forEach(([u, v], i) => attribute.setXY(i, u, v));
         attribute.needsUpdate = true;

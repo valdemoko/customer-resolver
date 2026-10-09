@@ -158,6 +158,12 @@ const facadeInfo = await page.evaluate(() => {
   return { kb: Number(/Comprimida a ([0-9]+) kB/.exec(slot)?.[1]), w: img?.naturalWidth, h: img?.naturalHeight, src: img?.src.slice(0, 22) };
 });
 check(`estudio: una foto de ${(big.length / 1e6).toFixed(1)} MB se comprime a ≤ 90 kB y ≤ 1024 px, en WebP`, facadeInfo.kb <= 90 && Math.max(facadeInfo.w, facadeInfo.h) <= 1024 && /webp/.test(facadeInfo.src), facadeInfo);
+check("estudio: con foto aparecen los controles de encuadre (ampliar, mover, subir/bajar)", (await page.getByRole("slider").count()) === 3, await page.getByRole("slider").count());
+await page.getByRole("slider", { name: "Ampliar" }).fill("2");
+await page.getByRole("slider", { name: "Mover" }).fill("0.2");
+await page.getByRole("slider", { name: "Subir o bajar" }).fill("0.8");
+await page.waitForTimeout(400);
+await page.screenshot({ path: "docs/verification/shots/studio-encuadre.png" });
 await page.getByLabel(/Acepto que mi nombre/).check();
 await page.screenshot({ path: "docs/verification/shots/studio.png" });
 
@@ -165,8 +171,8 @@ await pay.click();
 await page.waitForTimeout(1200);
 const payload = sent[0];
 check(
-  "pago: la solicitud lleva UNA sola foto (`all`) y `sameForAll`; ni logo, ni techo, ni fotos por cara aparte",
-  payload && payload.unitId?.startsWith("b:") && payload.content.sameForAll === true && Object.keys(payload.content.images).join() === "all" && payload.content.logo === "" && payload.content.images.all.startsWith("data:image/webp"),
+  "pago: la solicitud lleva UNA sola foto (`all`), `sameForAll` y el encuadre elegido; ni logo, ni techo, ni fotos por cara aparte",
+  payload && payload.unitId?.startsWith("b:") && payload.content.sameForAll === true && Math.abs(payload.content.framing.zoom - 2) < 1e-6 && Math.abs(payload.content.framing.x - 0.2) < 1e-6 && Math.abs(payload.content.framing.y - 0.8) < 1e-6 && Object.keys(payload.content.images).join() === "all" && payload.content.logo === "" && payload.content.images.all.startsWith("data:image/webp"),
   payload && { keys: Object.keys(payload.content.images), kb: Math.round(JSON.stringify(payload).length / 1000) },
 );
 check("pago: un error del servidor se muestra en el estudio y no navega", /interceptado/.test(await page.locator("[role=alert]").first().innerText().catch(() => "")), null);

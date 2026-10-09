@@ -61,6 +61,19 @@ export const LIMITS = {
 
 const DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 
+/**
+ * Encuadre de la foto del anuncio: qué parte se ve. `x` e `y` (0–1) desplazan la
+ * ventana por la foto (0 = izquierda/arriba, 1 = derecha/abajo, 0,5 = centrada) y
+ * `zoom` (1–3) la amplía. Es el mismo para fachada, techo y paneles.
+ */
+export const FramingSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  zoom: z.number().min(1).max(3),
+});
+export type Framing = z.infer<typeof FramingSchema>;
+export const DEFAULT_FRAMING: Framing = { x: 0.5, y: 0.5, zoom: 1 };
+
 export const ContentSchema = z.object({
   /** Nombre del anunciante (obligatorio). */
   name: z.string().trim().min(2).max(LIMITS.name),
@@ -80,6 +93,8 @@ export const ContentSchema = z.object({
     .default(""),
   /** Si `true`, `images.all` se pinta en todas las caras (el estudio lo envía siempre así). */
   sameForAll: z.boolean().default(false),
+  /** Encuadre de la foto (por defecto, centrada y sin ampliar). */
+  framing: FramingSchema.default(DEFAULT_FRAMING),
   /** Imágenes: `all` (fachada, se repite en todas las caras), `roof` (techo) o, en datos antiguos, `f0`, `f1`… por cara. */
   images: z
     .record(
@@ -105,6 +120,7 @@ export type UnitView = {
     hasLogo: boolean;
     faces: string[];
     sameForAll: boolean;
+    framing: Framing;
     since: string;
   };
 };

@@ -6,6 +6,7 @@ import { FileStore, MemoryStore, NeonStore } from "./store";
 import type { MarketStore, StoredUnit } from "./store";
 import { createCheckoutSession, stripeClient } from "./stripe";
 import { ContentSchema, LIMITS, UNIT_KIND_LABEL, unitKindOf } from "./types";
+import { DEFAULT_FRAMING } from "./types";
 import type { Content, MarketState, UnitView } from "./types";
 import { buildingNameOf, isKnownUnit, unitCatalogCounts } from "./units";
 import { publicUnitLabel } from "./label";
@@ -70,6 +71,7 @@ function view(id: string, stored: StoredUnit | null): UnitView {
           hasLogo: content.logo !== "",
           faces: Object.keys(content.images),
           sameForAll: content.sameForAll,
+          framing: content.framing ?? DEFAULT_FRAMING,
           since: stored?.updatedAt ?? "",
         }
       : null,

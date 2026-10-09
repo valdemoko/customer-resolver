@@ -15,7 +15,7 @@
  */
 
 import * as THREE from "three";
-import { coverUV, imageKeyFor } from "@/lib/market/faces";
+import { frameUV, imageKeyFor } from "@/lib/market/faces";
 import { whenImageReady } from "./ads";
 import type { UnitView } from "@/lib/market/types";
 import { formatCents } from "@/lib/money";
@@ -583,7 +583,7 @@ export function buildTraffic(options: {
         // Foto del anunciante: se encuadra sin deformarla en el panel (cada panel tiene su propia textura).
         const aspect = panel.aspect;
         whenImageReady(texture, (image) => {
-          const [u0, v0, u1, v1] = coverUV(aspect, image);
+          const [u0, v0, u1, v1] = frameUV(aspect, image, view?.owner?.framing);
           texture.repeat.set(u1 - u0, v1 - v0);
           texture.offset.set(u0, v0);
           texture.needsUpdate = false;
