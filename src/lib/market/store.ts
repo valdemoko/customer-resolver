@@ -29,7 +29,8 @@ export type Draft = {
   userId?: string | null;
 };
 
-export type CompleteResult = { applied: boolean; unit: StoredUnit; amountCents: number | null };
+/** `rejected: "stale"`: alguien compró el espacio después de crearse este pago; no se aplica y hay que devolverlo. */
+export type CompleteResult = { applied: boolean; unit: StoredUnit; amountCents: number | null; rejected?: "stale" };
 
 /** Una compra completada (nada privado: el nombre es el que el comprador publica en el mapa). */
 export type PurchaseRecord = { unitId: string; amountCents: number; buyer: string; createdAt: string; userId?: string | null };
@@ -135,6 +136,9 @@ export class MemoryStore implements MarketStore {
     const draft = this.drafts.get(args.draftId);
     if (!draft) return null;
     const previous = this.units.get(draft.unitId);
+    if (previous && previous.purchases > draft.purchasesAtCreation) {
+      return { applied: false, rejected: "stale", unit: previous, amountCents: args.amountCents };
+    }
     const unit: StoredUnit = {
       id: draft.unitId,
       purchases: (previous?.purchases ?? 0) + 1,
@@ -382,6 +386,7 @@ export class NeonStore implements MarketStore {
         insert into market_purchases (session_id, unit_id, amount_cents, content, user_id)
         select ${args.sessionId}, d.unit_id, ${args.amountCents}, d.content, d.user_id
         from market_drafts d where d.id = ${args.draftId}
+          and not exists (select 1 from market_units mu where mu.id = d.unit_id and mu.purchases > d.purchases_at_creation)
         on conflict (session_id) do nothing
         returning unit_id, content
       )
@@ -394,7 +399,12 @@ export class NeonStore implements MarketStore {
     const existing = await this.sql`select u.id, u.purchases, u.content, u.updated_at, p.amount_cents
       from market_purchases p join market_units u on u.id = p.unit_id where p.session_id = ${args.sessionId}`;
     const row = existing[0];
-    return row ? { applied: false, unit: this.toUnit(row), amountCents: Number(row.amount_cents) } : null;
+    if (row) return { applied: false, unit: this.toUnit(row), amountCents: Number(row.amount_cents) };
+    // Sin compra registrada: o no hay borrador, o alguien se adelantó (el pago debe devolverse).
+    const stale = await this.sql`select u.id, u.purchases, u.content, u.updated_at
+      from market_drafts d join market_units u on u.id = d.unit_id
+      where d.id = ${args.draftId} and u.purchases > d.purchases_at_creation`;
+    return stale[0] ? { applied: false, rejected: "stale", unit: this.toUnit(stale[0]), amountCents: args.amountCents } : null;
   }
 
   async userPurchases(userId: string): Promise<UserPurchase[]> {

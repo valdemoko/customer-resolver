@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
 import { listCities } from "@/lib/cities/registry";
 import { TERRAIN_NOTE } from "@/lib/scene/model";
@@ -99,6 +100,7 @@ export default function AttributionsPage() {
           </section>
         ))}
       </main>
+      <SiteFooter />
     </>
   );
 }

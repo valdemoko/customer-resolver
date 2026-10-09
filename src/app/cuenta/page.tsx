@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
 import { authConfigured } from "@/lib/auth/google";
 import { currentUser } from "@/lib/auth/server";
@@ -133,6 +134,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Sear
           </section>
         )}
       </main>
+      <SiteFooter />
     </>
   );
 }

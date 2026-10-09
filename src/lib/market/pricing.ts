@@ -22,3 +22,13 @@ export function priceForPurchases(purchases: number): number {
   }
   return ladder[capped] ?? BASE_PRICE_CENTS;
 }
+
+/** Tras una compra, nadie puede quitarle el espacio a su dueño durante este tiempo. */
+export const LOCK_MS = 2 * 60 * 60 * 1000;
+
+/** Instante (ISO) hasta el que está protegido un espacio comprado en `purchasedAt`, o `null` si ya no lo está. */
+export function lockedUntil(purchasedAt: string | null | undefined, now = Date.now()): string | null {
+  if (!purchasedAt) return null;
+  const until = Date.parse(purchasedAt) + LOCK_MS;
+  return Number.isFinite(until) && until > now ? new Date(until).toISOString() : null;
+}

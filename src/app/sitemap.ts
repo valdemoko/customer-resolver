@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { cities } from "@/lib/cities/registry";
 import { appOrigin } from "@/lib/env";
+import { legalDocs } from "@/lib/legal";
 
 /**
  * Solo se incluyen páginas con contenido real. No hay páginas vacías ni
@@ -24,6 +25,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    { url: `${origin}/preguntas-frecuentes`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.5 },
+    { url: `${origin}/contacto`, lastModified: now, changeFrequency: "yearly" as const, priority: 0.3 },
+    ...legalDocs.map((doc) => ({ url: `${origin}/legal/${doc.slug}`, lastModified: now, changeFrequency: "yearly" as const, priority: 0.2 })),
     {
       url: `${origin}/atribuciones`,
       lastModified: now,

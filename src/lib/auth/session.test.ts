@@ -72,7 +72,8 @@ describe("compras de una cuenta", () => {
   it("lista solo las suyas y marca si el espacio sigue siendo suyo", async () => {
     const store = new MemoryStore();
     const buy = async (n: number, unitId: string, userId: string | null, name: string) => {
-      await store.saveDraft({ id: `d${n}`, unitId, content: content(name), purchasesAtCreation: 0, createdAt: new Date().toISOString(), userId });
+      const before = (await store.getUnit(unitId))?.purchases ?? 0;
+      await store.saveDraft({ id: `d${n}`, unitId, content: content(name), purchasesAtCreation: before, createdAt: new Date().toISOString(), userId });
       await store.completePurchase({ sessionId: `s${n}`, draftId: `d${n}`, amountCents: 100 * n });
     };
     await buy(1, "b:way/1", "ana", "Café Ana");

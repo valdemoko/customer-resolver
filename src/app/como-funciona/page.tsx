@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
 import { brand } from "@/lib/brand";
 
@@ -94,6 +95,7 @@ export default function HowItWorksPage() {
           ¿Tienes una ciudad en mente? <Link href="/" className="text-accent underline underline-offset-2">Mira el catálogo</Link>.
         </p>
       </main>
+      <SiteFooter />
     </>
   );
 }

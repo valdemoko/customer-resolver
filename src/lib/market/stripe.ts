@@ -31,6 +31,7 @@ export async function createCheckoutSession(client: Stripe, params: CheckoutPara
   const separator = params.returnPath.includes("?") ? "&" : "?";
   return client.checkout.sessions.create({
     mode: "payment",
+    expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
     client_reference_id: params.draftId,
     line_items: [
       {

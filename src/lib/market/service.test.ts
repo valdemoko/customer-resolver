@@ -138,9 +138,41 @@ describe("compra con Stripe", () => {
     expect(view.owner?.name).toBe("Panadería Sol");
     expect(view.owner?.faces).toEqual(["f0"]);
 
-    // La siguiente compra de la misma unidad cuesta 1,25 € y sustituye al anterior propietario.
-    const next = await createCheckout({ unitId: BUILDING, content: { ...validContent, name: "Librería Luna" } }, { stripe: fakeStripe("cs_test_def456").stripe });
-    expect(next.amountCents).toBe(125);
+    // Durante las 2 horas siguientes el espacio está protegido: nadie puede comprarlo.
+    expect(view.lockedUntil).not.toBeNull();
+    await expect(
+      createCheckout({ unitId: BUILDING, content: { ...validContent, name: "Librería Luna" } }, { stripe: fakeStripe("cs_test_def456").stripe }),
+    ).rejects.toMatchObject({ status: 409 });
+
+    // Pasadas las 2 horas, la siguiente compra cuesta 1,25 € y sustituye al anterior propietario.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 2 * 3600_000 + 60_000);
+      expect((await getUnitView(BUILDING)).lockedUntil).toBeNull();
+      const next = await createCheckout({ unitId: BUILDING, content: { ...validContent, name: "Librería Luna" } }, { stripe: fakeStripe("cs_test_def456").stripe });
+      expect(next.amountCents).toBe(125);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("si alguien compra mientras otro paga, el pago tardío no se aplica y se devuelve entero", async () => {
+    const first = fakeStripe("cs_test_aaa111");
+    const second = fakeStripe("cs_test_bbb222");
+    await createCheckout({ unitId: BUILDING, content: validContent }, { stripe: first.stripe });
+    await createCheckout({ unitId: BUILDING, content: { ...validContent, name: "Librería Luna" } }, { stripe: second.stripe });
+    const draftOf = (calls: ReturnType<typeof fakeStripe>["create"]) => calls.mock.calls[0]?.[0].metadata?.draftId as string;
+    const paid = (id: string, draftId: string) => ({ id, payment_status: "paid" as const, amount_total: 100, metadata: { draftId, unitId: BUILDING }, payment_intent: `pi_${id}` });
+
+    expect((await completeFromSession(paid("cs_test_aaa111", draftOf(first.create))))?.applied).toBe(true);
+    const refunds = { create: vi.fn(async () => ({ id: "re_1" })) };
+    const late = await completeFromSession(paid("cs_test_bbb222", draftOf(second.create)), { stripe: { refunds } as unknown as Stripe });
+    expect(late).toMatchObject({ applied: false, refunded: true });
+    expect(refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_cs_test_bbb222" }, { idempotencyKey: "refund-cs_test_bbb222" });
+    // El primero conserva el espacio y no se cobra dos veces.
+    const view = await getUnitView(BUILDING);
+    expect(view.owner?.name).toBe("Panadería Sol");
+    expect(view.purchases).toBe(1);
   });
 
   it("un pago sin completar no aplica nada", async () => {

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, PenLine } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
+import { LEGAL_UPDATED } from "@/lib/legal-entity";
 import { getLegalDoc, legalDocs } from "@/lib/legal";
-import { purchasesEnabled } from "@/lib/env";
 
 type Params = Promise<{ slug: string }>;
 
@@ -16,80 +17,63 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { slug } = await params;
   const doc = getLegalDoc(slug);
   if (!doc) return { title: "Documento no encontrado" };
-  return {
-    title: doc.title,
-    description: doc.summary,
-    // Los borradores no se indexan: publicar un borrador en buscadores genera
-    // obligaciones y expectativas que todavía no podemos cumplir.
-    robots: { index: false, follow: false },
-  };
+  return { title: doc.title, description: doc.summary, alternates: { canonical: `/legal/${doc.slug}` } };
 }
 
-/**
- * Los textos legales se sirven como BORRADORES visibles. No se presentan como
- * asesoramiento jurídico ni como documentos definitivos.
- */
+/** Páginas legales: un documento, con su fecha de actualización y los demás a un clic. */
 export default async function LegalPage({ params }: { params: Params }) {
   const { slug } = await params;
   const doc = getLegalDoc(slug);
   if (!doc) notFound();
+  const others = legalDocs.filter((other) => other.slug !== doc.slug);
 
   return (
     <>
       <TopBar />
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink"
-        >
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
           <ArrowLeft size={15} strokeWidth={1.9} aria-hidden="true" />
-          Volver al catálogo
+          Volver al inicio
         </Link>
 
         <header className="mt-6 border-b border-line pb-6">
-          <span className="inline-flex items-center gap-1.5 rounded-sm border border-premium/35 bg-premium-soft px-2 py-[3px] text-xs font-medium text-premium">
-            <PenLine size={12} strokeWidth={2} aria-hidden="true" />
-            Borrador · pendiente de revisión profesional
-          </span>
-          <h1 className="display-face mt-4 text-3xl font-semibold tracking-[-0.03em] text-ink">
-            {doc.title}
-          </h1>
+          <h1 className="display-face text-3xl font-semibold tracking-[-0.03em] text-ink sm:text-4xl">{doc.title}</h1>
           <p className="mt-3 text-base text-muted">{doc.summary}</p>
+          <p className="mt-3 text-xs text-subtle">Última actualización: {LEGAL_UPDATED}</p>
         </header>
 
-        <div className="mt-8 space-y-8">
+        <div className="mt-8 space-y-9">
           {doc.sections.map((section) => (
             <section key={section.heading}>
-              <h2 className="text-lg font-medium text-ink">{section.heading}</h2>
-              <div className="mt-2 space-y-2">
+              <h2 className="display-face text-lg font-medium tracking-[-0.01em] text-ink">{section.heading}</h2>
+              <div className="mt-2.5 space-y-3">
                 {section.body.map((paragraph, index) => (
-                  <p key={index} className="text-sm leading-relaxed text-muted">
+                  <p key={index} className="max-w-[68ch] text-[0.95rem] leading-relaxed text-muted">
                     {paragraph}
                   </p>
                 ))}
               </div>
             </section>
           ))}
-
-          <section className="rounded-md border border-premium/35 bg-premium-soft p-5">
-            <h2 className="text-sm font-medium text-premium">
-              Decisiones que solo puede cerrar la propiedad
-            </h2>
-            <ul className="mt-3 list-inside list-disc space-y-1.5 text-sm text-premium/90">
-              {doc.openQuestions.map((question) => (
-                <li key={question}>{question}</li>
-              ))}
-            </ul>
-          </section>
-
-          {!purchasesEnabled ? (
-            <p className="border-t border-line pt-5 text-sm text-muted">
-              Recordatorio: la contratación está desactivada. Las condiciones de contratación
-              se publican únicamente como borrador a revisar.
-            </p>
-          ) : null}
         </div>
+
+        <nav aria-label="Otros documentos legales" className="mt-14 border-t border-line pt-6">
+          <p className="text-sm text-subtle">Otros documentos</p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {others.map((other) => (
+              <li key={other.slug}>
+                <Link
+                  href={`/legal/${other.slug}`}
+                  className="inline-flex h-9 items-center rounded-full border border-line-strong px-4 text-sm text-muted transition-colors hover:border-accent/60 hover:text-ink"
+                >
+                  {other.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </main>
+      <SiteFooter />
     </>
   );
 }

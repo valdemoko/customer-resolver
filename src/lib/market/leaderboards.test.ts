@@ -11,7 +11,8 @@ const draft = (id: string, unitId: string, name: string): Draft => ({
 });
 
 async function buy(store: MemoryStore, session: string, unitId: string, name: string, cents: number) {
-  await store.saveDraft(draft(`d-${session}`, unitId, name));
+  const before = (await store.getUnit(unitId))?.purchases ?? 0;
+  await store.saveDraft({ ...draft(`d-${session}`, unitId, name), purchasesAtCreation: before });
   await store.completePurchase({ sessionId: session, draftId: `d-${session}`, amountCents: cents });
   // Los sellos de tiempo del almacén tienen resolución de ms: se separan las compras.
   await new Promise((resolve) => setTimeout(resolve, 3));

@@ -1,9 +1,10 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Lock } from "lucide-react";
 import { UNIT_KIND_LABEL, unitKindOf } from "@/lib/market/types";
 import type { UnitView } from "@/lib/market/types";
 import { imageUrl } from "@/lib/scene/ads";
+import { lockHour } from "@/lib/market/lock-label";
 import { ShareLink } from "./ShareLink";
 
 /**
@@ -19,6 +20,7 @@ export function OwnerSidePanel({ unitId, label, view }: { readonly unitId: strin
   const version = `${view.purchases}`;
   const since = owner.since ? new Date(owner.since).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "";
   const kind = UNIT_KIND_LABEL[unitKindOf(unitId)];
+  const protectedUntil = lockHour(view.lockedUntil);
   return (
     <aside
       key={unitId}
@@ -37,6 +39,12 @@ export function OwnerSidePanel({ unitId, label, view }: { readonly unitId: strin
         </p>
         <h2 className="display-face mt-1 text-xl font-medium leading-tight tracking-[-0.02em] text-ink">{owner.name}</h2>
         {since ? <p className="mt-0.5 text-xs text-muted">Anunciante desde el {since}</p> : null}
+        {protectedUntil ? (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1 text-xs text-muted">
+            <Lock size={12} strokeWidth={2} aria-hidden="true" />
+            Protegido hasta las <span className="tnum font-medium text-ink">{protectedUntil}</span>
+          </p>
+        ) : null}
         {owner.description ? <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/90">{owner.description}</p> : null}
         {owner.url ? (
           <a

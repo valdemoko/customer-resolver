@@ -7,6 +7,7 @@ import type { MarketStore, StoredUnit } from "./store";
 import { createCheckoutSession, stripeClient } from "./stripe";
 import { ContentSchema, LIMITS, UNIT_KIND_LABEL, unitKindOf } from "./types";
 import { DEFAULT_FRAMING } from "./types";
+import { lockedUntil } from "./pricing";
 import type { Content, MarketState, UnitView } from "./types";
 import { buildingNameOf, isKnownUnit, unitCatalogCounts } from "./units";
 import { publicUnitLabel } from "./label";
@@ -63,6 +64,7 @@ function view(id: string, stored: StoredUnit | null): UnitView {
     purchases,
     priceCents: priceForPurchases(purchases),
     owned: purchases > 0 && content !== null,
+    lockedUntil: purchases > 0 ? lockedUntil(stored?.updatedAt) : null,
     owner: content
       ? {
           name: content.name,
@@ -155,6 +157,11 @@ export async function createCheckout(
   const store = await getMarketStore();
   const stored = await store.getUnit(input.unitId);
   const purchases = stored?.purchases ?? 0;
+  const protectedUntil = purchases > 0 ? lockedUntil(stored?.updatedAt) : null;
+  if (protectedUntil) {
+    const hour = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(protectedUntil));
+    throw new MarketError(`Este espacio acaba de comprarse y está protegido hasta las ${hour} (hora de Madrid). Vuelve a intentarlo después.`, 409);
+  }
   const amountCents = priceForPurchases(purchases);
 
   const draftId = randomId("dr");
@@ -184,8 +191,9 @@ export async function createCheckout(
 
 /** Aplica la compra de una sesión PAGADA. Idempotente. */
 export async function completeFromSession(
-  session: Pick<Stripe.Checkout.Session, "id" | "payment_status" | "metadata" | "amount_total">,
-): Promise<{ applied: boolean; unit: UnitView } | null> {
+  session: Pick<Stripe.Checkout.Session, "id" | "payment_status" | "metadata" | "amount_total"> & { payment_intent?: Stripe.Checkout.Session["payment_intent"] },
+  deps: { stripe?: Stripe } = {},
+): Promise<{ applied: boolean; unit: UnitView; refunded?: boolean } | null> {
   if (session.payment_status !== "paid") return null;
   const draftId = session.metadata?.draftId;
   const unitId = session.metadata?.unitId;
@@ -193,6 +201,14 @@ export async function completeFromSession(
   const store = await getMarketStore();
   const result = await store.completePurchase({ sessionId: session.id, draftId, amountCents: session.amount_total ?? 0 });
   if (!result) return null;
+  if (result.rejected) {
+    // Alguien compró el espacio mientras esta persona pagaba: el cobro no se aplica y se devuelve entero.
+    const intent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+    if (intent) {
+      await (deps.stripe ?? stripeClient()).refunds.create({ payment_intent: intent }, { idempotencyKey: `refund-${session.id}` });
+    }
+    return { applied: false, refunded: true, unit: view(result.unit.id, result.unit) };
+  }
   return { applied: result.applied, unit: view(result.unit.id, result.unit) };
 }
 
@@ -200,8 +216,11 @@ export async function completeFromSession(
 export async function confirmSession(sessionId: string, deps: { stripe?: Stripe } = {}) {
   if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) throw new MarketError("Sesión no válida.", 400);
   const session = await (deps.stripe ?? stripeClient()).checkout.sessions.retrieve(sessionId);
-  const done = await completeFromSession(session);
+  const done = await completeFromSession(session, deps);
   if (!done) throw new MarketError("El pago aún no figura como completado.", 409);
+  if (done.refunded) {
+    throw new MarketError("Otra persona compró este espacio justo antes que tú. Hemos devuelto el pago completo; puedes volver a intentarlo cuando el espacio vuelva a estar disponible.", 409);
+  }
   return done;
 }
 
@@ -217,7 +236,7 @@ export async function handleWebhook(rawBody: string, signature: string | null, d
     throw new MarketError("Firma de Stripe no válida.", 400);
   }
   if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
-    await completeFromSession(event.data.object);
+    await completeFromSession(event.data.object, deps);
   }
   return { received: true, type: event.type };
 }
