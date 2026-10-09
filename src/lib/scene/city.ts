@@ -100,7 +100,7 @@ export type BuildOptions = {
   /** Exageración vertical uniforme (1 = alturas reales). */
   exaggeration: number;
   /** Alturas dibujadas fijadas por producto, por identificador OSM. */
-  heightOverrides?: Array<{ osmId: string; name: string; heightM: number }> | undefined;
+  heightOverrides?: Array<{ osmId: string; name?: string | undefined; heightM: number }> | undefined;
   zoneSizeM?: number;
   /** Área mínima de un edificio, en m²: por debajo es ruido del teselado. */
   minBuildingAreaM2?: number;

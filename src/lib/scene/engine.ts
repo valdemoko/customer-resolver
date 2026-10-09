@@ -98,7 +98,7 @@ export type EngineOptions = {
   clouds: { desktop: number; mobile: number; driftSeconds: number };
   trees: { maxDesktop: number; maxMobile: number; palmStreets: string[] };
   landmarks: LandmarkConfig[];
-  heightOverrides?: Array<{ osmId: string; name: string; heightM: number }> | undefined;
+  heightOverrides?: Array<{ osmId: string; name?: string | undefined; heightM: number }> | undefined;
   shadows: boolean;
   onPhase: (phase: PhaseId, progress: { done: number; total: number; note?: string }) => void;
   onSelect: (selection: BuildingRecord | null) => void;

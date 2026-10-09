@@ -52,11 +52,13 @@ export function unitCatalogCounts() {
   };
 }
 
-type NamedScene = { landmarks?: Array<{ osmId: string; name: string }>; heightOverrides?: Array<{ osmId: string; name: string }> };
+type NamedScene = { landmarks?: Array<{ osmId: string; name: string }>; heightOverrides?: Array<{ osmId: string; name?: string }> };
 const names = (malagaUnits as unknown as { names?: Record<string, string> }).names ?? {};
 const scene = (geoRaw as unknown as { scene: NamedScene }).scene;
 const extraNames = new Map<string, string>(
-  [...(scene.landmarks ?? []), ...(scene.heightOverrides ?? [])].map((entry) => [entry.osmId, entry.name]),
+  [...(scene.landmarks ?? []), ...(scene.heightOverrides ?? [])]
+    .filter((entry): entry is { osmId: string; name: string } => Boolean(entry.name))
+    .map((entry) => [entry.osmId, entry.name]),
 );
 
 /** Nombre público de un edificio, si existe en los datos. */

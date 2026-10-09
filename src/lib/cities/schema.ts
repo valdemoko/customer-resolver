@@ -311,7 +311,7 @@ export const SceneSchema = z.object({
   landmarks: z.array(LandmarkSchema),
   /** Alturas dibujadas decididas por producto (no son un dato): edificio → metros. */
   heightOverrides: z
-    .array(z.object({ osmId: z.string().regex(/^(way|relation)\/\d+$/), name: z.string().min(1), heightM: z.number().positive(), note: z.string().min(1) }))
+    .array(z.object({ osmId: z.string().regex(/^(way|relation)\/\d+$/), name: z.string().min(1).optional(), heightM: z.number().positive(), note: z.string().min(1) }))
     .default([]),
   /** Sombras de mapa. En móvil se apagan solas; aquí se declara la intención. */
   shadows: z.boolean(),

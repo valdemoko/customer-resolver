@@ -132,6 +132,11 @@
     },
     "heightOverrides": [
       {
+        "osmId": "way/1217545895",
+        "heightM": 9,
+        "note": "Quiosco de 32 m² junto al Muelle Uno que OpenStreetMap da con 3 m: quedaba a la altura de lo que tiene alrededor y se tapaba. 9 m es una ESTIMACIÓN decidida para que se vea y pueda anunciarse; no es una medición."
+      },
+      {
         "osmId": "relation/9237518",
         "name": "Plaza de toros de La Malagueta",
         "heightM": 20,
