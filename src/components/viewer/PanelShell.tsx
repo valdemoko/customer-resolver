@@ -87,7 +87,7 @@ export function PanelShell({
         <span aria-hidden="true" className="h-1 w-9 rounded-full bg-line-strong" />
       </button>
 
-      <div className="max-h-[inherit] overflow-auto p-5 pt-1 sm:pt-5">
+      <div className="slim-scroll max-h-[inherit] overflow-auto p-5 pt-1 sm:pt-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="display-face text-xl font-medium leading-tight tracking-[-0.02em] text-ink">{title}</h2>

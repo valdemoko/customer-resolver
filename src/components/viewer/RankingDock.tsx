@@ -49,7 +49,7 @@ export function RankingDock({ onGo }: { readonly onGo: (unitId: string) => boole
       </button>
 
       {open ? (
-        <div className="max-h-[38vh] overflow-y-auto px-2 pb-2">
+        <div className="slim-scroll max-h-[38vh] overflow-y-auto px-2 pb-2">
           {rows.length === 0 ? (
             <p className="px-2 pb-3 text-sm text-muted">Todavía no se ha comprado nada. El primer espacio que se compre abrirá el ranking.</p>
           ) : (

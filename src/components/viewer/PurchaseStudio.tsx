@@ -321,7 +321,7 @@ export function PurchaseStudio({
         </section>
 
         {/* ----------------------------------------------------- el formulario */}
-        <section className="flex w-full flex-col overflow-y-auto border-t border-line lg:w-[27rem] lg:border-l lg:border-t-0">
+        <section className="slim-scroll flex w-full flex-col overflow-y-auto border-t border-line lg:w-[27rem] lg:border-l lg:border-t-0">
           <div className="hidden items-center justify-between p-5 pb-0 lg:flex">
             <p className="text-sm text-muted">Tu anuncio</p>
             <button
