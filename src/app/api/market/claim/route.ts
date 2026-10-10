@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { claimFree } from "@/lib/market/service";
-import { fail } from "../helpers";
+import { fail, rateLimited, readJson, tooManyRequests } from "../helpers";
 
 export const dynamic = "force-dynamic";
 
 /** Reclama un espacio gratis. Requiere sesión (cuenta de Google) y respeta el máximo por cuenta. */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { unitId?: string; content?: unknown };
+    if (rateLimited(request, "claim", 12, 60_000)) return tooManyRequests();
+    const body = await readJson<{ unitId?: string; content?: unknown }>(request);
     const user = await currentUser();
     const unit = await claimFree({
       unitId: String(body.unitId ?? ""),

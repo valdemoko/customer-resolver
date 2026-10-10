@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { createCheckout } from "@/lib/market/service";
-import { fail } from "../helpers";
+import { fail, rateLimited, readJson, tooManyRequests } from "../helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { unitId?: string; content?: unknown; returnPath?: string; unitLabel?: string };
+    if (rateLimited(request, "checkout", 12, 60_000)) return tooManyRequests();
+    const body = await readJson<{ unitId?: string; content?: unknown; returnPath?: string; unitLabel?: string }>(request);
     const user = await currentUser();
     const result = await createCheckout({
       userId: user?.id ?? null,

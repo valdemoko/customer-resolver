@@ -338,9 +338,23 @@ export class NeonStore implements MarketStore {
 
   constructor(private readonly sql: SqlTag) {}
 
-  /** Crea las tablas la primera vez (idempotente). */
+  /**
+   * Deja listo el esquema (idempotente). En frío se hace UNA consulta de sondeo: si
+   * tablas, columnas e índices ya existen no se ejecuta ninguna sentencia DDL, que
+   * con muchos arranques simultáneos serían bloqueos de esquema inútiles.
+   */
   private ensure(): Promise<void> {
     this.ready ??= (async () => {
+      const probe = await this.sql`select
+        (to_regclass('market_units') is not null and to_regclass('market_drafts') is not null and to_regclass('market_purchases') is not null) as tables,
+        (select count(*)::int from information_schema.columns where table_schema = current_schema() and (
+          (table_name = 'market_drafts' and column_name = 'user_id') or
+          (table_name = 'market_purchases' and column_name in ('user_id', 'buyer_email')) or
+          (table_name = 'market_units' and column_name = 'edits'))) as columns,
+        (select count(*)::int from pg_indexes where schemaname = current_schema() and indexname in (
+          'market_purchases_user_idx', 'market_purchases_unit_idx', 'market_purchases_created_idx', 'market_drafts_created_idx')) as indexes`;
+      const state = probe[0];
+      if (state?.tables === true && Number(state.columns) === 4 && Number(state.indexes) === 4) return;
       await this.sql`create table if not exists market_units (
         id text primary key,
         purchases integer not null default 0,
@@ -364,9 +378,14 @@ export class NeonStore implements MarketStore {
       )`;
       await this.sql`alter table market_drafts add column if not exists user_id text`;
       await this.sql`alter table market_purchases add column if not exists user_id text`;
-      await this.sql`create index if not exists market_purchases_user_idx on market_purchases (user_id)`;
       await this.sql`alter table market_purchases add column if not exists buyer_email text`;
       await this.sql`alter table market_units add column if not exists edits integer not null default 0`;
+      // Índices de las consultas calientes: dueño actual de un espacio (`unit_id`, último `id`),
+      // «últimas compras» (por fecha) y compras de una cuenta; y la limpieza de borradores.
+      await this.sql`create index if not exists market_purchases_user_idx on market_purchases (user_id)`;
+      await this.sql`create index if not exists market_purchases_unit_idx on market_purchases (unit_id, id desc)`;
+      await this.sql`create index if not exists market_purchases_created_idx on market_purchases (created_at desc, id desc)`;
+      await this.sql`create index if not exists market_drafts_created_idx on market_drafts (created_at)`;
     })();
     return this.ready;
   }
@@ -426,7 +445,15 @@ export class NeonStore implements MarketStore {
 
   async listUnits(): Promise<StoredUnit[]> {
     await this.ensure();
-    const rows = await this.sql`select id, purchases, content, updated_at, edits from market_units where purchases > 0`;
+    // Sin las fotos (decenas de kB cada una y esta consulta la repite cada visitante cada 25 s): de
+    // `images` solo viajan las CLAVES (valor «x») y de `logo` si existe. `view()` no necesita más.
+    const rows = await this.sql`select id, purchases, updated_at, edits,
+        case when content is null then null else
+          (content - 'images' - 'logo') || jsonb_build_object(
+            'logo', case when coalesce(content->>'logo', '') <> '' then 'x' else '' end,
+            'images', coalesce((select jsonb_object_agg(k, 'x') from jsonb_object_keys(case when jsonb_typeof(content->'images') = 'object' then content->'images' else '{}'::jsonb end) k), '{}'::jsonb)
+          ) end as content
+      from market_units where purchases > 0`;
     return rows.map((row) => this.toUnit(row));
   }
 
@@ -436,8 +463,16 @@ export class NeonStore implements MarketStore {
     return rows[0] ? this.toUnit(rows[0]) : null;
   }
 
+  private lastCleanup = 0;
+
   async saveDraft(draft: Draft): Promise<void> {
     await this.ensure();
+    // Los borradores (con sus fotos) de pagos que nunca se completaron no se acumulan: se borran los de más de
+    // 4 días (Stripe reintenta los avisos hasta 3 días). A lo sumo una vez por hora y arranque.
+    if (Date.now() - this.lastCleanup > 3_600_000) {
+      this.lastCleanup = Date.now();
+      await this.sql`delete from market_drafts where created_at < now() - interval '4 days'`;
+    }
     await this.sql`insert into market_drafts (id, unit_id, content, purchases_at_creation, created_at, user_id)
       values (${draft.id}, ${draft.unitId}, ${JSON.stringify(draft.content)}::jsonb, ${draft.purchasesAtCreation}, ${draft.createdAt}, ${draft.userId ?? null})
       on conflict (id) do nothing`;

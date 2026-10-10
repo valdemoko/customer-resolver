@@ -42,6 +42,23 @@ let cachedStore: MarketStore | null = null;
 export function setMarketStore(store: MarketStore | null): void {
   storeOverride = store;
   cachedStore = null;
+  invalidateMarketCaches();
+}
+
+/**
+ * Memoria breve por arranque del Worker para las lecturas públicas más repetidas
+ * (estado del mercado y clasificaciones): con miles de visitantes consultando cada
+ * pocos segundos, la base de datos recibe una consulta cada tantos segundos, no
+ * una por visitante. Cualquier escritura de este mismo arranque la vacía; en otros
+ * arranques la diferencia máxima es el TTL.
+ */
+const STATE_TTL_MS = 4_000;
+const BOARD_TTL_MS = 10_000;
+let stateCache: { at: number; value: MarketState } | null = null;
+let boardCache: { at: number; value: LeaderboardsPayload } | null = null;
+export function invalidateMarketCaches(): void {
+  stateCache = null;
+  boardCache = null;
 }
 
 export async function getMarketStore(): Promise<MarketStore> {
@@ -96,6 +113,13 @@ function view(id: string, stored: StoredUnit | null): UnitView {
 }
 
 export async function getMarketState(): Promise<MarketState> {
+  if (stateCache && Date.now() - stateCache.at < STATE_TTL_MS) return stateCache.value;
+  const value = await loadMarketState();
+  if (value.purchasesEnabled || value.units.length > 0) stateCache = { at: Date.now(), value };
+  return value;
+}
+
+async function loadMarketState(): Promise<MarketState> {
   let store: MarketStore;
   try {
     store = await getMarketStore();
@@ -212,6 +236,7 @@ export async function createCheckout(
 /** Aplica la compra de una sesión PAGADA. Idempotente. */
 export async function completeFromSession(
   session: Pick<Stripe.Checkout.Session, "id" | "payment_status" | "metadata" | "amount_total"> & {
+    amount_subtotal?: number | null;
     payment_intent?: Stripe.Checkout.Session["payment_intent"];
     customer_details?: { email?: string | null } | null;
     customer_email?: string | null;
@@ -223,9 +248,20 @@ export async function completeFromSession(
   const unitId = session.metadata?.unitId;
   if (!draftId || !unitId || !isKnownUnit(unitId)) return null;
   const store = await getMarketStore();
+  // Defensa en profundidad: el anuncio solo se publica si lo pagado coincide con el precio que el
+  // servidor fijó al crear el pago (por si una sesión llegara con otro importe). Antes de impuestos.
+  const draft = await store.getDraft(draftId);
+  if (!draft || draft.unitId !== unitId) return null;
+  const paid = session.amount_subtotal ?? session.amount_total ?? 0;
+  const expected = priceFor(unitId, draft.purchasesAtCreation);
+  if (paid !== expected) {
+    console.error("[market] importe inesperado: no se publica", { session: session.id, unitId, paid, expected });
+    return null;
+  }
   const buyerEmail = session.customer_details?.email ?? session.customer_email ?? null;
-  const result = await store.completePurchase({ sessionId: session.id, draftId, amountCents: session.amount_total ?? 0, buyerEmail });
+  const result = await store.completePurchase({ sessionId: session.id, draftId, amountCents: paid, buyerEmail });
   if (!result) return null;
+  if (result.applied) invalidateMarketCaches();
   if (result.rejected) {
     // Alguien compró el espacio mientras esta persona pagaba: el cobro no se aplica y se devuelve entero.
     const intent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
@@ -240,7 +276,16 @@ export async function completeFromSession(
 /** Retorno del navegador desde Stripe: se consulta la sesión al propio Stripe. */
 export async function confirmSession(sessionId: string, deps: { stripe?: Stripe } = {}) {
   if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) throw new MarketError("Sesión no válida.", 400);
-  const session = await (deps.stripe ?? stripeClient()).checkout.sessions.retrieve(sessionId);
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await (deps.stripe ?? stripeClient()).checkout.sessions.retrieve(sessionId);
+  } catch (error) {
+    // Una sesión que Stripe no conoce no es un fallo del servidor: se dice claro y no se publica nada.
+    if ((error as { code?: string; statusCode?: number })?.code === "resource_missing" || (error as { statusCode?: number })?.statusCode === 404) {
+      throw new MarketError("No existe esa sesión de pago.", 404);
+    }
+    throw error;
+  }
   const done = await completeFromSession(session, deps);
   if (!done) throw new MarketError("El pago aún no figura como completado.", 409);
   if (done.refunded) {
@@ -286,6 +331,13 @@ export const LEADERBOARD_SIZE = 15;
 
 /** Clasificaciones de Málaga. Solo datos públicos: nombres de anunciante, importes y fechas. */
 export async function getLeaderboards(): Promise<LeaderboardsPayload> {
+  if (boardCache && Date.now() - boardCache.at < BOARD_TTL_MS) return boardCache.value;
+  const value = await loadLeaderboards();
+  if (value.available) boardCache = { at: Date.now(), value };
+  return value;
+}
+
+async function loadLeaderboards(): Promise<LeaderboardsPayload> {
   const base = { generatedAt: new Date().toISOString(), catalog: unitCatalogCounts() };
   let board;
   try {
@@ -350,6 +402,7 @@ export async function editUnit(input: {
   if (!byAccount && !byToken) throw new MarketError("Solo el dueño actual de este espacio puede editar su anuncio.", 403);
   const updated = await store.editContent(input.unitId, content);
   if (!updated) throw new MarketError("Este espacio todavía no tiene dueño.", 404);
+  invalidateMarketCaches();
   return view(updated.id, updated);
 }
 
@@ -381,5 +434,6 @@ export async function claimFree(input: {
   await store.saveDraft({ id: draftId, unitId: input.unitId, content, purchasesAtCreation: 0, createdAt: new Date().toISOString(), userId: input.userId });
   const result = await store.completePurchase({ sessionId: `free_${draftId}`, draftId, amountCents: 0, buyerEmail: input.userEmail ?? null });
   if (!result || result.rejected) throw new MarketError("Alguien reclamó este espacio justo antes que tú.", 409);
+  invalidateMarketCaches();
   return view(result.unit.id, result.unit);
 }

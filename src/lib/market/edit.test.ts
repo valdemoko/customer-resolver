@@ -34,7 +34,8 @@ async function buy(unitId: string, sessionId: string, opts: { name: string; emai
   const session = {
     id: sessionId,
     payment_status: "paid" as const,
-    amount_total: 100,
+    // Lo que se paga es el precio que el servidor fijó al crear el pago.
+    amount_total: fake.create.mock.calls[0]?.[0].line_items?.[0]?.price_data?.unit_amount ?? 0,
     metadata: { draftId, unitId },
     customer_details: { email: opts.email ?? null },
   };

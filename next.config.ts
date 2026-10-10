@@ -8,12 +8,40 @@ const isDev = process.env.NODE_ENV === "development";
  * middleware (Fase D, junto con autenticación). Aquí dejamos las cabeceras que
  * no dependen del nonce para no romper el dev server.
  */
+/**
+ * CSP: solo se carga lo propio. Next.js escribe scripts y estilos en línea para
+ * hidratar la página, así que `'unsafe-inline'` sigue hasta que haya nonce; lo
+ * demás va cerrado: sin `eval`, sin plugins, sin incrustar la web en otra, sin
+ * enviar formularios fuera y sin conectar con terceros. Las fotos de perfil de
+ * Google son lo único externo (`img-src`). Stripe y Google se abren como página
+ * propia (navegación), no incrustados. En desarrollo no se aplica (Next usa eval).
+ */
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.googleusercontent.com",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  ...(isDev
+    ? []
+    : [
+        { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        { key: "Content-Security-Policy", value: csp },
+      ]),
 ];
 
 const nextConfig: NextConfig = {
