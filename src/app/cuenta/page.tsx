@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
+import { isAdminEmail } from "@/lib/admin/auth";
 import { authConfigured } from "@/lib/auth/google";
 import { currentUser } from "@/lib/auth/server";
 import { formatCents } from "@/lib/money";
@@ -89,6 +90,16 @@ export default async function AccountPage({ searchParams }: { searchParams: Sear
                 <LogoutButton />
               </div>
             </div>
+
+            {isAdminEmail(user.email) ? (
+              <Link
+                href="/admin"
+                className="btn-sweep mt-8 inline-flex h-11 items-center gap-2 rounded-full border border-accent/60 bg-accent/10 px-5 text-sm font-medium text-accent-ink"
+              >
+                <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
+                Ir al panel de administración
+              </Link>
+            ) : null}
 
             <h2 className="display-face mt-12 text-xl font-medium tracking-[-0.02em] text-ink">Tus espacios</h2>
             {storeError ? (

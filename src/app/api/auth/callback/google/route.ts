@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appOrigin, exchangeCode, safeNext } from "@/lib/auth/google";
-import { isBanned } from "@/lib/market/service";
+import { getMarketStore, isBanned } from "@/lib/market/service";
 import { cookieOptions, createSessionToken, SESSION_COOKIE, SESSION_DAYS, verifySigned } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
   try {
     const user = await exchangeCode(code);
     if (await isBanned(user.email, user.id)) return failure("suspendida");
+    // Cuenta para el contador de personas que han entrado; si falla, el acceso no se ve afectado.
+    void getMarketStore().then((store) => store.recordLogin(user)).catch(() => undefined);
     const response = back(next);
     response.cookies.set(SESSION_COOKIE, await createSessionToken(user), cookieOptions(SESSION_DAYS * 86400));
     response.cookies.delete("rs_oauth");

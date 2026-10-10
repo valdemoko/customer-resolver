@@ -6,6 +6,7 @@ import { appOrigin } from "@/lib/env";
 import "./globals.css";
 import "./motion.css";
 import { SiteChrome } from "@/components/marketing/SiteChrome";
+import { VisitBeacon } from "@/components/marketing/VisitBeacon";
 
 /**
  * Interfaz: Geist (geométrica, moderna, self-hosted vía el paquete `geist`,
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh bg-ivory text-ink antialiased">
         <SiteChrome />
+        <VisitBeacon />
         {children}
       </body>
     </html>

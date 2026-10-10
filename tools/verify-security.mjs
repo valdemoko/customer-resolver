@@ -83,6 +83,11 @@ check("la encuesta pública responde con ciudades y sin datos de personas", Arra
 r = await post("/api/poll", { optionId: "atlantida" });
 check("votar una ciudad que no existe: 404", r.status === 404, r.status);
 
+r = await fetch(url + "/api/visit", { method: "POST" });
+check("el contador de visitas responde 204 y no falla con un robot", r.status === 204, r.status);
+r = await call("/api/auth/me");
+check("quien no ha entrado no figura como administrador", r.body?.admin === false, r.body);
+
 /* ----------------------------------------------------------- sesión y acceso */
 r = await call("/api/auth/me", { headers: { cookie: "rs_session=eyJpZCI6IngifQ.firmafalsa" } });
 check("una cookie de sesión falsificada no inicia sesión", r.body?.user === null, r.body);

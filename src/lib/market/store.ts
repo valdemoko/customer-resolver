@@ -168,6 +168,20 @@ export const DEFAULT_POLL_OPTIONS: ReadonlyArray<{ id: string; label: string }> 
   { id: "lisboa", label: "Lisboa" },
 ];
 
+/** Visitantes únicos: cada «persona» es una huella con sal de conexión + navegador (sin cookies ni IP guardada). */
+export type VisitStats = {
+  today: number;
+  last7: number;
+  last30: number;
+  total: number;
+  /** Primer día con datos (`AAAA-MM-DD`), o `null` si todavía no hay ninguno. */
+  since: string | null;
+  /** Visitantes únicos de cada uno de los últimos 14 días (los días sin visitas salen a 0). */
+  byDay: Array<{ day: string; visitors: number }>;
+  /** Personas distintas que han iniciado sesión con Google. */
+  signedIn: number;
+};
+
 /** Lo que usa el panel de administración y la encuesta de la próxima ciudad. */
 export interface AdminOps {
   adminUnits(): Promise<AdminUnit[]>;
@@ -192,6 +206,11 @@ export interface AdminOps {
   addPollOption(label: string): Promise<PollOption>;
   setPollOptionActive(id: string, active: boolean): Promise<boolean>;
   resetPoll(): Promise<void>;
+  /** Anota que esta huella visitó la web ese día (`AAAA-MM-DD`, hora de Madrid). Idempotente por día. */
+  recordVisit(day: string, hash: string): Promise<void>;
+  visitStats(today: string): Promise<VisitStats>;
+  /** Anota un inicio de sesión (una fila por persona; cuenta los accesos). */
+  recordLogin(user: { id: string; email: string; name: string }): Promise<void>;
 }
 
 /** Identificador estable de una opción de la encuesta a partir de su nombre. */
@@ -517,6 +536,43 @@ export class MemoryStore implements MarketStore {
     this.pollVotes.clear();
   }
 
+  protected visitDays = new Map<string, Set<string>>();
+  protected loginUsers = new Map<string, { email: string; name: string; logins: number }>();
+
+  async recordVisit(day: string, hash: string): Promise<void> {
+    const set = this.visitDays.get(day) ?? new Set<string>();
+    set.add(hash);
+    this.visitDays.set(day, set);
+  }
+
+  async visitStats(today: string): Promise<VisitStats> {
+    const dayMs = 86_400_000;
+    const base = Date.parse(`${today}T00:00:00Z`);
+    const dayOf = (offset: number) => new Date(base - offset * dayMs).toISOString().slice(0, 10);
+    const union = (days: number) => {
+      const all = new Set<string>();
+      for (let i = 0; i < days; i += 1) for (const hash of this.visitDays.get(dayOf(i)) ?? []) all.add(hash);
+      return all.size;
+    };
+    const everyone = new Set<string>();
+    for (const set of this.visitDays.values()) for (const hash of set) everyone.add(hash);
+    const days = [...this.visitDays.keys()].sort();
+    return {
+      today: this.visitDays.get(today)?.size ?? 0,
+      last7: union(7),
+      last30: union(30),
+      total: everyone.size,
+      since: days[0] ?? null,
+      byDay: Array.from({ length: 14 }, (_, i) => dayOf(13 - i)).map((day) => ({ day, visitors: this.visitDays.get(day)?.size ?? 0 })),
+      signedIn: this.loginUsers.size,
+    };
+  }
+
+  async recordLogin(user: { id: string; email: string; name: string }): Promise<void> {
+    const current = this.loginUsers.get(user.id);
+    this.loginUsers.set(user.id, { email: user.email, name: user.name, logins: (current?.logins ?? 0) + 1 });
+  }
+
   protected async persist(): Promise<void> {
     /* en memoria no hay nada que guardar */
   }
@@ -675,7 +731,8 @@ export class NeonStore implements MarketStore {
       const probe = await this.sql`select
         (to_regclass('market_units') is not null and to_regclass('market_drafts') is not null and to_regclass('market_purchases') is not null
           and to_regclass('market_bans') is not null and to_regclass('market_admin_log') is not null
-          and to_regclass('poll_options') is not null and to_regclass('poll_votes') is not null) as tables,
+          and to_regclass('poll_options') is not null and to_regclass('poll_votes') is not null
+          and to_regclass('site_visits') is not null and to_regclass('site_users') is not null) as tables,
         (select count(*)::int from information_schema.columns where table_schema = current_schema() and (
           (table_name = 'market_drafts' and column_name = 'user_id') or
           (table_name = 'market_purchases' and column_name in ('user_id', 'buyer_email', 'refunded_at', 'released_at')) or
@@ -738,6 +795,19 @@ export class NeonStore implements MarketStore {
         created_at timestamptz not null default now()
       )`;
       await this.sql`create index if not exists poll_votes_ip_idx on poll_votes (ip_hash, created_at)`;
+      await this.sql`create table if not exists site_visits (
+        day date not null,
+        hash text not null,
+        primary key (day, hash)
+      )`;
+      await this.sql`create table if not exists site_users (
+        user_id text primary key,
+        email text not null,
+        name text not null default '',
+        first_seen timestamptz not null default now(),
+        last_seen timestamptz not null default now(),
+        logins integer not null default 1
+      )`;
       // Índices de las consultas calientes: dueño actual de un espacio (`unit_id`, último `id`),
       // «últimas compras» (por fecha) y compras de una cuenta; y la limpieza de borradores.
       await this.sql`create index if not exists market_purchases_user_idx on market_purchases (user_id)`;
@@ -1170,5 +1240,53 @@ export class NeonStore implements MarketStore {
   async resetPoll(): Promise<void> {
     await this.ensure();
     await this.sql`delete from poll_votes`;
+  }
+
+  private lastVisitCleanup = 0;
+
+  async recordVisit(day: string, hash: string): Promise<void> {
+    await this.ensure();
+    // Se conservan 13 meses de visitas; la limpieza corre como mucho una vez por hora y arranque.
+    if (Date.now() - this.lastVisitCleanup > 3_600_000) {
+      this.lastVisitCleanup = Date.now();
+      await this.sql`delete from site_visits where day < current_date - 400`;
+    }
+    await this.sql`insert into site_visits (day, hash) values (${day}::date, ${hash}) on conflict do nothing`;
+  }
+
+  async visitStats(today: string): Promise<VisitStats> {
+    await this.ensure();
+    const [totals, days, users] = await Promise.all([
+      this.sql`select
+          (select count(*)::int from site_visits where day = ${today}::date) as today,
+          (select count(distinct hash)::int from site_visits where day >= ${today}::date - 6) as last7,
+          (select count(distinct hash)::int from site_visits where day >= ${today}::date - 29) as last30,
+          (select count(distinct hash)::int from site_visits) as total,
+          (select min(day)::text from site_visits) as since`,
+      this.sql`select day::text as day, count(*)::int as visitors from site_visits where day >= ${today}::date - 13 group by day`,
+      this.sql`select count(*)::int as n from site_users`,
+    ]);
+    const known = new Map(days.map((row) => [String(row.day), Number(row.visitors)]));
+    const base = Date.parse(`${today}T00:00:00Z`);
+    const byDay = Array.from({ length: 14 }, (_, i) => new Date(base - (13 - i) * 86_400_000).toISOString().slice(0, 10)).map((day) => ({
+      day,
+      visitors: known.get(day) ?? 0,
+    }));
+    const row = totals[0] ?? {};
+    return {
+      today: Number(row.today ?? 0),
+      last7: Number(row.last7 ?? 0),
+      last30: Number(row.last30 ?? 0),
+      total: Number(row.total ?? 0),
+      since: row.since ? String(row.since) : null,
+      byDay,
+      signedIn: Number(users[0]?.n ?? 0),
+    };
+  }
+
+  async recordLogin(user: { id: string; email: string; name: string }): Promise<void> {
+    await this.ensure();
+    await this.sql`insert into site_users (user_id, email, name) values (${user.id}, ${user.email}, ${user.name})
+      on conflict (user_id) do update set email = excluded.email, name = excluded.name, last_seen = now(), logins = site_users.logins + 1`;
   }
 }

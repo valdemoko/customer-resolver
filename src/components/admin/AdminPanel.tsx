@@ -224,6 +224,7 @@ function Overview({ run }: { run: Run }) {
         <Badge tone={data.purchasesEnabled ? "ok" : "bad"}>Compras {data.purchasesEnabled ? "activadas" : "desactivadas"}</Badge>
         <Badge>{data.admins} {data.admins === 1 ? "administrador" : "administradores"}</Badge>
       </div>
+      <VisitorsCard data={data.visitors} />
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Ingresos" value={formatCents(data.revenueCents)} note="Sin contar devoluciones" />
         <Stat label="Compras de pago" value={data.paidPurchases} note={`${data.freeClaims} reclamaciones gratis`} />
@@ -253,6 +254,44 @@ function Overview({ run }: { run: Run }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ------------------------------------------------------------ visitantes únicos */
+
+function VisitorsCard({ data }: { data: AdminOverview["visitors"] }) {
+  const peak = Math.max(1, ...data.byDay.map((day) => day.visitors));
+  const since = data.since ? new Date(`${data.since}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : null;
+  return (
+    <div className="mt-6 rounded-2xl border border-line bg-surface/60 p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base font-medium text-ink">Personas distintas que han entrado</h2>
+        <p className="text-xs text-subtle">{since ? `Contando desde el ${since}` : "Todavía no hay visitas contadas"}</p>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <Stat label="Hoy" value={data.today.toLocaleString("es-ES")} />
+        <Stat label="Últimos 7 días" value={data.last7.toLocaleString("es-ES")} />
+        <Stat label="Últimos 30 días" value={data.last30.toLocaleString("es-ES")} />
+        <Stat label="Total" value={data.total.toLocaleString("es-ES")} note="Personas distintas" />
+        <Stat label="Con cuenta de Google" value={data.signedIn.toLocaleString("es-ES")} note="Han iniciado sesión" />
+      </div>
+      <div className="mt-5" role="img" aria-label={`Visitantes únicos por día, últimos 14 días: ${data.byDay.map((day) => day.visitors).join(", ")}`}>
+        <div className="flex h-24 items-end gap-1.5">
+          {data.byDay.map((day) => (
+            <div key={day.day} className="group relative flex h-full flex-1 items-end" title={`${day.day}: ${day.visitors}`}>
+              <div className="w-full rounded-t-md bg-accent/70 transition-colors group-hover:bg-accent" style={{ height: `${Math.max(day.visitors > 0 ? 6 : 2, (day.visitors / peak) * 100)}%` }} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-1.5 flex justify-between text-[11px] text-subtle">
+          <span>{new Date(`${data.byDay[0]?.day}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>
+          <span>hoy</span>
+        </div>
+      </div>
+      <p className="mt-4 text-xs leading-relaxed text-subtle">
+        Es una estimación sin cookies: se cuenta una vez cada conexión y navegador distintos, sin guardar la IP. No cuenta robots ni administradores. Dos personas con la misma conexión y navegador cuentan como una; una persona con dos dispositivos, como dos.
+      </p>
+    </div>
   );
 }
 

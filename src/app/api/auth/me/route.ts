@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authConfigured } from "@/lib/auth/google";
+import { isAdminEmail } from "@/lib/admin/auth";
 import { currentUser } from "@/lib/auth/server";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await currentUser();
   return NextResponse.json(
-    { user: user ? { name: user.name, email: user.email, picture: user.picture } : null, enabled: authConfigured() },
+    { user: user ? { name: user.name, email: user.email, picture: user.picture } : null, enabled: authConfigured(), admin: isAdminEmail(user?.email) },
     { headers: { "cache-control": "no-store" } },
   );
 }

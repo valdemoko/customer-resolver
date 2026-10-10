@@ -8,7 +8,8 @@ import {
 } from "@/lib/market/service";
 import { publicUnitLabel } from "@/lib/market/label";
 import { lockedUntil } from "@/lib/market/pricing";
-import type { AdminAccount, AdminLogEntry, AdminPurchase, AdminUnit, Ban, PollTally } from "@/lib/market/store";
+import type { AdminAccount, AdminLogEntry, AdminPurchase, AdminUnit, Ban, PollTally, VisitStats } from "@/lib/market/store";
+import { madridDay } from "@/lib/visits";
 import { UNIT_KIND_LABEL, unitKindOf } from "@/lib/market/types";
 import { FREE_UNIT_IDS, buildingNameOf, isFreeUnit, isKnownUnit, unitCatalogCounts } from "@/lib/market/units";
 import { invalidatePoll } from "@/lib/poll";
@@ -47,16 +48,18 @@ export type AdminOverview = {
   stripeMode: "producción" | "pruebas" | "sin configurar";
   purchasesEnabled: boolean;
   admins: number;
+  visitors: VisitStats;
 };
 
 export async function adminOverview(): Promise<AdminOverview> {
   const store = await getMarketStore();
-  const [board, stats, units, purchases, poll] = await Promise.all([
+  const [board, stats, units, purchases, poll, visitors] = await Promise.all([
     store.leaderboards(1),
     store.adminStats(),
     store.adminUnits(),
     store.adminPurchases(2000),
     store.pollTally(),
+    store.visitStats(madridDay()),
   ]);
   const taken = new Set(units.map((unit) => unit.unitId));
   const live = purchases.filter((purchase) => !purchase.refundedAt && !purchase.releasedAt);
@@ -78,6 +81,7 @@ export async function adminOverview(): Promise<AdminOverview> {
     stripeMode: key.startsWith("sk_live") ? "producción" : key.startsWith("sk_test") ? "pruebas" : "sin configurar",
     purchasesEnabled: process.env.PURCHASES_ENABLED === "true",
     admins: adminEmails().length,
+    visitors,
   };
 }
 
