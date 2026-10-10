@@ -119,4 +119,16 @@ describe("editar el anuncio después de pagar", () => {
     board = await getLeaderboards();
     expect(board.latest.map((row) => row.buyer)).toEqual(["Librería Luna", "Panadería Sol y Luna"]);
   });
+
+  it("un espacio con foto única (`images.all`) enseña que tiene foto, para el panel y para la edición", async () => {
+    const PIXEL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const withPhoto = { name: "Con foto", url: "https://example.com", description: "", sameForAll: true, images: { all: PIXEL } };
+    const fake = fakeStripe("cs_test_foto1");
+    await createCheckout({ unitId: BUILDING, content: withPhoto }, { stripe: fake.stripe });
+    const draftId = fake.create.mock.calls[0]?.[0].metadata?.draftId as string;
+    await completeFromSession({ id: "cs_test_foto1", payment_status: "paid", amount_total: 100, metadata: { draftId, unitId: BUILDING }, customer_details: { email: "a@example.com" } });
+    expect((await getUnitView(BUILDING)).owner).toMatchObject({ hasLogo: true, faces: ["all"] });
+    // Sin foto no la hay.
+    expect((await getUnitView(OTHER)).owner).toBeNull();
+  });
 });

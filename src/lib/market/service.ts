@@ -84,7 +84,8 @@ function view(id: string, stored: StoredUnit | null): UnitView {
           name: content.name,
           url: content.url,
           description: content.description,
-          hasLogo: content.logo !== "",
+          // La foto única de un espacio (`images.all`) hace también de logo: sin esto el panel y la edición no la veían.
+          hasLogo: content.logo !== "" || Boolean(content.images.all),
           faces: Object.keys(content.images),
           sameForAll: content.sameForAll,
           framing: content.framing ?? DEFAULT_FRAMING,

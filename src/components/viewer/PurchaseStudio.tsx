@@ -181,12 +181,17 @@ export function PurchaseStudio({
   const [working, setWorking] = useState<ImagePreset | null>(null);
   const [accepted, setAccepted] = useState(editing); // al editar, las condiciones ya se aceptaron al comprar
   // Al editar, la foto actual se carga como punto de partida.
+  const [photoLoading, setPhotoLoading] = useState(editing && Boolean(view.owner?.hasLogo));
   useEffect(() => {
     if (!editing || !view.owner?.hasLogo) return;
     let alive = true;
     imageAsDataUrl(imageUrl(unitId, "logo", view.rev))
       .then((dataUrl) => alive && setPhoto((current) => current || dataUrl))
-      .catch(() => undefined);
+      .catch(() => {
+        // Sin la foto actual, guardar la borraría: se avisa en vez de callar.
+        if (alive) setError("No se pudo cargar la foto actual. Si guardas ahora, el anuncio se quedará sin foto: vuelve a subirla.");
+      })
+      .finally(() => alive && setPhotoLoading(false));
     return () => {
       alive = false;
     };
@@ -479,7 +484,7 @@ export function PurchaseStudio({
                 {error}
               </p>
             ) : null}
-            <Button variant="primary" className="h-12 w-full" onClick={() => void pay()} disabled={busy || working !== null || (free && !account)}>
+            <Button variant="primary" className="h-12 w-full" onClick={() => void pay()} disabled={busy || working !== null || photoLoading || (free && !account)}>
               {editing || free ? null : <Lock size={15} strokeWidth={2} aria-hidden="true" />}
               {editing ? (busy ? "Guardando…" : "Guardar cambios") : free ? (busy ? "Publicando…" : "Publicar gratis") : busy ? "Abriendo Stripe…" : `Pagar ${price} con Stripe`}
             </Button>
