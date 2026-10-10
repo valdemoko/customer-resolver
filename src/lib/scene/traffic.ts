@@ -566,6 +566,8 @@ export function buildTraffic(options: {
       const flipped = quadGeometry(16, true);
       geometries.push(flipped);
       back.geometry = flipped;
+      // `flipped` ya mira hacia atrás y tiene la u invertida: sin el giro de 180° de `addPanel`, que lo dejaría mirando al frente (oculto).
+      back.rotation.y = 0;
       panel.flutter[1] = flipped;
     }
     group.add(anchor);
