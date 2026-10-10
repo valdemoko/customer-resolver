@@ -43,6 +43,7 @@ export function setMarketStore(store: MarketStore | null): void {
   storeOverride = store;
   cachedStore = null;
   invalidateMarketCaches();
+  banCache = null;
 }
 
 /**
@@ -59,6 +60,29 @@ let boardCache: { at: number; value: LeaderboardsPayload } | null = null;
 export function invalidateMarketCaches(): void {
   stateCache = null;
   boardCache = null;
+}
+
+/* ---------------------------------------------------------------- cuentas bloqueadas */
+let banCache: { at: number; keys: Set<string> } | null = null;
+export const invalidateBans = (): void => {
+  banCache = null;
+};
+
+/** ¿Está bloqueada esta persona (por correo o por cuenta)? La lista se guarda 20 s en memoria. */
+export async function isBanned(email?: string | null, userId?: string | null): Promise<boolean> {
+  try {
+    if (!banCache || Date.now() - banCache.at > 20_000) {
+      const store = await getMarketStore();
+      banCache = { at: Date.now(), keys: new Set((await store.listBans()).map((ban) => ban.key)) };
+    }
+    return Boolean((email && banCache.keys.has(email.trim().toLowerCase())) || (userId && banCache.keys.has(userId)));
+  } catch {
+    return false;
+  }
+}
+
+async function assertNotBanned(email?: string | null, userId?: string | null): Promise<void> {
+  if (await isBanned(email, userId)) throw new MarketError("Esta cuenta está suspendida. Escribe a contacto si crees que es un error.", 403);
 }
 
 export async function getMarketStore(): Promise<MarketStore> {
@@ -195,6 +219,7 @@ export async function createCheckout(
 ): Promise<{ url: string; amountCents: number; draftId: string }> {
   if (!purchasesEnabled) throw new MarketError(PURCHASES_DISABLED_LABEL, 403);
   if (!isKnownUnit(input.unitId)) throw new MarketError("Unidad desconocida.", 404);
+  await assertNotBanned(input.userEmail, input.userId);
   const content = parseContent(input.content);
   const store = await getMarketStore();
   const stored = await store.getUnit(input.unitId);
@@ -242,7 +267,7 @@ export async function completeFromSession(
     customer_email?: string | null;
   },
   deps: { stripe?: Stripe } = {},
-): Promise<{ applied: boolean; unit: UnitView; refunded?: boolean } | null> {
+): Promise<{ applied: boolean; unit: UnitView; refunded?: boolean; banned?: boolean } | null> {
   if (session.payment_status !== "paid") return null;
   const draftId = session.metadata?.draftId;
   const unitId = session.metadata?.unitId;
@@ -259,6 +284,12 @@ export async function completeFromSession(
     return null;
   }
   const buyerEmail = session.customer_details?.email ?? session.customer_email ?? null;
+  if (await isBanned(buyerEmail, draft.userId)) {
+    // Una persona bloqueada no publica: se devuelve el pago íntegro y no se aplica.
+    const banned = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+    if (banned) await (deps.stripe ?? stripeClient()).refunds.create({ payment_intent: banned }, { idempotencyKey: `refund-${session.id}` });
+    return { applied: false, refunded: true, banned: true, unit: view(unitId, await store.getUnit(unitId)) };
+  }
   const result = await store.completePurchase({ sessionId: session.id, draftId, amountCents: paid, buyerEmail });
   if (!result) return null;
   if (result.applied) invalidateMarketCaches();
@@ -288,6 +319,7 @@ export async function confirmSession(sessionId: string, deps: { stripe?: Stripe 
   }
   const done = await completeFromSession(session, deps);
   if (!done) throw new MarketError("El pago aún no figura como completado.", 409);
+  if (done.banned) throw new MarketError("No se ha podido completar la compra con esta cuenta. Hemos devuelto el pago íntegro.", 403);
   if (done.refunded) {
     throw new MarketError("Otra persona compró este espacio justo antes que tú. Hemos devuelto el pago completo; puedes volver a intentarlo cuando el espacio vuelva a estar disponible.", 409);
   }
@@ -400,6 +432,7 @@ export async function editUnit(input: {
   const byAccount = Boolean(input.userId) && belongsTo(owner, input.userId!, input.userEmail);
   const byToken = Boolean(input.token) && owner.sessionId !== "" && (await verifySigned(input.token ?? undefined)) === `edit:${owner.sessionId}`;
   if (!byAccount && !byToken) throw new MarketError("Solo el dueño actual de este espacio puede editar su anuncio.", 403);
+  await assertNotBanned(input.userEmail ?? owner.buyerEmail, input.userId ?? owner.userId);
   const updated = await store.editContent(input.unitId, content);
   if (!updated) throw new MarketError("Este espacio todavía no tiene dueño.", 404);
   invalidateMarketCaches();
@@ -421,6 +454,7 @@ export async function claimFree(input: {
   if (!purchasesEnabled) throw new MarketError(PURCHASES_DISABLED_LABEL, 403);
   if (!isKnownUnit(input.unitId) || !isFreeUnit(input.unitId)) throw new MarketError("Este espacio no es gratis.", 400);
   if (!input.userId) throw new MarketError("Entra con Google para reclamar un espacio gratis.", 401);
+  await assertNotBanned(input.userEmail, input.userId);
   const content = parseContent(input.content);
   const store = await getMarketStore();
   const stored = await store.getUnit(input.unitId);
@@ -433,6 +467,7 @@ export async function claimFree(input: {
   const draftId = randomId("dr");
   await store.saveDraft({ id: draftId, unitId: input.unitId, content, purchasesAtCreation: 0, createdAt: new Date().toISOString(), userId: input.userId });
   const result = await store.completePurchase({ sessionId: `free_${draftId}`, draftId, amountCents: 0, buyerEmail: input.userEmail ?? null });
+  await store.deleteDraft(draftId); // una reclamación gratis se completa al instante: el borrador ya no hace falta
   if (!result || result.rejected) throw new MarketError("Alguien reclamó este espacio justo antes que tú.", 409);
   invalidateMarketCaches();
   return view(result.unit.id, result.unit);

@@ -83,8 +83,10 @@ export const legalDocs: LegalDoc[] = [
         heading: "Qué datos se tratan",
         body: [
           "Navegación: al visitar el sitio los servidores reciben datos técnicos inevitables (dirección IP, navegador, fecha y página solicitada). No usamos herramientas de analítica ni de publicidad de terceros.",
+          "Registro de administración: las acciones del equipo sobre anuncios y cuentas (retirar un anuncio, bloquear a una persona, devolver un pago) quedan anotadas con su motivo. Si una cuenta se bloquea por incumplir las normas, se guarda su correo en la lista de bloqueos.",
           "Cuenta (opcional): si entras con Google recibimos tu identificador de Google, tu correo, tu nombre y tu foto de perfil. No recibimos ni guardamos ninguna contraseña. Estos datos se guardan en una cookie de sesión y el identificador se asocia a tus compras.",
           "Compras: nombre del anunciante, descripción, web e imágenes que subes (son públicos en el mapa), el espacio comprado, el importe y la fecha. El pago lo procesa Stripe: nunca vemos ni guardamos los datos de tu tarjeta. Stripe nos facilita el correo con el que pagas y lo guardamos junto a la compra para asociarla a tu cuenta si luego entras con Google con ese mismo correo, y para verificar que eres el dueño cuando editas tu anuncio.",
+          "Encuesta de la próxima ciudad: tu voto y un identificador (tu cuenta, o una cookie aleatoria si votas sin iniciar sesión) para que cada persona vote una vez, y una huella con sal de tu conexión, que no permite recuperar tu IP, para limitar los votos masivos desde un mismo origen. El voto es anónimo para el público.",
           "Tus contenidos públicos: lo que escribas en el nombre, la descripción y la web, y las fotos que subas, serán visibles para cualquier visitante. No incluyas datos personales de terceros ni tuyos que no quieras hacer públicos.",
         ],
       },
@@ -146,6 +148,7 @@ export const legalDocs: LegalDoc[] = [
           "Resolveo no usa cookies de analítica, de publicidad ni de seguimiento. Solo se usa almacenamiento estrictamente necesario, que no requiere tu consentimiento (art. 22.2 LSSI):",
           "rs_session (cookie, 30 días): mantiene tu sesión si entras con Google. Solo existe si inicias sesión.",
           "rs_oauth (cookie, 10 minutos): protege el paso de inicio de sesión con Google frente a falsificaciones. Se borra al terminar.",
+          "rs_voter (cookie, 1 año): un identificador aleatorio que recuerda que ya has votado en la encuesta de la próxima ciudad. Solo existe si votas sin haber iniciado sesión.",
           "Ciudades guardadas y enlaces de edición (almacenamiento local del navegador): recuerdan las ciudades que marcas como guardadas y, si compras como invitado, el enlace privado para editar tu anuncio. No salen de tu navegador.",
         ],
       },

@@ -23,6 +23,7 @@ const ERRORS: Record<string, string> = {
   cancelado: "Has cancelado el acceso con Google. Puedes volver a intentarlo cuando quieras.",
   estado: "La sesión de acceso caducó. Vuelve a pulsar el botón.",
   google: "Google no ha podido confirmar tu cuenta. Inténtalo de nuevo en un momento.",
+  suspendida: "Esta cuenta está suspendida. Si crees que es un error, escribe al correo de contacto.",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

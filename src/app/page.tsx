@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, ArrowUpRight, Eye, MousePointerClick, CreditCard } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { CityPoll } from "@/components/marketing/CityPoll";
 import { CityDirectory } from "@/components/marketing/CityDirectory";
 import { CountUp } from "@/components/marketing/CountUp";
 import { HeroStage } from "@/components/marketing/HeroStage";
@@ -233,6 +234,23 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
               </Link>
               .
             </p>
+          </Reveal>
+        </section>
+
+        {/* ------------------------------------------------------- encuesta */}
+        <section id="encuesta" aria-labelledby="encuesta-titulo" className="mx-auto max-w-[88rem] scroll-mt-20 px-4 pt-24 sm:px-8 sm:pt-36">
+          <Reveal>
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-16">
+              <div>
+                <h2 id="encuesta-titulo" className="display-face text-[2rem] font-medium tracking-[-0.035em] text-ink sm:text-5xl">
+                  ¿Qué ciudad abrimos después?
+                </h2>
+                <p className="mt-4 max-w-[34ch] text-base leading-relaxed text-muted">
+                  Málaga ya está abierta. Vota la siguiente: la más votada será la próxima en llegar al mapa.
+                </p>
+              </div>
+              <CityPoll />
+            </div>
           </Reveal>
         </section>
 

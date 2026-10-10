@@ -68,6 +68,21 @@ check("enlace `javascript:` en el anuncio: rechazado", r.status >= 400 && r.stat
 r = await call("/api/market/image?unit=a:plane-1&face=../../etc/passwd");
 check("imagen con cara maliciosa: 400", r.status === 400, r.status);
 
+/* ------------------------------------------------- panel de administración y encuesta */
+r = await call("/api/admin?view=units");
+check("el panel de administración sin sesión: 401", r.status === 401, r.status);
+r = await post("/api/admin", { action: "release", unitId: owned }, { "x-admin-request": "1" });
+check("retirar un anuncio sin ser administrador: 401", r.status === 401, r.status);
+r = await post("/api/admin", { action: "ban", key: "cualquiera@example.com" }, { "x-admin-request": "1", cookie: "rs_session=" + Buffer.from(JSON.stringify({ id: "x", email: "intruso@example.com", exp: 9999999999 })).toString("base64url") + ".firmafalsa" });
+check("bloquear a alguien con una sesión falsificada: rechazado", r.status === 401 || r.status === 403, r.status);
+const adminPage = await fetch(url + "/admin");
+const adminHtml = await adminPage.text();
+check("la página /admin no se indexa y sin sesión solo enseña el acceso", /noindex/.test(adminHtml) && !/Retirar anuncio|Reembolsar/.test(adminHtml), adminPage.status);
+r = await call("/api/poll");
+check("la encuesta pública responde con ciudades y sin datos de personas", Array.isArray(r.body?.options) && r.body.options.length > 0 && !JSON.stringify(r.body).includes("@"), r.status);
+r = await post("/api/poll", { optionId: "atlantida" });
+check("votar una ciudad que no existe: 404", r.status === 404, r.status);
+
 /* ----------------------------------------------------------- sesión y acceso */
 r = await call("/api/auth/me", { headers: { cookie: "rs_session=eyJpZCI6IngifQ.firmafalsa" } });
 check("una cookie de sesión falsificada no inicia sesión", r.body?.user === null, r.body);
