@@ -596,9 +596,10 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
       ) : null}
 
       {walking ? (
+        <div className="pointer-events-none absolute inset-x-3 bottom-5 z-20 flex justify-center">
         <div
           role="note"
-          className="stamp-in pointer-events-none absolute bottom-5 left-1/2 z-20 flex w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-line-strong bg-surface/90 px-4 py-2.5 text-xs text-muted shadow-[var(--shadow-float)] backdrop-blur-md"
+          className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-line-strong bg-surface/90 px-4 py-2.5 text-xs text-muted shadow-[var(--shadow-float)] backdrop-blur-md"
         >
           <Hint keys={["W", "A", "S", "D"]} label="moverte" />
           <Hint keys={["Mayús"]} label="correr" />
@@ -606,6 +607,7 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
           <Hint keys={["F"]} label="súper velocidad" />
           <Hint keys={["Arrastrar"]} label="mirar" />
           <Hint keys={["Esc"]} label="salir" />
+        </div>
         </div>
       ) : null}
 
