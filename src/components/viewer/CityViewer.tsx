@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Compass, Crosshair, Eye, Footprints, Layers, Pause, Play, RotateCcw, TriangleAlert, Zap } from "lucide-react";
+import { ArrowLeft, Compass, Crosshair, Footprints, Layers, Pause, Play, RotateCcw, TriangleAlert, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { CityConfig } from "@/lib/cities/schema";
@@ -83,7 +83,7 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
   /** Modo «Explorar a pie» activo, y si el dispositivo lo admite (ratón y teclado; en móvil no se ofrece). */
   const [walking, setWalking] = useState(false);
   const [canWalk, setCanWalk] = useState(false);
-  const [walkFlags, setWalkFlags] = useState({ firstPerson: false, boost: false });
+  const [walkFlags, setWalkFlags] = useState({ boost: false });
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const scene = city.scene;
@@ -501,17 +501,6 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => engineRef.current?.toggleFirstPerson()}
-              aria-pressed={walkFlags.firstPerson}
-              title="Primera persona (V)"
-              className={cn("bg-surface/85 shadow-[var(--shadow-float)] backdrop-blur-md", walkFlags.firstPerson && "border-accent/70 text-accent-ink")}
-            >
-              <Eye size={14} strokeWidth={2} aria-hidden="true" />
-              Primera persona
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
               onClick={() => engineRef.current?.toggleBoost()}
               aria-pressed={walkFlags.boost}
               title="Súper velocidad (F)"
@@ -614,7 +603,6 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
           <Hint keys={["W", "A", "S", "D"]} label="moverte" />
           <Hint keys={["Mayús"]} label="correr" />
           <Hint keys={["Espacio"]} label="saltar" />
-          <Hint keys={["V"]} label="primera persona" />
           <Hint keys={["F"]} label="súper velocidad" />
           <Hint keys={["Arrastrar"]} label="mirar" />
           <Hint keys={["Esc"]} label="salir" />

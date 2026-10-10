@@ -60,6 +60,21 @@ describe("colisiones del modo a pie", () => {
     expect(Math.hypot(edge.x, edge.z)).toBeLessThan(30.01); // ...y no lo cruzó
   });
 
+  it("se puede cruzar el agua por un puente o un muelle", () => {
+    const river = new WalkWorld({
+      buildings: [],
+      water: [{ outer: [[10, -50], [30, -50], [30, 50], [10, 50]], holes: [] }],
+      bounds: [],
+      overWater: [[[8, -2], [32, -2], [32, 2], [8, 2]]], // puente de 4 m de ancho
+    });
+    expect(river.inWater(20, 20)).toBe(true);
+    expect(river.inWater(20, 0)).toBe(false);
+    const across = run(river, { forward: true, run: true }, 5, 0, createWalker(0, 0));
+    expect(across.x).toBeGreaterThan(30); // cruzó por el puente
+    const beside = run(river, { forward: true, run: true }, 3, 0, createWalker(0, 10));
+    expect(beside.x).toBeLessThan(10); // fuera del puente, la orilla lo para
+  });
+
   it("encuentra el sitio libre más cercano si se empieza dentro de un edificio", () => {
     const free = world.findFree(20, 0, 0.75);
     expect(free).not.toBeNull();
@@ -164,7 +179,7 @@ describe("súper velocidad", () => {
       stepWalker(state, { ...NONE, boost: true, jump: frame < 60 }, 0, 1 / 60, world);
       peak = Math.max(peak, state.y);
     }
-    expect(peak).toBeGreaterThan(WALKER.jumpHeight * 2);
+    expect(peak).toBeGreaterThan(WALKER.jumpHeight * 1.5);
   });
 
   it("no atraviesa un muro fino aunque se vaya a toda velocidad con pocos fotogramas por segundo", () => {

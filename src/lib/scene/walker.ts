@@ -44,12 +44,15 @@ export class WalkWorld {
   private readonly solids: Solid[];
   private readonly grid = new Map<string, number[]>();
   private readonly water: Array<{ box: Solid; holes: Ring[] }>;
+  /** Puentes, muelles y escolleras: se camina por ellos aunque estén sobre el agua. */
+  private readonly overWater: Solid[];
   private readonly bounds: HalfPlane[];
 
-  constructor(options: { buildings: Ring[]; water: WaterShape[]; bounds: HalfPlane[] }) {
+  constructor(options: { buildings: Ring[]; water: WaterShape[]; bounds: HalfPlane[]; overWater?: Ring[] }) {
     this.solids = options.buildings.filter((ring) => ring.length >= 3).map(boundsOf);
     this.water = options.water.filter((shape) => shape.outer.length >= 3).map((shape) => ({ box: boundsOf(shape.outer), holes: shape.holes }));
     this.bounds = options.bounds;
+    this.overWater = (options.overWater ?? []).filter((ring) => ring.length >= 3).map(boundsOf);
     this.solids.forEach((solid, index) => {
       for (let cx = Math.floor(solid.minX / CELL_M); cx <= Math.floor(solid.maxX / CELL_M); cx += 1) {
         for (let cz = Math.floor(solid.minZ / CELL_M); cz <= Math.floor(solid.maxZ / CELL_M); cz += 1) {
@@ -85,6 +88,9 @@ export class WalkWorld {
   }
 
   inWater(x: number, z: number): boolean {
+    for (const deck of this.overWater) {
+      if (x >= deck.minX && x <= deck.maxX && z >= deck.minZ && z <= deck.maxZ && pointInRing([x, z], deck.ring)) return false;
+    }
     for (const { box, holes } of this.water) {
       if (x < box.minX || x > box.maxX || z < box.minZ || z > box.maxZ) continue;
       if (!pointInRing([x, z], box.ring)) continue;
@@ -207,9 +213,9 @@ export const WALKER = {
   walkSpeed: 4.4,
   runSpeed: 9,
   /** Súper velocidad: modo aparte, con aceleración y salto propios. */
-  boostSpeed: 42,
-  boostAccel: 110,
-  boostJumpHeight: 3.4,
+  boostSpeed: 30,
+  boostAccel: 40,
+  boostJumpHeight: 2.2,
   /** Aceleración en suelo y en el aire (m/s²). */
   groundAccel: 38,
   airAccel: 12,

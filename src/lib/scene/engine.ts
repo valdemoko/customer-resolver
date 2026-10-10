@@ -122,8 +122,8 @@ export type EngineOptions = {
   onContextLost?: () => void;
   /** Entra o sale del modo «Explorar a pie». */
   onWalkChange?: (walking: boolean) => void;
-  /** Primera/tercera persona y súper velocidad del modo a pie. */
-  onWalkFlags?: (flags: { firstPerson: boolean; boost: boolean }) => void;
+  /** Súper velocidad del modo a pie. */
+  onWalkFlags?: (flags: { boost: boolean }) => void;
   /** La persona sigue alejando el zoom con la cámara ya en el máximo (para pasar al mapa del mundo). */
   onZoomOutPast?: (amount: number) => void;
 };
@@ -192,7 +192,6 @@ export type CityEngine = {
   enterWalk: () => boolean;
   exitWalk: () => void;
   isWalking: () => boolean;
-  toggleFirstPerson: () => void;
   toggleBoost: () => void;
   /** Detiene (o reanuda) el dibujado: se usa cuando la ciudad queda oculta tras el mapa del mundo. */
   setRenderPaused: (paused: boolean) => void;
@@ -333,6 +332,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   let flight: Flight | null = null;
   let walkMode: WalkMode | null = null;
   let renderPaused = false;
+  let walkDecks: Array<{ kind: string; ring: Array<[number, number]> }> = [];
   let roads: RoadMeshes | null = null;
   let marketViews: UnitView[] = [];
   let marketVersion = "0";
@@ -1284,27 +1284,23 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       {
         // Modo «Explorar a pie»: muros = edificios de más de un metro; agua profunda y borde de la zona no se cruzan.
         const deepWater = new Set(["sea", "dock", "river", "reservoir", "pond"]);
+        const walkableOverWater = new Set(["bridge", "pier", "quay", "breakwater", "steps"]);
+        walkDecks = loaded.features
+          .filter((feature) => feature.layer === "surface" && walkableOverWater.has(feature.kind))
+          .flatMap((feature) => feature.polygons.map((polygon) => ({ kind: feature.kind, ring: polygon.outer })));
         const walkWorld = new WalkWorld({
           buildings: [...city.buildingsById.values()].filter((record) => record.renderHeightM >= 1).map((record) => record.footprint),
           water: loaded.features
             .filter((feature) => feature.layer === "water" && deepWater.has(feature.kind || "water"))
             .flatMap((feature) => feature.polygons.map((polygon) => ({ outer: polygon.outer, holes: polygon.holes }))),
           bounds: corePlanes,
+          // Puentes, muelles, escolleras y muelles de carga: se cruzan aunque estén sobre el agua.
+          overWater: walkDecks.map((deck) => deck.ring),
         });
-        const wallRay = new THREE.Raycaster();
         walkMode = createWalkMode({
-          scene,
           camera,
           container,
           world: walkWorld,
-          rayDistance: (from, direction, maxDistance) => {
-            const mesh = city?.pickMesh;
-            if (!mesh) return null;
-            wallRay.set(from, direction);
-            wallRay.far = maxDistance;
-            const hit = wallRay.intersectObject(mesh, false)[0];
-            return hit ? hit.distance : null;
-          },
           accentHex: hexToNumber(ACCENT),
           reduceMotion,
           ...(options.onWalkFlags ? { onFlags: options.onWalkFlags } : {}),
@@ -1581,6 +1577,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       const mz = (record.a[1] + record.b[1]) / 2 + record.normal[1] * 0.2;
       return project(mx, 0.3 * options.exaggeration + record.heightM * 0.5, mz);
     },
+    walkDecks: () => walkDecks.map((deck) => ({ kind: deck.kind, points: deck.ring.length, centroid: deck.ring.reduce((sum, p) => [sum[0] + p[0] / deck.ring.length, sum[1] + p[1] / deck.ring.length], [0, 0]) })),
     walk: () => (walkMode ? { active: walkMode.active, ...walkMode.snapshot() } : null),
     clipBounds: () => clip,
     coreBounds: () => core,
@@ -1674,7 +1671,6 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     },
     exitWalk,
     isWalking: () => walkMode?.active ?? false,
-    toggleFirstPerson: () => walkMode?.toggleFirstPerson(),
     toggleBoost: () => walkMode?.toggleBoost(),
     setRenderPaused: (paused: boolean) => {
       renderPaused = paused;

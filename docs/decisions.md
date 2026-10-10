@@ -597,3 +597,7 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 ## Primera persona, super velocidad y salto al mapa del mundo
 - En el modo a pie: V alterna primera/tercera persona y F la super velocidad (42 m/s, salto de 3,4 m, campo de vision que se abre, camara que se retira y rayas de velocidad en un lienzo superpuesto). El avance va en pasos de 0,3 m para no atravesar muros finos.
 - Alejar el zoom con la camara ya en el maximo (`onZoomOutPast` en `camera.ts`, rueda o pellizco) encoge toda la vista hacia el punto de Malaga del mapa de puntos de la portada (`WorldTransition.tsx`); con un empujon mas queda el mapa a pantalla completa. Acercar el zoom o pulsar el punto lleva a la ciudad. Todo depende de un unico valor `p` (0 ciudad, 1 mapa), asi que ida y vuelta son la misma animacion y soltar a medias la deshace. Con la ciudad oculta el motor deja de dibujar (`setRenderPaused`).
+
+## Modo a pie: solo primera persona, mas suave, y puentes
+- Se elimina el personaje y la tercera persona: se camina siempre en primera persona (FOV 90, ojos a 1,65 m). La super velocidad pasa a 30 m/s con aceleracion progresiva, FOV +11, sin temblor de camara y rayas mas lentas y tenues.
+- Puentes, muelles, escolleras, muelles de carga y escaleras (capa `surface`) se pueden cruzar aunque esten sobre el agua (`overWater` en `WalkWorld`).
