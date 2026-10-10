@@ -138,16 +138,16 @@ describe("compra con Stripe", () => {
     expect(view.owner?.name).toBe("Panadería Sol");
     expect(view.owner?.faces).toEqual(["f0"]);
 
-    // Durante las 2 horas siguientes el espacio está protegido: nadie puede comprarlo.
+    // Durante los 5 días siguientes el espacio está protegido: nadie puede comprarlo.
     expect(view.lockedUntil).not.toBeNull();
     await expect(
       createCheckout({ unitId: BUILDING, content: { ...validContent, name: "Librería Luna" } }, { stripe: fakeStripe("cs_test_def456").stripe }),
     ).rejects.toMatchObject({ status: 409 });
 
-    // Pasadas las 2 horas, la siguiente compra cuesta 1,25 € y sustituye al anterior propietario.
+    // Pasados los 5 días, la siguiente compra cuesta 1,25 € y sustituye al anterior propietario.
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      vi.setSystemTime(Date.now() + 2 * 3600_000 + 60_000);
+      vi.setSystemTime(Date.now() + 5 * 86_400_000 + 60_000);
       expect((await getUnitView(BUILDING)).lockedUntil).toBeNull();
       const next = await createCheckout({ unitId: BUILDING, content: { ...validContent, name: "Librería Luna" } }, { stripe: fakeStripe("cs_test_def456").stripe });
       expect(next.amountCents).toBe(125);

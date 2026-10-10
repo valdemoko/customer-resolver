@@ -5,7 +5,7 @@ import { TopBar } from "@/components/layout/TopBar";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
-  description: "Respuestas claras sobre cómo comprar un espacio, el precio, la protección de dos horas y por qué no hay devoluciones.",
+  description: "Respuestas claras sobre cómo comprar un espacio, el precio, la protección de cinco días y por qué no hay devoluciones.",
   alternates: { canonical: "/preguntas-frecuentes" },
 };
 
@@ -40,15 +40,15 @@ const FAQ: ReadonlyArray<{ group: string; items: ReadonlyArray<{ q: string; a: R
     items: [
       {
         q: "¿Pueden quitarme el espacio?",
-        a: "No durante las dos horas siguientes a tu compra: el espacio queda protegido y nadie puede comprarlo. Pasadas las dos horas, cualquiera puede comprarlo por el precio siguiente y su anuncio sustituirá al tuyo.",
+        a: "No durante los cinco días siguientes a tu compra: el espacio queda protegido y nadie puede comprarlo. Pasados los cinco días, cualquiera puede comprarlo por el precio siguiente y su anuncio sustituirá al tuyo.",
       },
       {
         q: "¿Cuánto tiempo estará mi anuncio?",
-        a: "Hasta que otra persona compre el espacio. Solo se garantizan las dos horas de protección.",
+        a: "Hasta que otra persona compre el espacio. Solo se garantizan los cinco días de protección.",
       },
       {
         q: "¿Puedo cambiar mi anuncio después de pagar?",
-        a: "Sí, sin coste, mientras el espacio siga siendo tuyo. Si compraste conectado con Google, abre tu espacio en el mapa y pulsa «Editar mi anuncio». Si compraste como invitado, el navegador en el que pagaste te lo ofrece, y puedes copiar tu enlace de edición privado para usarlo en otro dispositivo. Editar no reinicia la protección de dos horas.",
+        a: "Sí, sin coste, mientras el espacio siga siendo tuyo. Si compraste conectado con Google, abre tu espacio en el mapa y pulsa «Editar mi anuncio». Si compraste como invitado, el navegador en el que pagaste te lo ofrece, y puedes copiar tu enlace de edición privado para usarlo en otro dispositivo. Editar no reinicia la protección de cinco días.",
       },
       {
         q: "¿Y si dos personas pagan a la vez el mismo espacio?",
@@ -63,7 +63,7 @@ const FAQ: ReadonlyArray<{ group: string; items: ReadonlyArray<{ q: string; a: R
         q: "¿Hay devoluciones?",
         a: (
           <>
-            No. Las compras son definitivas, también si cambias de opinión o si alguien te sustituye pasadas las dos horas. Las excepciones (pago duplicado, error técnico, pago no aplicado) están en{" "}
+            No. Las compras son definitivas, también si cambias de opinión o si alguien te sustituye pasados los cinco días. Las excepciones (pago duplicado, error técnico, pago no aplicado) están en{" "}
             <Link href="/legal/pagos-y-devoluciones" className="underline underline-offset-2 hover:text-ink">
               Pagos y sin devoluciones
             </Link>

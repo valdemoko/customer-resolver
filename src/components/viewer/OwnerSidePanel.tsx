@@ -56,7 +56,7 @@ export function OwnerSidePanel({
         {protectedUntil ? (
           <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1 text-xs text-muted">
             <Lock size={12} strokeWidth={2} aria-hidden="true" />
-            Protegido hasta las <span className="tnum font-medium text-ink">{protectedUntil}</span>
+            Protegido hasta <span className="tnum font-medium text-ink">{protectedUntil}</span>
           </p>
         ) : null}
         {owner.description ? <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/90">{owner.description}</p> : null}

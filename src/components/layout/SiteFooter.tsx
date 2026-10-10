@@ -51,7 +51,7 @@ export function SiteFooter() {
             Publicidad virtual sobre cartografía real. No es una oferta inmobiliaria ni promete revalorización.
           </p>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
-            Las compras son definitivas: no hay devoluciones. Tras comprar, tu espacio queda protegido dos horas.
+            Las compras son definitivas: no hay devoluciones. Tras comprar, tu espacio queda protegido cinco días.
           </p>
         </div>
         {COLUMNS.map((column) => (

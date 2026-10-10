@@ -431,7 +431,7 @@ export function PurchaseStudio({
             <label className="flex cursor-pointer items-start gap-2.5 text-sm">
               <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[var(--c-accent)]" />
               <span className="text-muted">
-                Acepto que mi nombre, descripción, web e imágenes sean públicos en el mapa y que, pasadas dos horas desde mi compra, quien compre después este espacio sustituirá mi anuncio. Entiendo que la compra es inmediata y definitiva, que no hay devoluciones y que pierdo el derecho de desistimiento. Acepto las{" "}
+                Acepto que mi nombre, descripción, web e imágenes sean públicos en el mapa y que, pasados cinco días desde mi compra, quien compre después este espacio sustituirá mi anuncio. Entiendo que la compra es inmediata y definitiva, que no hay devoluciones y que pierdo el derecho de desistimiento. Acepto las{" "}
                 <a href="/legal/condiciones" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">condiciones</a>{" "}y las{" "}
                 <a href="/legal/normas-de-contenido" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">normas de contenido</a>.
               </span>

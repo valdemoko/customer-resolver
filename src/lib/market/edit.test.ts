@@ -60,7 +60,7 @@ describe("editar el anuncio después de pagar", () => {
     expect(edited.owner?.name).toBe("Panadería Sol y Luna");
     expect(edited.purchases).toBe(1); // no es una compra
     expect(edited.priceCents).toBe(before.priceCents); // no cambia el precio
-    expect(edited.lockedUntil).toBe(before.lockedUntil); // no reinicia las dos horas
+    expect(edited.lockedUntil).toBe(before.lockedUntil); // no reinicia los cinco días
     expect(edited.owner?.since).toBe(before.owner?.since);
     expect(edited.rev).not.toBe(before.rev); // sí refresca fotos y caché
   });
@@ -92,7 +92,7 @@ describe("editar el anuncio después de pagar", () => {
     const token = await buy(BUILDING, "cs_test_old", { name: "Ana", email: "ana@example.com" });
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      vi.setSystemTime(Date.now() + 3 * 3600_000); // pasada la protección de dos horas
+      vi.setSystemTime(Date.now() + 6 * 86_400_000); // pasada la protección de cinco días
       await buy(BUILDING, "cs_test_new", { name: "Beto", email: "beto@example.com" });
     } finally {
       vi.useRealTimers();

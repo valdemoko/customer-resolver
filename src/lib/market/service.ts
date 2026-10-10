@@ -8,6 +8,7 @@ import { createCheckoutSession, stripeClient } from "./stripe";
 import { ContentSchema, LIMITS, UNIT_KIND_LABEL, unitKindOf } from "./types";
 import { DEFAULT_FRAMING } from "./types";
 import { lockedUntil } from "./pricing";
+import { formatLockEnd } from "./lock-label";
 import { signValue, verifySigned } from "@/lib/auth/session";
 import { belongsTo } from "./store";
 import type { Content, MarketState, UnitView } from "./types";
@@ -163,8 +164,7 @@ export async function createCheckout(
   const purchases = stored?.purchases ?? 0;
   const protectedUntil = purchases > 0 ? lockedUntil(stored?.updatedAt) : null;
   if (protectedUntil) {
-    const hour = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(protectedUntil));
-    throw new MarketError(`Este espacio acaba de comprarse y está protegido hasta las ${hour} (hora de Madrid). Vuelve a intentarlo después.`, 409);
+    throw new MarketError(`Este espacio acaba de comprarse y está protegido hasta ${formatLockEnd(protectedUntil)} (hora de Madrid). Vuelve a intentarlo después.`, 409);
   }
   const amountCents = priceForPurchases(purchases);
 
@@ -316,7 +316,7 @@ export async function editTokenFor(sessionId: string): Promise<string> {
  * Cambia el anuncio de un espacio YA comprado, sin pagar de nuevo. Lo puede hacer
  * su dueño actual: la cuenta que lo compró (o el mismo correo si pagó como invitado)
  * o quien tenga el enlace privado de edición. No cuenta como compra ni reinicia la
- * protección de dos horas.
+ * protección de cinco días.
  */
 export async function editUnit(input: {
   unitId: string;

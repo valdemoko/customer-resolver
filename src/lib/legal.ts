@@ -170,7 +170,7 @@ export const legalDocs: LegalDoc[] = [
   {
     slug: "condiciones",
     title: "Condiciones de contratación",
-    summary: "Qué compras, cómo funciona el precio, la protección de dos horas y que no hay devoluciones.",
+    summary: "Qué compras, cómo funciona el precio, la protección de cinco días y que no hay devoluciones.",
     sections: [
       {
         heading: "Qué estás comprando",
@@ -187,22 +187,22 @@ export const legalDocs: LegalDoc[] = [
         ],
       },
       {
-        heading: "Protección de dos horas",
+        heading: "Protección de cinco días",
         body: [
-          "Desde el momento en que se completa una compra, ese espacio queda protegido durante dos horas: nadie puede comprarlo ni quitarte el anuncio. Pasadas las dos horas, cualquiera puede comprarlo por el precio siguiente y su anuncio sustituirá al tuyo.",
+          "Desde el momento en que se completa una compra, ese espacio queda protegido durante cinco días: nadie puede comprarlo ni quitarte el anuncio. Pasados los cinco días, cualquiera puede comprarlo por el precio siguiente y su anuncio sustituirá al tuyo.",
           "Si dos personas están pagando el mismo espacio a la vez, solo se aplica la compra que se complete primero. A la otra se le devuelve el importe íntegro de forma automática.",
         ],
       },
       {
         heading: "Duración del anuncio",
         body: [
-          "No se garantiza ninguna duración mínima más allá de las dos horas de protección. Tu anuncio permanece visible mientras nadie compre el espacio y el servicio esté activo. Resolveo puede modificar, suspender o cerrar el servicio o una ciudad; en ese caso no se genera derecho a compensación.",
+          "No se garantiza ninguna duración mínima más allá de los cinco días de protección. Tu anuncio permanece visible mientras nadie compre el espacio y el servicio esté activo. Resolveo puede modificar, suspender o cerrar el servicio o una ciudad; en ese caso no se genera derecho a compensación.",
         ],
       },
       {
         heading: "Sin devoluciones",
         body: [
-          "Todas las compras son definitivas. No hay devoluciones ni reembolsos, ni siquiera si tu anuncio es sustituido pasadas las dos horas de protección, si cambias de opinión o si te equivocas al elegir el espacio o el contenido. Revisa la vista previa antes de pagar.",
+          "Todas las compras son definitivas. No hay devoluciones ni reembolsos, ni siquiera si tu anuncio es sustituido pasados los cinco días de protección, si cambias de opinión o si te equivocas al elegir el espacio o el contenido. Revisa la vista previa antes de pagar.",
           "Los casos en los que sí se devuelve el pago son los que impone la ley, un cobro duplicado o erróneo atribuible a un fallo técnico y el pago que no pudo aplicarse porque otra persona compró el espacio antes (véase «Pagos y sin devoluciones»).",
         ],
       },
@@ -261,7 +261,7 @@ export const legalDocs: LegalDoc[] = [
       {
         heading: "No hay devoluciones",
         body: [
-          "Las compras son definitivas. No se devuelve el dinero por cambiar de opinión, por equivocarte de espacio, de imagen o de texto, ni porque otra persona compre el espacio pasadas las dos horas de protección.",
+          "Las compras son definitivas. No se devuelve el dinero por cambiar de opinión, por equivocarte de espacio, de imagen o de texto, ni porque otra persona compre el espacio pasados los cinco días de protección.",
           "Antes de pagar puedes comprobar la vista previa 3D de tu anuncio y modificarlo todo lo que quieras. Una vez pagado, ya no.",
         ],
       },

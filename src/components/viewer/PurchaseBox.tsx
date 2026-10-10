@@ -45,7 +45,7 @@ export function PurchaseBox({
         <div role="status" className="mt-3 flex items-start gap-3 rounded-2xl border border-line-strong bg-sunken/50 px-4 py-3">
           <Lock size={16} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-accent-ink" />
           <p className="text-sm text-muted">
-            Acaba de comprarse y está protegido: nadie puede quitárselo a su dueño hasta las <span className="tnum font-medium text-ink">{protectedUntil}</span>. Pasada esa hora vuelve a estar disponible.
+            Acaba de comprarse y está protegido: nadie puede quitárselo a su dueño hasta <span className="tnum font-medium text-ink">{protectedUntil}</span>. Pasada esa hora vuelve a estar disponible.
           </p>
         </div>
       ) : null}
@@ -63,7 +63,7 @@ export function PurchaseBox({
       )}
       {purchasesEnabled && !protectedUntil ? (
         <p className="mt-2 text-xs text-muted">
-          Compra definitiva, sin devoluciones. Tu espacio queda protegido dos horas.{" "}
+          Compra definitiva, sin devoluciones. Tu espacio queda protegido cinco días.{" "}
           <a href="/legal/pagos-y-devoluciones" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">Más información</a>
         </p>
       ) : null}
