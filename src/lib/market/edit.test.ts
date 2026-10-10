@@ -132,4 +132,24 @@ describe("editar el anuncio después de pagar", () => {
     // Sin foto no la hay.
     expect((await getUnitView(OTHER)).owner).toBeNull();
   });
+
+  it("«Mayores propietarios» cuenta PERSONAS: dos anuncios con distinto nombre pero el mismo dueño son un propietario", async () => {
+    await buy(BUILDING, "cs_test_p1", { name: "Panadería Sol", email: "Ana@Example.com" });
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 60_000);
+      await buy(OTHER, "cs_test_p2", { name: "Librería Luna", email: "ana@example.com", userId: "g-1" }); // mismo correo, ahora con cuenta
+    } finally {
+      vi.useRealTimers();
+    }
+    await buy(`b:${units.buildings[2]}`, "cs_test_p3", { name: "Otro dueño", email: "beto@example.com" });
+    const board = await getLeaderboards();
+    expect(board.stats?.owners).toBe(2);
+    // Ana tiene 2 espacios y se enseña el nombre de su anuncio MÁS RECIENTE; nunca su correo.
+    expect(board.owners).toEqual([
+      { name: "Librería Luna", units: 2 },
+      { name: "Otro dueño", units: 1 },
+    ]);
+    expect(JSON.stringify(board)).not.toContain("@");
+  });
 });
