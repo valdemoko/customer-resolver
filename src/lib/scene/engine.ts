@@ -113,6 +113,8 @@ export type EngineOptions = {
   onHoverUnit?: (unitId: string | null) => void;
   /** Selección de un anuncio móvil (panel de crucero, vela, cartel de avioneta). */
   onSelectAd?: (unitId: string | null) => void;
+  /** La cámara empieza (o deja) de seguir a un objeto móvil. */
+  onTrack?: (unitId: string | null) => void;
   onStats: (stats: EngineStats) => void;
   onStateChange?: (state: { rotating: boolean; atHome: boolean }) => void;
   onContextLost?: () => void;
@@ -176,6 +178,8 @@ export type CityEngine = {
   flyToUnit: (unitId: string) => boolean;
   /** Selecciona una unidad por su identificador (p. ej. al volver de Stripe). */
   selectUnit: (unitId: string | null) => void;
+  /** Deja de seguir al objeto móvil (si lo había). */
+  stopTracking: () => void;
   getStats: () => EngineStats;
   getSummary: () => SceneSummary;
 };
@@ -609,13 +613,38 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       flyTo((parcel.a[0] + parcel.b[0]) / 2, (parcel.a[1] + parcel.b[1]) / 2, 55, 30);
       return true;
     }
-    const point = traffic?.worldPositionOf(unitId);
-    if (point) {
+    if (startTracking(unitId)) {
       options.onSelectAd?.(unitId);
-      flyTo(point.x, point.z, kind === "s" ? 150 : kind === "a" ? 170 : 70, kind === "a" ? 22 : 26);
       return true;
     }
     return false;
+  }
+
+  /* ------------------------------------------------ seguimiento de objetos móviles */
+  let tracked: string | null = null;
+  /** Encuadre al seguir cada clase de objeto: distancia (m) y cabeceo (°). */
+  const TRACK_VIEW: Record<string, { distance: number; pitchDeg: number }> = {
+    s: { distance: 190, pitchDeg: 24 },
+    a: { distance: 150, pitchDeg: 18 },
+    v: { distance: 70, pitchDeg: 26 },
+    t: { distance: 60, pitchDeg: 26 },
+  };
+  function startTracking(unitId: string): boolean {
+    const point = traffic?.worldPositionOf(unitId);
+    if (!point) return false;
+    flight = null;
+    tracked = unitId;
+    controller.setFollow({ x: point.x, y: point.y, z: point.z }, TRACK_VIEW[unitId[0] ?? ""] ?? { distance: 90, pitchDeg: 26 });
+    container.dataset.tracking = unitId;
+    options.onTrack?.(unitId);
+    return true;
+  }
+  function stopTracking(): void {
+    if (!tracked) return;
+    tracked = null;
+    controller.setFollow(null);
+    delete container.dataset.tracking;
+    options.onTrack?.(null);
   }
 
   function applyHold(): void {
@@ -642,6 +671,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   }
 
   function setSelection(record: BuildingRecord | null, notify = true): void {
+    if (record) stopTracking(); // elegir un edificio suelta el objeto móvil que se seguía
     // Edificio y local son excluyentes: elegir uno suelta el otro.
     if (record && parcelSelection) {
       parcelSelection = null;
@@ -662,6 +692,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   }
 
   function setParcelSelection(parcel: ParcelRecord | null, notify = true): void {
+    if (parcel) stopTracking();
     if (parcel && selection) {
       selection = null;
       uniforms.uSelected.value = -1;
@@ -728,9 +759,11 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     if (hit.ad) {
       if (parcelSelection) setParcelSelection(null);
       if (selection) setSelection(null);
+      startTracking(hit.ad);
       options.onSelectAd?.(hit.ad);
       return;
     }
+    stopTracking();
     options.onSelectAd?.(null);
     if (hit.parcel) setParcelSelection(hit.parcel);
     else {
@@ -740,6 +773,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   };
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
+    stopTracking();
     if (selection) setSelection(null);
     if (parcelSelection) setParcelSelection(null);
   };
@@ -901,6 +935,12 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     ships?.update(elapsed, reduceMotion);
     traffic?.update(elapsed, reduceMotion);
     life?.update(elapsed, reduceMotion);
+    if (tracked) {
+      // El foco persigue al objeto; si el usuario lo soltó (desplazó la vista), se deja de seguir.
+      const point = traffic?.worldPositionOf(tracked);
+      if (!controller.isFollowing() || !point) stopTracking();
+      else controller.updateFollowPoint(point.x, point.y, point.z);
+    }
 
     // Hover con la cámara en movimiento: se vuelve a lanzar el rayo aunque el
     // puntero esté quieto, porque lo que hay debajo ha cambiado.
@@ -1517,12 +1557,14 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     },
     setManuallyPaused: (paused: boolean) => controller.setManuallyPaused(paused),
     requestHome: () => {
+      stopTracking();
       controller.requestHome(!reduceMotion);
       if (selection) setSelection(null);
       if (parcelSelection) setParcelSelection(null);
     },
     isManuallyPaused: () => controller.isManuallyPaused(),
     select: (id: string | null) => {
+      stopTracking();
       if (parcelSelection) setParcelSelection(null, false);
       setSelection(id ? (city?.buildingsById.get(id) ?? null) : null, false);
     },
@@ -1541,6 +1583,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       const record = city?.buildingsById.get(id);
       return record ? unitIdOfRecord(record) : null;
     },
+    stopTracking: () => stopTracking(),
     selectUnit: (unitId: string | null) => {
       if (!unitId) return;
       if (unitId[0] === "p") {

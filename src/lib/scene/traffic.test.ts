@@ -1,38 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { angleLerp, cruisePose, cruiseStage, makePath, samplePath, yawOf } from "./traffic";
+import { CRUISE_SPEED, angleLerp, makePath, sailDistance, sailDuration, samplePath, voyageAt, voyagePose, yawOf } from "./traffic";
 import { buildSeaMap, findSeaPath } from "./seamap";
 
-describe("ciclo del crucero", () => {
-  it("empieza y acaba amarrado y recorre toda la ruta a mitad de ciclo", () => {
-    expect(cruiseStage(0).s).toBe(0);
-    expect(cruiseStage(0.3).stage).toBe("dwell");
-    expect(cruiseStage(0.7).s).toBe(1);
-    expect(cruiseStage(0.7).stage).toBe("turn");
-    expect(cruiseStage(0.95).s).toBe(0);
-    expect(cruiseStage(1.3).stage).toBe("dwell");
-    const sample = [0.55, 0.6, 0.65].map((u) => cruiseStage(u).s);
-    expect(sample[0]).toBeLessThan(sample[1]!);
-    expect(sample[1]).toBeLessThan(sample[2]!);
+describe("viaje del crucero", () => {
+  const voyage = { dwellS: 300, total: 2400, leadS: 100 };
+
+  it("empieza amarrado, espera lo que le queda y después navega despacio hasta volver", () => {
+    expect(voyageAt(0, voyage)).toEqual({ moving: false, d: 0 });
+    expect(voyageAt(99, voyage).moving).toBe(false);
+    // Zarpa cuando se acaba la espera (100 s) y el recorrido crece sin saltos.
+    const samples = [150, 300, 500, 800].map((t) => voyageAt(t, voyage).d);
+    expect(samples[0]).toBeGreaterThan(0);
+    for (let i = 1; i < samples.length; i += 1) expect(samples[i]).toBeGreaterThan(samples[i - 1]!);
+    // Al acabar la ruta vuelve a estar amarrado.
+    const sail = sailDuration(voyage.total);
+    expect(voyageAt(100 + sail + 5, voyage)).toEqual({ moving: false, d: 0 });
+    // Y el ciclo se repite.
+    expect(voyageAt(100 + sail + voyage.dwellS + 200, voyage).moving).toBe(true);
   });
 
-  it("al zarpar se aparta del muelle sin girar y después enfila la ruta", () => {
-    const path = makePath([[0, 0], [0, 400], [600, 800]]);
+  it("nunca va más rápido que su velocidad de crucero y arranca y frena con suavidad", () => {
+    const total = 2000;
+    let previous = 0;
+    let maxSpeed = 0;
+    for (let tau = 1; tau < sailDuration(total); tau += 1) {
+      const { d } = sailDistance(tau, total);
+      maxSpeed = Math.max(maxSpeed, d - previous);
+      previous = d;
+    }
+    expect(maxSpeed).toBeLessThanOrEqual(CRUISE_SPEED + 1e-6);
+    expect(sailDistance(1, total).d).toBeLessThan(CRUISE_SPEED / 2); // al principio casi parado
+    expect(sailDistance(sailDuration(total) - 1, total).d).toBeGreaterThan(total - CRUISE_SPEED); // al final casi parado
+    expect(sailDistance(sailDuration(total) + 10, total)).toEqual({ d: total, done: true });
+  });
+
+  it("junto al muelle conserva el rumbo del atraque y en mar abierto sigue la ruta", () => {
+    const path = makePath([[0, 0], [0, 400], [600, 800], [0, 400], [0, 0]]);
     const baseYaw = 1;
-    const dwell = cruisePose(path, baseYaw, 200, 0.1);
-    expect(dwell.yaw).toBe(baseYaw);
-    const early = cruisePose(path, baseYaw, 200, 0.5 + 0.18 * 0.12);
-    expect(Math.abs(early.yaw - baseYaw)).toBeLessThan(0.05);
-    const far = cruisePose(path, baseYaw, 200, 0.67);
-    const tangent = samplePath(path, path.length * 0.98);
+    expect(Math.abs(voyagePose(path, baseYaw, 200, 5).yaw - baseYaw)).toBeLessThan(0.05);
+    expect(Math.abs(voyagePose(path, baseYaw, 200, path.length - 5).yaw - baseYaw)).toBeLessThan(0.05);
+    const far = voyagePose(path, baseYaw, 200, path.length * 0.4);
+    const tangent = samplePath(path, path.length * 0.4);
     expect(Math.abs(angleLerp(far.yaw, yawOf(tangent.tx, tangent.tz), 1) - far.yaw)).toBeLessThan(0.2);
-  });
-
-  it("vuelve por la misma ruta y la termina en el atraque", () => {
-    const path = makePath([[0, 0], [0, 500]]);
-    const back = cruisePose(path, 0, 100, 0.8);
-    expect(back.z).toBeGreaterThan(0);
-    expect(back.z).toBeLessThan(500);
-    expect(cruisePose(path, 0, 100, 0.93).z).toBe(0);
   });
 });
 

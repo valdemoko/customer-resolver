@@ -5,7 +5,7 @@ import type { UnitView } from "@/lib/market/types";
 import { PanelShell } from "./PanelShell";
 import { PurchaseBox } from "./PurchaseBox";
 
-/** Ficha de un anuncio móvil: panel de crucero, vela o cartel de avioneta. */
+/** Ficha de un anuncio móvil: panel de crucero, vela, camión o cartel de avioneta. */
 export function AdPanel({
   unitId,
   label,

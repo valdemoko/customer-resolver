@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Compass, Layers, Pause, Play, RotateCcw, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Compass, Crosshair, Layers, Pause, Play, RotateCcw, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { CityConfig } from "@/lib/cities/schema";
@@ -70,6 +70,8 @@ export function CityViewer({ city }: { city: CityConfig }) {
   const [studioUnit, setStudioUnit] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "ok" | "warn"; text: string; action?: { label: string; href: string } } | null>(null);
   const [editUnitId, setEditUnitId] = useState<string | null>(null);
+  /** Objeto móvil (barco, avioneta, camión…) que la cámara está siguiendo. */
+  const [trackedUnit, setTrackedUnit] = useState<string | null>(null);
   const [mine, setMine] = useState<ReadonlySet<string>>(new Set());
   const [editTokens, setEditTokens] = useState<EditTokens>({});
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -162,6 +164,7 @@ export function CityViewer({ city }: { city: CityConfig }) {
           setSelectedParcel(null);
         }
       },
+      onTrack: (unitId) => setTrackedUnit(unitId),
       onStats: () => undefined,
       onContextLost: () => setStatus("context-lost"),
     });
@@ -526,6 +529,22 @@ export function CityViewer({ city }: { city: CityConfig }) {
               {notice.action.label}
             </a>
           ) : null}
+        </div>
+      ) : null}
+
+      {trackedUnit ? (
+        <div className="stamp-in absolute left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-line-strong bg-surface/90 py-1.5 pl-3.5 pr-1.5 text-sm text-ink shadow-[var(--shadow-float)] backdrop-blur-md">
+          <Crosshair size={14} strokeWidth={2} aria-hidden="true" className="text-accent-ink" />
+          <span>
+            Siguiendo: <span className="font-medium">{unitLabel(trackedUnit, { building: null, parcel: null })}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => engineRef.current?.stopTracking()}
+            className="ml-1 rounded-full border border-line-strong px-3 py-1 text-xs font-medium text-ink transition-colors hover:border-accent/60 hover:text-accent-ink"
+          >
+            Dejar de seguir
+          </button>
         </div>
       ) : null}
 

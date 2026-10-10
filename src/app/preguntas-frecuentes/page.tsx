@@ -113,6 +113,10 @@ const FAQ: ReadonlyArray<{ group: string; items: ReadonlyArray<{ q: string; a: R
         ),
       },
       {
+        q: "¿Puedo seguir un barco, un camión o una avioneta?",
+        a: "Sí. Pulsa un cartel de un crucero, una vela, un camión o una avioneta y la cámara los sigue mientras se mueven. Puedes orbitar y acercarte; para soltarlo, pulsa «Dejar de seguir», Escape o desplaza la vista con el botón derecho.",
+      },
+      {
         q: "¿Las alturas son exactas?",
         a: "No siempre. Se toman de la mejor fuente disponible y, si no hay dato, se estiman. El mapa es una representación, no un plano oficial.",
       },

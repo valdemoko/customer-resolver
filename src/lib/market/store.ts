@@ -203,6 +203,13 @@ export class MemoryStore implements MarketStore {
     if (!unit || unit.purchases < 1) return null;
     const next: StoredUnit = { ...unit, content, edits: (unit.edits ?? 0) + 1 };
     this.units.set(unitId, next);
+    // «Últimas compras» enseña el nombre ACTUAL del anunciante: la última compra del espacio lo sigue.
+    for (let i = this.log.length - 1; i >= 0; i -= 1) {
+      if (this.log[i]!.unitId === unitId) {
+        this.log[i]!.buyer = content.name;
+        break;
+      }
+    }
     await this.persist();
     return next;
   }
@@ -509,6 +516,11 @@ export class NeonStore implements MarketStore {
     await this.ensure();
     const rows = await this.sql`update market_units set content = ${JSON.stringify(content)}::jsonb, edits = edits + 1
       where id = ${unitId} and purchases > 0 returning id, purchases, content, updated_at, edits`;
+    if (rows[0]) {
+      // «Últimas compras» enseña el nombre ACTUAL del anunciante: la última compra del espacio lo sigue.
+      await this.sql`update market_purchases set content = ${JSON.stringify(content)}::jsonb
+        where id = (select max(id) from market_purchases where unit_id = ${unitId})`;
+    }
     return rows[0] ? this.toUnit(rows[0]) : null;
   }
 

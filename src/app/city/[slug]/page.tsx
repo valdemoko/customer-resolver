@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Building2, Layers, Plane, ShieldAlert, Ship, Sailboat, Store, Castle } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Building2, Layers, Plane, ShieldAlert, Ship, Sailboat, Store, Castle, Truck } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -58,6 +58,7 @@ export default async function CityPage({ params }: { params: Params }) {
     { icon: Castle, label: "Tramos de muralla", value: counts.walls },
     { icon: Ship, label: "Paneles de crucero", value: counts.cruisePanels },
     { icon: Sailboat, label: "Velas", value: counts.sails },
+    { icon: Truck, label: "Camiones", value: counts.trucks },
     { icon: Plane, label: "Avionetas", value: counts.planes },
   ] as const;
 

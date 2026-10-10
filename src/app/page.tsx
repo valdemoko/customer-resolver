@@ -43,7 +43,7 @@ const STEPS = [
   {
     icon: MousePointerClick,
     title: "Elige un espacio",
-    body: "Un edificio, un local de planta baja, un tramo de la Alcazaba o Gibralfaro, un panel de crucero, una vela o una avioneta.",
+    body: "Un edificio, un local de planta baja, un tramo de la Alcazaba o Gibralfaro, un panel de crucero, una vela, un camión o una avioneta.",
   },
   {
     icon: CreditCard,
@@ -87,6 +87,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
     `${counts.walls} tramos de muralla`,
     `${counts.cruisePanels} paneles de crucero`,
     `${counts.sails} velas`,
+    `${counts.trucks} camiones con anuncio`,
     `${counts.planes} avionetas con cartel`,
     "desde 1 €",
     "pago con Stripe",

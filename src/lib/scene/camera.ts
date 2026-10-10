@@ -96,6 +96,9 @@ export class CityCameraController {
   private goalDistance: number;
   private targetX = 0;
   private targetY = 0;
+  /** Objeto móvil que la cámara sigue (barco, avioneta, camión…). */
+  private follow: { x: number; y: number; z: number } | null = null;
+  private followPitch: number | null = null;
   private targetZ = 0;
 
   private azimuthVelocity = 0;
@@ -475,6 +478,34 @@ export class CityCameraController {
     };
   }
 
+  /**
+   * Sigue a un objeto en movimiento: el foco lo persigue con suavidad (también en
+   * altura, para las avionetas) y se puede seguir orbitando y acercando. Con `null`
+   * se suelta. Desplazar la vista con el botón derecho también lo suelta.
+   */
+  setFollow(point: { x: number; y: number; z: number } | null, view?: { distance?: number; pitchDeg?: number }): void {
+    this.follow = point;
+    this.followPitch = null;
+    if (!point) return;
+    this.returnProgress = null;
+    this.returnFrom = null;
+    this.anchor = null;
+    this.panVelocityX = 0;
+    this.panVelocityZ = 0;
+    if (view?.distance !== undefined) this.goalDistance = clamp(view.distance, this.limits.minDistance, this.limits.maxDistance);
+    if (view?.pitchDeg !== undefined) this.followPitch = this.clampPitch(view.pitchDeg);
+    this.markInteraction();
+  }
+
+  /** Nueva posición del objeto seguido (cada fotograma). */
+  updateFollowPoint(x: number, y: number, z: number): void {
+    if (this.follow) this.follow = { x, y, z };
+  }
+
+  isFollowing(): boolean {
+    return this.follow !== null;
+  }
+
   /** Coloca la cámara directamente (pruebas y herramientas de medición). */
   setPose(pose: Partial<CameraPose> & { target?: [number, number] }): void {
     if (pose.distance !== undefined) {
@@ -583,6 +614,9 @@ export class CityCameraController {
       return;
     }
 
+    // Quien desplaza la vista con el botón derecho suelta el objeto seguido.
+    if (this.follow && this.dragging && this.dragMode === "pan") this.follow = null;
+
     // Inercia de la órbita y del desplazamiento.
     if (!this.dragging && !this.reduceMotion) {
       const decay = Math.exp(-dt * 4.5);
@@ -608,7 +642,7 @@ export class CityCameraController {
       const blend = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 9);
       this.distance = previous + (this.goalDistance - previous) * blend;
       this.distance = clamp(this.distance, this.limits.minDistance, this.limits.maxDistance);
-      if (this.anchor && this.canPan()) {
+      if (this.anchor && this.canPan() && !this.follow) {
         const pull = smoothstep(
           this.limits.panBelowDistance * 0.85,
           this.limits.panBelowDistance * 1.15,
@@ -629,13 +663,26 @@ export class CityCameraController {
       this.anchor = null;
     }
 
+    // Siguiendo a un objeto: el foco lo persigue y el cabeceo se acomoda al encuadre pedido.
+    if (this.follow) {
+      const k = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 4.5);
+      this.targetX += (this.follow.x - this.targetX) * k;
+      this.targetY += (this.follow.y - this.targetY) * k;
+      this.targetZ += (this.follow.z - this.targetZ) * k;
+      if (this.followPitch !== null) {
+        const blendPitch = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 3);
+        this.pitch += (this.followPitch - this.pitch) * blendPitch;
+        if (Math.abs(this.followPitch - this.pitch) < 0.3) this.followPitch = null;
+      }
+    }
+
     // Lejos del suelo no hay desplazamiento posible: el foco vuelve al centro.
     const pull = smoothstep(
       this.limits.panBelowDistance * 0.85,
       this.limits.panBelowDistance * 1.15,
       this.distance,
     );
-    if (pull > 0 && !this.dragging) {
+    if (pull > 0 && !this.dragging && !this.follow) {
       const k = 1 - Math.exp(-dt * 2.4 * pull);
       this.targetX -= this.targetX * k;
       this.targetY -= this.targetY * k;
@@ -644,7 +691,7 @@ export class CityCameraController {
 
     // El giro se queda quieto hasta que pase el periodo de inactividad. Con un
     // edificio bajo el puntero o seleccionado (`hold`) no se mueve nada.
-    const idle = !this.hasInteracted || now - this.lastInteraction > this.idleReturnMs;
+    const idle = !this.follow && (!this.hasInteracted || now - this.lastInteraction > this.idleReturnMs);
     if (this.isRotating() && idle) {
       if (this.hasInteracted && !this.isAtHome()) {
         if (this.reduceMotion) {

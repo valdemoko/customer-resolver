@@ -41,14 +41,31 @@ const at = async (t) => {
   return api(() => window.__alzadoIsland.trafficSnapshot());
 };
 const home = await at(0);
-const out = await at(560);
-const far = await at(0.7 * 900 - 1);
-const back = await at(0.95 * 900 + 600);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
-const moved = home.cruise.map((c, i) => Math.max(dist(c, out.cruise[i]), dist(c, far.cruise[i])));
-check("cruceros: zarpan (se alejan del atraque en el ciclo)", moved.some((m) => m > 200), moved.map(Math.round));
-const cycles = await at(900 * 3);
-check("cruceros: al terminar el ciclo vuelven a su atraque", cycles.cruise.every((c, i) => dist(c, home.cruise[i]) < 2), cycles.cruise.map((c, i) => Math.round(dist(c, home.cruise[i]))));
+// Cada crucero hace su viaje (varios puntos de mar abierto, despacio) y tiene su propio ciclo: se barre el tiempo.
+const track = [];
+for (let t = 0; t <= 4500; t += 30) track.push(await at(t));
+const farthest = home.cruise.map((c, i) => Math.round(Math.max(...track.map((s) => dist(s.cruise[i], c)))));
+check("cruceros: zarpan (se alejan del atraque durante el viaje)", farthest.every((m) => m > 200), farthest);
+const returned = home.cruise.map((c, i) => {
+  let gone = false;
+  for (const s of track) {
+    const d = dist(s.cruise[i], c);
+    if (d > 200) gone = true;
+    else if (gone && d < 2) return true;
+  }
+  return false;
+});
+check("cruceros: al terminar el viaje vuelven a su atraque", returned.every(Boolean), returned);
+// Lentos: nunca más de ~4 m/s entre dos instantes (30 s) seguidos.
+let fastest = 0;
+for (let k = 1; k < track.length; k += 1) {
+  track[k].cruise.forEach((c, i) => {
+    fastest = Math.max(fastest, dist(c, track[k - 1].cruise[i]) / 30);
+  });
+}
+check("cruceros: navegan despacio (velocidad máxima ≤ 4 m/s)", fastest <= 4, { fastestMs: Math.round(fastest * 100) / 100 });
+const cycles = track[track.length - 1];
 const planesA = await at(10);
 const planesB = await at(70);
 check("avionetas: vuelan alrededor de la ciudad (cambian de sitio y mantienen altura)", planesA.planes.every((p, i) => dist(p, planesB.planes[i]) > 500 && Math.abs(p.y - planesB.planes[i].y) < 1), planesA.planes);

@@ -9,7 +9,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 import { MemoryStore } from "./store";
-import { completeFromSession, confirmSession, createCheckout, editUnit, getOwnedUnits, getUnitView, getUserPurchases, setMarketStore } from "./service";
+import { completeFromSession, confirmSession, createCheckout, editUnit, getLeaderboards, getOwnedUnits, getUnitView, getUserPurchases, setMarketStore } from "./service";
 
 const BUILDING = `b:${units.buildings[0]}`;
 const OTHER = `b:${units.buildings[1]}`;
@@ -99,5 +99,24 @@ describe("editar el anuncio después de pagar", () => {
     }
     await expect(editUnit({ unitId: BUILDING, content: content("Ana vuelve"), token })).rejects.toMatchObject({ status: 403 });
     expect((await getUnitView(BUILDING)).owner?.name).toBe("Beto");
+  });
+
+  it("«últimas compras» enseña el nombre ACTUAL del anunciante, no el de cuando compró", async () => {
+    const token = await buy(BUILDING, "cs_test_n1", { name: "Panadería Sol", email: "ana@example.com" });
+    await editUnit({ unitId: BUILDING, content: content("Panadería Sol y Luna"), token });
+    let board = await getLeaderboards();
+    expect(board.latest[0]?.buyer).toBe("Panadería Sol y Luna");
+    expect(board.owners[0]?.name).toBe("Panadería Sol y Luna");
+
+    // Si otra persona compra después, su compra anterior conserva el nombre con el que se hizo.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 6 * 86_400_000);
+      await buy(BUILDING, "cs_test_n2", { name: "Librería Luna", email: "beto@example.com" });
+    } finally {
+      vi.useRealTimers();
+    }
+    board = await getLeaderboards();
+    expect(board.latest.map((row) => row.buyer)).toEqual(["Librería Luna", "Panadería Sol y Luna"]);
   });
 });

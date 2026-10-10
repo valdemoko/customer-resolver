@@ -48,16 +48,48 @@ const smooth = (t: number) => {
   return x * x * (3 - 2 * x);
 };
 
-export type CruiseStage = { stage: "dwell" | "out" | "turn" | "back"; s: number; turn: number };
+/** Velocidad de crucero de los cruceros: ≈ 5 nudos, para que se vean navegar despacio. */
+export const CRUISE_SPEED = 2.6;
+/** Tiempo de aceleración y de frenado (el barco no arranca ni se detiene de golpe). */
+export const CRUISE_RAMP_S = 45;
 
-/** Ciclo de un crucero: amarrado, sale, da la vuelta en mar abierto, regresa y se amarra. */
-export function cruiseStage(u: number): CruiseStage {
-  const x = ((u % 1) + 1) % 1;
-  if (x < 0.5) return { stage: "dwell", s: 0, turn: 0 };
-  if (x < 0.68) return { stage: "out", s: smooth((x - 0.5) / 0.18), turn: 0 };
-  if (x < 0.74) return { stage: "turn", s: 1, turn: smooth((x - 0.68) / 0.06) };
-  if (x < 0.92) return { stage: "back", s: 1 - smooth((x - 0.74) / 0.18), turn: 1 };
-  return { stage: "dwell", s: 0, turn: 0 };
+/**
+ * Distancia recorrida `tau` segundos después de zarpar, sobre una ruta de `total`
+ * metros: arranca acelerando despacio, navega a velocidad constante y frena al
+ * llegar. Devuelve también si ya terminó.
+ */
+export function sailDistance(tau: number, total: number, speed = CRUISE_SPEED, ramp = CRUISE_RAMP_S): { d: number; done: boolean } {
+  const duration = sailDuration(total, speed, ramp);
+  if (tau <= 0) return { d: 0, done: false };
+  if (tau >= duration) return { d: total, done: true };
+  if (tau < ramp) return { d: (0.5 * speed * tau * tau) / ramp, done: false };
+  if (tau > duration - ramp) {
+    const left = duration - tau;
+    return { d: total - (0.5 * speed * left * left) / ramp, done: false };
+  }
+  return { d: speed * (tau - ramp / 2), done: false };
+}
+
+/** Segundos que tarda en recorrer la ruta con esas rampas. */
+export function sailDuration(total: number, speed = CRUISE_SPEED, ramp = CRUISE_RAMP_S): number {
+  return total / speed + ramp;
+}
+
+export type Voyage = { dwellS: number; total: number; leadS: number };
+
+/**
+ * Estado de un crucero en el instante `t`: amarrado (esperando) o navegando, con la
+ * distancia recorrida sobre su ruta (ida por varios puntos de mar abierto y vuelta
+ * al atraque). `leadS` es lo que le queda de espera en el atraque a t = 0, para que
+ * todos empiecen amarrados y zarpen escalonados.
+ */
+export function voyageAt(t: number, voyage: Voyage): { moving: boolean; d: number } {
+  const sailS = sailDuration(voyage.total);
+  const cycle = voyage.dwellS + sailS;
+  const u = (((t + voyage.dwellS - voyage.leadS) % cycle) + cycle) % cycle;
+  if (u < voyage.dwellS) return { moving: false, d: 0 };
+  const { d, done } = sailDistance(u - voyage.dwellS, voyage.total);
+  return { moving: !done, d };
 }
 
 export type Path = { points: Array<[number, number]>; cumulative: number[]; length: number };
@@ -104,29 +136,20 @@ export function angleLerp(a: number, b: number, t: number): number {
 export const yawOf = (hx: number, hz: number) => -Math.atan2(hz, hx);
 
 /**
- * Pose de un crucero en el instante `u` del ciclo. Primero se aparta del muelle
- * con el rumbo del atraque (para no barrer el muelle con la popa) y solo después
- * gira hacia la ruta.
+ * Pose de un crucero a `distance` metros de recorrido de su ruta. Cerca del atraque
+ * (a la salida y a la llegada) conserva el rumbo del muelle para no barrerlo con la
+ * popa, y en mar abierto sigue la tangente de la ruta.
  */
-export function cruisePose(
+export function voyagePose(
   path: Path,
   baseYaw: number,
   lengthM: number,
-  u: number,
-): { x: number; z: number; yaw: number; moving: boolean } {
-  const { stage, s, turn } = cruiseStage(u);
-  const distance = s * path.length;
+  distance: number,
+): { x: number; z: number; yaw: number } {
   const p = samplePath(path, distance);
-  const blend = smooth((distance - lengthM * 0.5) / 240);
-  const out = angleLerp(baseYaw, yawOf(p.tx, p.tz), blend);
-  const back = angleLerp(baseYaw, yawOf(-p.tx, -p.tz), blend);
-  // En la vuelta el crucero recorre la ruta al revés tras haber girado 180°, y
-  // cerca del muelle vuelve a fundirse con el rumbo del atraque.
-  let yaw = baseYaw;
-  if (stage === "out") yaw = out;
-  else if (stage === "turn") yaw = out + Math.PI * turn;
-  else if (stage === "back") yaw = back;
-  return { x: p.x, z: p.z, yaw, moving: stage !== "dwell" };
+  const fromEnd = Math.min(distance, path.length - distance);
+  const blend = smooth((fromEnd - lengthM * 0.5) / 240);
+  return { x: p.x, z: p.z, yaw: angleLerp(baseYaw, yawOf(p.tx, p.tz), blend) };
 }
 
 /* ------------------------------------------------------------ paneles */
@@ -299,7 +322,7 @@ export function buildTraffic(options: {
   };
 
   /* ------------------------------------------------------------- cruceros */
-  type Cruise = { path: Path | null; record: Ships["cruise"][number]; offset: number };
+  type Cruise = { path: Path | null; record: Ships["cruise"][number]; voyage: Voyage };
   const cruises: Cruise[] = [];
   const goals: Array<[number, number]> = [];
   const pathInfo: TrafficStats["cruisePaths"] = [];
@@ -327,9 +350,8 @@ export function buildTraffic(options: {
       );
     }
 
-    // Ruta hasta mar abierto: A* desde el agua junto al atraque. Las celdas con
-    // poca agua libre son transitables pero caras, así que el barco sale por el
-    // centro de la dársena y se aleja de la orilla en cuanto puede.
+    // Ruta: del atraque al agua libre y de ahí a varios puntos de mar abierto,
+    // distintos para cada barco, antes de volver. Todo por A* sobre agua libre.
     let path: Path | null = null;
     let entry: [number, number] | null = null;
     for (let d = 0; d <= 260; d += 8) {
@@ -342,37 +364,58 @@ export function buildTraffic(options: {
     }
     if (!entry) blocked.push({ ship: record.id, reason: "sin agua libre junto al atraque" });
     if (entry) {
-      let best = -1;
-      let bestCell = -1;
       const reachable = reachableCells(sea, entry, 12);
+      const mine: Array<[number, number]> = [];
+      const candidates: Array<{ cell: number; score: number; x: number; z: number }> = [];
       for (const cell of reachable) {
         const clear = sea.clear[cell]!;
         if (clear < 90) continue;
         const [x, z] = sea.centreOf(cell);
         if (Math.hypot(x, z) > radiusM - 120) continue;
         const away = Math.hypot(x - base[0], z - base[1]);
-        if (away < 450 || away > 1100) continue;
-        if (goals.some((g) => Math.hypot(g[0] - x, g[1] - z) < 260)) continue;
-        // Gana el agua más despejada; a igualdad, la más cercana.
-        const score = Math.min(clear, 300) - away * 0.05;
-        if (score > best) {
-          best = score;
-          bestCell = cell;
+        if (away < 350 || away > 1250) continue;
+        candidates.push({ cell, score: Math.min(clear, 300) - away * 0.03, x, z });
+      }
+      candidates.sort((p, q) => q.score - p.score);
+      // Hasta tres destinos: se elige al azar entre los mejores, separados entre sí y de los de otros barcos.
+      const pool = candidates.slice(0, 60);
+      for (let n = 0; n < 3 && pool.length > 0; n += 1) {
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+          const pick = pool[Math.floor(random() * pool.length)]!;
+          if (mine.some((g) => Math.hypot(g[0] - pick.x, g[1] - pick.z) < 320)) continue;
+          if (goals.some((g) => Math.hypot(g[0] - pick.x, g[1] - pick.z) < 200)) continue;
+          mine.push([pick.x, pick.z]);
+          break;
         }
       }
-      if (bestCell < 0) blocked.push({ ship: record.id, reason: "sin destino en mar abierto" });
-      if (bestCell >= 0) {
-        const goal = sea.centreOf(bestCell);
-        const raw = findSeaPath(sea, entry, goal, 12, 80);
-        if (!raw) blocked.push({ ship: record.id, reason: `sin ruta a ${Math.round(goal[0])},${Math.round(goal[1])} desde ${Math.round(entry[0])},${Math.round(entry[1])} (agua en la salida ${Math.round(sea.clearanceAt(entry[0], entry[1]))} m)` });
-        if (raw && raw.length >= 2) {
-          const points = smoothPath([[base[0], base[1]], entry, ...raw.slice(1)], 2);
-          path = makePath(points);
-          goals.push(goal);
+      if (mine.length === 0) blocked.push({ ship: record.id, reason: "sin destino en mar abierto" });
+      const stops: Array<[number, number]> = [];
+      let from: [number, number] = entry;
+      const legs: Array<Array<[number, number]>> = [];
+      for (const goal of mine) {
+        const leg = findSeaPath(sea, from, goal, 12, 80);
+        if (!leg || leg.length < 2) {
+          blocked.push({ ship: record.id, reason: `sin ruta a ${Math.round(goal[0])},${Math.round(goal[1])} desde ${Math.round(from[0])},${Math.round(from[1])}` });
+          continue;
+        }
+        legs.push(leg);
+        stops.push(goal);
+        from = goal;
+      }
+      if (legs.length > 0) {
+        // Vuelta al agua junto al atraque; si no hay ruta de vuelta, se deshace la última pierna.
+        const home = findSeaPath(sea, from, entry, 12, 80);
+        if (home && home.length >= 2) {
+          const raw: Array<[number, number]> = [[base[0], base[1]], entry];
+          for (const leg of legs) raw.push(...leg.slice(1));
+          raw.push(...home.slice(1));
+          raw.push([base[0], base[1]]);
+          path = makePath(smoothPath(raw, 2));
+          for (const goal of stops) goals.push(goal);
           let minClear = Infinity;
           let worstAt = 0;
           // Se mide fuera del atraque (los primeros 150 m salen del muelle, por definición cerca de tierra).
-          for (let d = 150; d <= path.length; d += 40) {
+          for (let d = 150; d <= path.length - 150; d += 40) {
             const p = samplePath(path, d);
             const clearance = sea.clearanceAt(p.x, p.z);
             if (clearance < minClear) {
@@ -381,10 +424,18 @@ export function buildTraffic(options: {
             }
           }
           pathInfo.push({ ship: record.id, lengthM: Math.round(path.length), minClearM: Math.round(minClear), worstAtM: worstAt });
+        } else {
+          blocked.push({ ship: record.id, reason: "sin ruta de vuelta al atraque" });
         }
       }
     }
-    cruises.push({ path: path && path.length > 200 ? path : null, record, offset: index * 0.14 });
+    const total = path && path.length > 200 ? path.length : 0;
+    cruises.push({
+      path: total > 0 ? path : null,
+      record,
+      // Cada barco empieza amarrado y zarpa escalonado: el primero enseguida, los demás cada ~2 minutos.
+      voyage: { dwellS: config.cruiseCycleSeconds * 0.35, total, leadS: 50 + index * 130 },
+    });
   });
 
   /* ----------------------------------------------------- barcos que navegan */
@@ -576,7 +627,6 @@ export function buildTraffic(options: {
   let truckClock = 0;
 
   /* ------------------------------------------------------------ movimiento */
-  const cycle = config.cruiseCycleSeconds;
   const PLANE_SPEED = 46;
   const update = (elapsed: number, reduceMotion: boolean) => {
     if (reduceMotion) return;
@@ -587,14 +637,15 @@ export function buildTraffic(options: {
       placeTrucks();
     }
     for (const cruise of cruises) {
-      const { record, path } = cruise;
+      const { record, path, voyage } = cruise;
       if (!path) continue;
-      const pose = cruisePose(path, record.baseYaw, record.lengthM, elapsed / cycle + cruise.offset);
-      const x = pose.moving ? pose.x : record.base[0];
-      const z = pose.moving ? pose.z : record.base[1];
+      const state = voyageAt(elapsed, voyage);
+      const pose = state.moving ? voyagePose(path, record.baseYaw, record.lengthM, state.d) : null;
+      const x = pose ? pose.x : record.base[0];
+      const z = pose ? pose.z : record.base[1];
       record.mesh.position.x = x;
       record.mesh.position.z = z;
-      record.mesh.rotation.y = pose.moving ? pose.yaw : record.baseYaw;
+      record.mesh.rotation.y = pose ? pose.yaw : record.baseYaw;
       record.obstacle.cx = x;
       record.obstacle.cz = z;
       const yaw = record.mesh.rotation.y;

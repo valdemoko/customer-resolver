@@ -574,3 +574,9 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 - **Camiones con anuncio.** 12 camiones de carga (`t:1`…`t:12`), caja de 6,1 × 2,35 m con panel por ambas caras; son unidades comprables como las demás. Prefieren las calles largas cercanas al centro.
 - **Catedral.** Las torres se modelaban como cajas que empezaban a 41,8 m (sin base), así que donde sobresalían de la huella se veía el hueco. Ahora arrancan en el suelo (`tools/build-landmark-glb.mjs`).
 - **La Farola.** Modelo propio (`tools/build-farola-glb.mjs`): casa del farero, torre troncocónica con moldura, balcón, linterna acristalada y cúpula. Altura total 33 m (estimada: el IAPH da 21,64 m para la torre, la Real Academia de Bellas Artes 33 m, alguna guía 37 m).
+
+## Cruceros, seguimiento y nombres (2026-10-10)
+
+- **Cruceros.** Cada crucero zarpa escalonado (el primero a los ~50 s, los demás cada ~2 min), visita hasta tres puntos de mar abierto elegidos al azar (distintos para cada barco y separados entre sí) por A* sobre agua libre, y vuelve a amarrarse. Velocidad de crucero 2,6 m/s (≈ 5 nudos) con 45 s de aceleración y de frenada; espera ~5 min en el atraque entre viajes. A t = 0 todos siguen amarrados. `cruiseCycleSeconds` pasa a fijar solo la espera (35 % del valor).
+- **Seguimiento.** Al pinchar (o abrir con `?unit=`) un objeto móvil —cartel de crucero, vela, camión, avioneta— la cámara lo sigue: el foco lo persigue con suavidad, también en altura (`setFollow`). Se puede orbitar y acercar; se suelta con «Dejar de seguir», Escape, cerrar la ficha, elegir otro edificio o desplazar la vista con el botón derecho.
+- **Nombre del anunciante.** Al editar un anuncio, la última compra del espacio recibe el nombre nuevo: «Últimas compras» y «Mayores propietarios» enseñan el nombre actual. Una compra ya sustituida conserva el nombre con el que se hizo.
