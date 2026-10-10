@@ -1111,12 +1111,15 @@ export class NeonStore implements MarketStore {
   private async seedPoll(): Promise<void> {
     if (this.pollSeeded) return;
     this.pollSeeded = true;
-    let order = 0;
-    for (const option of DEFAULT_POLL_OPTIONS) {
-      order += 1;
-      await this.sql`insert into poll_options (id, label, sort) select ${option.id}, ${option.label}, ${order}
-        where not exists (select 1 from poll_options)`;
-    }
+    // Una sola sentencia: «solo si la tabla está vacía» se evalúa una vez para TODAS las ciudades
+    // (con una sentencia por ciudad, la segunda ya encontraba la tabla con la primera y se saltaba).
+    const ids = DEFAULT_POLL_OPTIONS.map((option) => option.id);
+    const labels = DEFAULT_POLL_OPTIONS.map((option) => option.label);
+    const orders = DEFAULT_POLL_OPTIONS.map((_, index) => index + 1);
+    await this.sql`insert into poll_options (id, label, sort)
+      select o.id, o.label, o.sort from unnest(${ids}::text[], ${labels}::text[], ${orders}::int[]) as o(id, label, sort)
+      where not exists (select 1 from poll_options)
+      on conflict (id) do nothing`;
   }
 
   async pollTally(): Promise<PollTally> {
