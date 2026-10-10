@@ -25,7 +25,7 @@ export type CheckoutParams = {
   draftId: string;
   origin: string;
   returnPath: string;
-  /** Correo de la cuenta conectada: se rellena en Stripe y liga el recibo con la cuenta. */
+  /** No se usa al cobrar: con el correo rellenado Stripe abre Link con el pago guardado en vez de la lista completa de métodos. */
   customerEmail?: string | null;
 };
 

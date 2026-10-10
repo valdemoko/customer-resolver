@@ -188,7 +188,6 @@ export async function createCheckout(
     draftId,
     origin: deps.origin ?? requireAppOrigin(),
     returnPath,
-    customerEmail: input.userEmail ?? null,
   });
   if (!session.url) throw new MarketError("Stripe no devolvió la página de pago.", 502);
   return { url: session.url, amountCents, draftId };
