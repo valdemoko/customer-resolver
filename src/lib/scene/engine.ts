@@ -122,6 +122,10 @@ export type EngineOptions = {
   onContextLost?: () => void;
   /** Entra o sale del modo «Explorar a pie». */
   onWalkChange?: (walking: boolean) => void;
+  /** Primera/tercera persona y súper velocidad del modo a pie. */
+  onWalkFlags?: (flags: { firstPerson: boolean; boost: boolean }) => void;
+  /** La persona sigue alejando el zoom con la cámara ya en el máximo (para pasar al mapa del mundo). */
+  onZoomOutPast?: (amount: number) => void;
 };
 
 export type EngineStats = {
@@ -188,6 +192,10 @@ export type CityEngine = {
   enterWalk: () => boolean;
   exitWalk: () => void;
   isWalking: () => boolean;
+  toggleFirstPerson: () => void;
+  toggleBoost: () => void;
+  /** Detiene (o reanuda) el dibujado: se usa cuando la ciudad queda oculta tras el mapa del mundo. */
+  setRenderPaused: (paused: boolean) => void;
   getStats: () => EngineStats;
   getSummary: () => SceneSummary;
 };
@@ -324,6 +332,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   type Flight = { start: number; duration: number; from: { x: number; z: number; d: number; az: number; pitch: number }; to: { x: number; z: number; d: number; az: number; pitch: number } };
   let flight: Flight | null = null;
   let walkMode: WalkMode | null = null;
+  let renderPaused = false;
   let roads: RoadMeshes | null = null;
   let marketViews: UnitView[] = [];
   let marketVersion = "0";
@@ -488,6 +497,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     onStateChange: options.onStateChange,
     pickPoint: pickWorldPoint,
     clearance: clearanceAt,
+    ...(options.onZoomOutPast ? { onZoomOutPast: options.onZoomOutPast } : {}),
   });
 
   /* ------------------------------------------------------------ resaltado */
@@ -950,7 +960,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     const now = performance.now();
     if (!timeFrozen) elapsed += delta;
 
-    if (document.hidden || container.clientWidth === 0) {
+    if (document.hidden || container.clientWidth === 0 || renderPaused) {
       lastFrameTime = now;
       return;
     }
@@ -1297,6 +1307,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
           },
           accentHex: hexToNumber(ACCENT),
           reduceMotion,
+          ...(options.onWalkFlags ? { onFlags: options.onWalkFlags } : {}),
         });
       }
       mark("barcos");
@@ -1663,6 +1674,11 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     },
     exitWalk,
     isWalking: () => walkMode?.active ?? false,
+    toggleFirstPerson: () => walkMode?.toggleFirstPerson(),
+    toggleBoost: () => walkMode?.toggleBoost(),
+    setRenderPaused: (paused: boolean) => {
+      renderPaused = paused;
+    },
     select: (id: string | null) => {
       stopTracking();
       if (parcelSelection) setParcelSelection(null, false);

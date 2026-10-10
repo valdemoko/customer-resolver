@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Compass, Crosshair, Footprints, Layers, Pause, Play, RotateCcw, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Compass, Crosshair, Eye, Footprints, Layers, Pause, Play, RotateCcw, TriangleAlert, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { CityConfig } from "@/lib/cities/schema";
@@ -17,6 +17,8 @@ import { AdPanel } from "./AdPanel";
 import { PurchaseStudio } from "./PurchaseStudio";
 import { readEditTokens, saveEditToken, tokenFor, type EditTokens } from "@/lib/market/edit-tokens";
 import { RankingDock } from "./RankingDock";
+import { WorldTransition, type WorldControl } from "./WorldTransition";
+import type { MapCity } from "@/components/marketing/NetworkMarkers";
 import { UnitTooltip } from "./UnitTooltip";
 import { OwnerSidePanel } from "./OwnerSidePanel";
 import { useMarket } from "./useMarket";
@@ -56,9 +58,11 @@ function hasWebgl(): boolean {
  * pie de fuentes, ni bloques de datos: el difuminado de los bordes ya comunica
  * qué zona está cubierta.
  */
-export function CityViewer({ city }: { city: CityConfig }) {
+export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCities?: MapCity[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<ReturnType<typeof createCityEngine> | null>(null);
+  /** Salto al mapa del mundo: el motor avisa de cuánto se sigue alejando el zoom con la cámara ya en el máximo. */
+  const worldRef = useRef<WorldControl | null>(null);
 
   const [status, setStatus] = useState<Status>("loading");
   const [phases, setPhases] = useState<Record<PhaseId, PhaseState>>(INITIAL_PHASES);
@@ -79,6 +83,7 @@ export function CityViewer({ city }: { city: CityConfig }) {
   /** Modo «Explorar a pie» activo, y si el dispositivo lo admite (ratón y teclado; en móvil no se ofrece). */
   const [walking, setWalking] = useState(false);
   const [canWalk, setCanWalk] = useState(false);
+  const [walkFlags, setWalkFlags] = useState({ firstPerson: false, boost: false });
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const scene = city.scene;
@@ -169,6 +174,8 @@ export function CityViewer({ city }: { city: CityConfig }) {
       },
       onTrack: (unitId) => setTrackedUnit(unitId),
       onWalkChange: setWalking,
+      onWalkFlags: setWalkFlags,
+      onZoomOutPast: (amount) => worldRef.current?.pull(amount),
       onStats: () => undefined,
       onContextLost: () => setStatus("context-lost"),
     });
@@ -380,6 +387,14 @@ export function CityViewer({ city }: { city: CityConfig }) {
   const dataPhase = phases.datos;
 
   return (
+    <WorldTransition
+      city={{ slug: city.slug, name: city.name, lon: city.center[0], lat: city.center[1] }}
+      cities={mapCities}
+      reduceMotion={reduceMotion}
+      onPause={(paused) => engineRef.current?.setRenderPaused(paused)}
+      onReturned={() => containerRef.current?.focus({ preventScroll: true })}
+      controlRef={worldRef}
+    >
     <div className="relative h-full w-full">
       <div
         ref={containerRef}
@@ -481,6 +496,32 @@ export function CityViewer({ city }: { city: CityConfig }) {
             )}
           </Button>
         ) : null}
+        {walking ? (
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => engineRef.current?.toggleFirstPerson()}
+              aria-pressed={walkFlags.firstPerson}
+              title="Primera persona (V)"
+              className={cn("bg-surface/85 shadow-[var(--shadow-float)] backdrop-blur-md", walkFlags.firstPerson && "border-accent/70 text-accent-ink")}
+            >
+              <Eye size={14} strokeWidth={2} aria-hidden="true" />
+              Primera persona
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => engineRef.current?.toggleBoost()}
+              aria-pressed={walkFlags.boost}
+              title="Súper velocidad (F)"
+              className={cn("bg-surface/85 shadow-[var(--shadow-float)] backdrop-blur-md", walkFlags.boost && "border-accent/70 text-accent-ink")}
+            >
+              <Zap size={14} strokeWidth={2} aria-hidden="true" />
+              Súper velocidad
+            </Button>
+          </>
+        ) : null}
         {status === "ready" && canWalk ? (
           <Button
             variant="secondary"
@@ -568,11 +609,13 @@ export function CityViewer({ city }: { city: CityConfig }) {
       {walking ? (
         <div
           role="note"
-          className="stamp-in pointer-events-none absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-line-strong bg-surface/90 px-4 py-2.5 text-xs text-muted shadow-[var(--shadow-float)] backdrop-blur-md"
+          className="stamp-in pointer-events-none absolute bottom-5 left-1/2 z-20 flex w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-line-strong bg-surface/90 px-4 py-2.5 text-xs text-muted shadow-[var(--shadow-float)] backdrop-blur-md"
         >
           <Hint keys={["W", "A", "S", "D"]} label="moverte" />
           <Hint keys={["Mayús"]} label="correr" />
           <Hint keys={["Espacio"]} label="saltar" />
+          <Hint keys={["V"]} label="primera persona" />
+          <Hint keys={["F"]} label="súper velocidad" />
           <Hint keys={["Arrastrar"]} label="mirar" />
           <Hint keys={["Esc"]} label="salir" />
         </div>
@@ -671,6 +714,7 @@ export function CityViewer({ city }: { city: CityConfig }) {
         />
       ) : null}
     </div>
+    </WorldTransition>
   );
 }
 

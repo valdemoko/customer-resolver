@@ -5,6 +5,7 @@ import { Layers } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CityViewerLoader } from "@/components/viewer/CityViewerLoader";
 import { getCityBySlug } from "@/lib/cities/registry";
+import { listMapCities } from "@/lib/cities/map-cities";
 import { isCityOpenable } from "@/lib/cities/schema";
 
 type Params = Promise<{ slug: string }>;
@@ -42,7 +43,7 @@ export default async function ViewerPage({ params }: { params: Params }) {
 
   return (
     <div className="relative h-dvh w-full overflow-hidden">
-      <CityViewerLoader city={city} />
+      <CityViewerLoader city={city} mapCities={listMapCities()} />
 
       {/* Alternativa textual: la información no puede depender de poder ver el
           3D. Es requisito de accesibilidad, no un extra. */}

@@ -64,6 +64,11 @@ export type ControllerOptions = {
   clearance?: (x: number, z: number) => number;
   /** Reloj, inyectable para probar los temporizadores sin esperar. */
   now?: () => number;
+  /**
+   * Se llama cuando la persona sigue alejando el zoom estando ya en la distancia máxima (rueda o
+   * pellizco). `amount` son unos 100 por muesca de rueda. La interfaz lo usa para el salto al mapa del mundo.
+   */
+  onZoomOutPast?: (amount: number) => void;
 };
 
 const DEG = Math.PI / 180;
@@ -120,6 +125,7 @@ export class CityCameraController {
   private readonly idleReturnMs: number;
   private readonly returnDurationMs: number;
   private readonly onStateChange: ControllerOptions["onStateChange"];
+  private readonly onZoomOutPast: ControllerOptions["onZoomOutPast"];
   private readonly pickPoint: ControllerOptions["pickPoint"];
   private readonly clearance: ControllerOptions["clearance"];
   private readonly now: () => number;
@@ -163,6 +169,7 @@ export class CityCameraController {
     this.onStateChange = options.onStateChange;
     this.pickPoint = options.pickPoint;
     this.clearance = options.clearance;
+    this.onZoomOutPast = options.onZoomOutPast;
     this.now = options.now ?? (() => performance.now());
 
     this.azimuth = options.initial.azimuthDeg;
@@ -200,6 +207,11 @@ export class CityCameraController {
     if (this.suspended) return;
     this.requestHome(!this.reduceMotion);
   };
+
+  /** ¿Ya está la cámara en el alejamiento máximo (y no yendo hacia otro punto)? */
+  private atMaxDistance(): boolean {
+    return this.goalDistance >= this.limits.maxDistance * 0.999 && this.distance >= this.limits.maxDistance * 0.97;
+  }
 
   private canPan(): boolean {
     return this.distance < this.limits.panBelowDistance * 1.02;
@@ -240,6 +252,7 @@ export class CityCameraController {
       const pinch = this.currentPinchDistance();
       const mid = this.currentMidpoint();
       if (this.pinchDistance > 0 && pinch > 0) {
+        if (pinch < this.pinchDistance && this.atMaxDistance()) this.onZoomOutPast?.((this.pinchDistance / pinch - 1) * 700);
         this.anchor = this.pickAt(mid.x, mid.y);
         this.goalDistance = clamp(
           this.goalDistance * (this.pinchDistance / pinch),
@@ -320,6 +333,10 @@ export class CityCameraController {
     event.preventDefault();
     if (event.deltaMode === 0 && Math.abs(event.deltaY) < 1) return;
     const lines = event.deltaMode === 1 ? 33 : event.deltaMode === 2 ? 600 : 1;
+    if (event.deltaY > 0 && this.atMaxDistance()) {
+      this.onZoomOutPast?.(event.deltaY * lines);
+      return;
+    }
     this.anchor = this.pickAt(event.clientX, event.clientY);
     this.goalDistance = clamp(
       this.goalDistance * Math.exp(event.deltaY * lines * 0.0016),

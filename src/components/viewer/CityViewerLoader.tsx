@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { CityConfig } from "@/lib/cities/schema";
+import type { MapCity } from "@/components/marketing/NetworkMarkers";
 
 /**
  * Cargador del visor 3D.
@@ -30,6 +31,6 @@ const CityViewer = dynamic(
   },
 );
 
-export function CityViewerLoader({ city }: { city: CityConfig }) {
-  return <CityViewer city={city} />;
+export function CityViewerLoader({ city, mapCities }: { city: CityConfig; mapCities: MapCity[] }) {
+  return <CityViewer city={city} mapCities={mapCities} />;
 }

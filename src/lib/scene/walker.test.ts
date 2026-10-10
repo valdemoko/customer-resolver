@@ -151,3 +151,26 @@ describe("movimiento del personaje", () => {
     expect(Math.sin(state.heading)).toBeGreaterThan(0.9);
   });
 });
+
+describe("súper velocidad", () => {
+  it("llega a su velocidad, mucho mayor que correr, y salta más alto", () => {
+    const sprint = run(open(), { forward: true, boost: true }, 2);
+    expect(sprint.speed).toBeCloseTo(WALKER.boostSpeed, 0);
+    expect(WALKER.boostSpeed).toBeGreaterThan(WALKER.runSpeed * 3);
+    const world = open();
+    const state = createWalker(0, 0);
+    let peak = 0;
+    for (let frame = 0; frame < 150; frame += 1) {
+      stepWalker(state, { ...NONE, boost: true, jump: frame < 60 }, 0, 1 / 60, world);
+      peak = Math.max(peak, state.y);
+    }
+    expect(peak).toBeGreaterThan(WALKER.jumpHeight * 2);
+  });
+
+  it("no atraviesa un muro fino aunque se vaya a toda velocidad con pocos fotogramas por segundo", () => {
+    const wall = new WalkWorld({ buildings: [square(20, 0, 0.5)], water: [], bounds: [] }); // 1 m de grosor
+    const state = createWalker(0, 0);
+    for (let frame = 0; frame < 60; frame += 1) stepWalker(state, { ...NONE, forward: true, boost: true }, 0, 1 / 20, wall); // 20 fps
+    expect(state.x).toBeLessThan(20);
+  });
+});

@@ -206,6 +206,10 @@ export const WALKER = {
   radius: 0.45,
   walkSpeed: 4.4,
   runSpeed: 9,
+  /** Súper velocidad: modo aparte, con aceleración y salto propios. */
+  boostSpeed: 42,
+  boostAccel: 110,
+  boostJumpHeight: 3.4,
   /** Aceleración en suelo y en el aire (m/s²). */
   groundAccel: 38,
   airAccel: 12,
@@ -223,6 +227,8 @@ export type WalkInput = {
   right: boolean;
   run: boolean;
   jump: boolean;
+  /** Súper velocidad activada. */
+  boost?: boolean;
 };
 
 export type WalkerState = {
@@ -274,10 +280,21 @@ export function stepWalker(state: WalkerState, input: WalkInput, cameraYaw: numb
     wishZ /= wishLength;
   }
   const running = input.run && forwardAxis >= 0 && wishLength > 0;
-  const top = wishLength === 0 ? 0 : running ? WALKER.runSpeed : forwardAxis < 0 && sideAxis === 0 ? WALKER.walkSpeed * 0.7 : WALKER.walkSpeed;
+  const backwards = forwardAxis < 0 && sideAxis === 0;
+  const boost = input.boost === true;
+  const top =
+    wishLength === 0
+      ? 0
+      : boost
+        ? WALKER.boostSpeed * (backwards ? 0.6 : 1)
+        : running
+          ? WALKER.runSpeed
+          : backwards
+            ? WALKER.walkSpeed * 0.7
+            : WALKER.walkSpeed;
 
   // Aceleración hacia la velocidad deseada (frena igual de rápido que acelera).
-  const accel = (state.grounded ? WALKER.groundAccel : WALKER.airAccel) * step;
+  const accel = (boost ? WALKER.boostAccel : state.grounded ? WALKER.groundAccel : WALKER.airAccel) * step;
   const goalX = wishX * top;
   const goalZ = wishZ * top;
   const diffX = goalX - state.vx;
@@ -297,7 +314,7 @@ export function stepWalker(state: WalkerState, input: WalkInput, cameraYaw: numb
   state.buffered = Math.max(0, state.buffered - step);
   state.coyote = state.grounded ? WALKER.coyoteS : Math.max(0, state.coyote - step);
   if (state.buffered > 0 && state.coyote > 0) {
-    state.vy = Math.sqrt(2 * WALKER.gravity * WALKER.jumpHeight);
+    state.vy = Math.sqrt(2 * WALKER.gravity * (boost ? WALKER.boostJumpHeight : WALKER.jumpHeight));
     state.grounded = false;
     state.coyote = 0;
     state.buffered = 0;
@@ -317,7 +334,13 @@ export function stepWalker(state: WalkerState, input: WalkInput, cameraYaw: numb
 
   // Movimiento horizontal con colisiones; lo que se pierde por el muro se descuenta de la velocidad.
   const before = [state.x, state.z] as const;
-  const [nx, nz] = world.move(state.x, state.z, state.vx * step, state.vz * step, WALKER.radius);
+  // A súper velocidad se avanza en pasos cortos para no atravesar muros finos de un salto.
+  const stepX = state.vx * step;
+  const stepZ = state.vz * step;
+  const substeps = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 0.3));
+  let nx = state.x;
+  let nz = state.z;
+  for (let i = 0; i < substeps; i += 1) [nx, nz] = world.move(nx, nz, stepX / substeps, stepZ / substeps, WALKER.radius);
   state.x = nx;
   state.z = nz;
   if (step > 0) {
