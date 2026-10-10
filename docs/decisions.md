@@ -601,3 +601,9 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 ## Modo a pie: solo primera persona, mas suave, y puentes
 - Se elimina el personaje y la tercera persona: se camina siempre en primera persona (FOV 90, ojos a 1,65 m). La super velocidad pasa a 30 m/s con aceleracion progresiva, FOV +11, sin temblor de camara y rayas mas lentas y tenues.
 - Puentes, muelles, escolleras, muelles de carga y escaleras (capa `surface`) se pueden cruzar aunque esten sobre el agua (`overWater` en `WalkWorld`).
+
+## Puntos de compartido y actividad en directo
+- Cada vez que alguien que NO es el dueno copia el enlace de un anuncio, el anuncio suma un punto (`market_shares`, `lib/shares.ts`). Una persona (huella sin cookies: conexion + navegador) suma como maximo un punto por anuncio y dia; el dueno (por cuenta, por correo de invitado o por enlace privado de edicion), los administradores y los robots no suman; solo puntuan espacios con anunciante. Es una estimacion: copiar el enlace no prueba que se envie, pero el limite por persona y dia quita el incentivo a inflarlo. POST con limite de 20/min por IP y cuerpo de 4 kB.
+- Ranking publico "Anuncios mas compartidos" en la pagina de la ciudad y pestanas Mas caros / Compartidos / Actividad en el visor; "Actividad en directo" sustituye a "Ultimas compras" y un aviso en el visor ensena lo que ocurre mientras se mira el mapa.
+- Las altas de cuenta (`recordLogin`) deben ESPERARSE en el Worker: una promesa suelta se corta al devolver la respuesta y las cuentas nuevas no llegaban al panel. `/api/auth/me` anota tambien a quien ya tenia sesion.
+- El formulario de compra solo enfoca el primer campo al abrirse: antes volvia a hacerlo en cada redibujado del padre.

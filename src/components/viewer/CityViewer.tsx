@@ -17,6 +17,7 @@ import { AdPanel } from "./AdPanel";
 import { PurchaseStudio } from "./PurchaseStudio";
 import { readEditTokens, saveEditToken, tokenFor, type EditTokens } from "@/lib/market/edit-tokens";
 import { RankingDock } from "./RankingDock";
+import { ActivityToast } from "./ActivityToast";
 import { WorldTransition, type WorldControl } from "./WorldTransition";
 import type { MapCity } from "@/components/marketing/NetworkMarkers";
 import { UnitTooltip } from "./UnitTooltip";
@@ -537,6 +538,7 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
       </div>
 
       {status === "ready" ? <RankingDock onGo={(unitId) => engineRef.current?.flyToUnit(unitId) ?? false} /> : null}
+      {status === "ready" ? <ActivityToast hidden={walking} onGo={(unitId) => engineRef.current?.flyToUnit(unitId) ?? false} /> : null}
 
       {selected ? (
         <BuildingPanel

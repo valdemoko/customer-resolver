@@ -2,6 +2,7 @@
 
 import { Check, Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { postShare } from "@/lib/market/share-client";
 
 /** Copia el enlace directo a un espacio (`?unit=…`): quien lo abra llega con la cámara ya sobre él. */
 export function ShareLink({
@@ -10,6 +11,7 @@ export function ShareLink({
   href,
   label = "Copiar enlace",
   copiedLabel = "Enlace copiado",
+  track,
 }: {
   readonly unitId: string;
   readonly className?: string;
@@ -17,6 +19,8 @@ export function ShareLink({
   readonly href?: string;
   readonly label?: string;
   readonly copiedLabel?: string;
+  /** Si se da, copiar el enlace suma un punto de compartido al anuncio (el servidor descarta al dueño). */
+  readonly track?: { readonly token?: string | null; readonly onShares?: (shares: number) => void };
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -31,12 +35,16 @@ export function ShareLink({
       url.searchParams.set("unit", unitId);
       target = url.toString();
     }
+    let done = true;
     try {
       await navigator.clipboard.writeText(target);
     } catch {
       window.prompt("Copia el enlace:", target);
-      return;
+      done = false;
     }
+    // Quien ha pedido el enlace lo va a mandar, se haya copiado solo o a mano.
+    if (track) void postShare(unitId, track.token).then((result) => result && track.onShares?.(result.shares));
+    if (!done) return;
     setCopied(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopied(false), 2200);

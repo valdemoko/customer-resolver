@@ -132,6 +132,9 @@ export type AdminPurchase = {
   refundedAt: string | null;
   releasedAt: string | null;
 };
+/** Una fila del ranking de compartidos. */
+export type ShareRow = { unitId: string; shares: number; owner: string | null };
+
 export type AdminAccount = { key: string; email: string | null; name?: string | null; purchases: number; freeClaims: number; paidCents: number; units: number; lastAt: string };
 
 /** Suma a la lista de cuentas las personas que solo han iniciado sesión (sin compras ni reclamaciones). */
@@ -210,6 +213,14 @@ export interface AdminOps {
   visitStats(today: string): Promise<VisitStats>;
   /** Anota un inicio de sesión (una fila por persona; cuenta los accesos). */
   recordLogin(user: { id: string; email: string; name: string }): Promise<void>;
+  /**
+   * Anota que esta huella compartió ese espacio ese día (`AAAA-MM-DD`). Una persona suma como máximo
+   * un punto por espacio y día. Devuelve `true` si es un punto nuevo.
+   */
+  recordShare(unitId: string, day: string, hash: string): Promise<boolean>;
+  /** Anuncios actuales por número de puntos de compartido (de mayor a menor). Solo espacios con anunciante. */
+  shareRanking(limit: number): Promise<ShareRow[]>;
+  shareCount(unitId: string): Promise<number>;
 }
 
 /** Identificador estable de una opción de la encuesta a partir de su nombre. */
@@ -538,6 +549,8 @@ export class MemoryStore implements MarketStore {
 
   protected visitDays = new Map<string, Set<string>>();
   protected loginUsers = new Map<string, { email: string; name: string; logins: number; lastSeen: string }>();
+  /** Puntos de compartido: espacio → huellas por día (`día|huella`). */
+  protected shareKeys = new Map<string, Set<string>>();
 
   async recordVisit(day: string, hash: string): Promise<void> {
     const set = this.visitDays.get(day) ?? new Set<string>();
@@ -566,6 +579,29 @@ export class MemoryStore implements MarketStore {
       byDay: Array.from({ length: 14 }, (_, i) => dayOf(13 - i)).map((day) => ({ day, visitors: this.visitDays.get(day)?.size ?? 0 })),
       signedIn: this.loginUsers.size,
     };
+  }
+
+  async recordShare(unitId: string, day: string, hash: string): Promise<boolean> {
+    const set = this.shareKeys.get(unitId) ?? new Set<string>();
+    const key = `${day}|${hash}`;
+    if (set.has(key)) return false;
+    set.add(key);
+    this.shareKeys.set(unitId, set);
+    return true;
+  }
+
+  async shareRanking(limit: number): Promise<ShareRow[]> {
+    const rows: ShareRow[] = [];
+    for (const [unitId, set] of this.shareKeys) {
+      const unit = this.units.get(unitId);
+      if (!unit || unit.purchases < 1 || !unit.content) continue; // sin anunciante no hay anuncio que puntuar
+      rows.push({ unitId, shares: set.size, owner: unit.content.name });
+    }
+    return rows.sort((a, b) => b.shares - a.shares || a.unitId.localeCompare(b.unitId)).slice(0, limit);
+  }
+
+  async shareCount(unitId: string): Promise<number> {
+    return this.shareKeys.get(unitId)?.size ?? 0;
   }
 
   async recordLogin(user: { id: string; email: string; name: string }): Promise<void> {
@@ -732,7 +768,7 @@ export class NeonStore implements MarketStore {
         (to_regclass('market_units') is not null and to_regclass('market_drafts') is not null and to_regclass('market_purchases') is not null
           and to_regclass('market_bans') is not null and to_regclass('market_admin_log') is not null
           and to_regclass('poll_options') is not null and to_regclass('poll_votes') is not null
-          and to_regclass('site_visits') is not null and to_regclass('site_users') is not null) as tables,
+          and to_regclass('site_visits') is not null and to_regclass('site_users') is not null and to_regclass('market_shares') is not null) as tables,
         (select count(*)::int from information_schema.columns where table_schema = current_schema() and (
           (table_name = 'market_drafts' and column_name = 'user_id') or
           (table_name = 'market_purchases' and column_name in ('user_id', 'buyer_email', 'refunded_at', 'released_at')) or
@@ -799,6 +835,12 @@ export class NeonStore implements MarketStore {
         day date not null,
         hash text not null,
         primary key (day, hash)
+      )`;
+      await this.sql`create table if not exists market_shares (
+        unit_id text not null,
+        day date not null,
+        hash text not null,
+        primary key (unit_id, day, hash)
       )`;
       await this.sql`create table if not exists site_users (
         user_id text primary key,
@@ -1275,6 +1317,28 @@ export class NeonStore implements MarketStore {
       byDay,
       signedIn: Number(users[0]?.n ?? 0),
     };
+  }
+
+  async recordShare(unitId: string, day: string, hash: string): Promise<boolean> {
+    await this.ensure();
+    const rows = await this.sql`insert into market_shares (unit_id, day, hash) values (${unitId}, ${day}::date, ${hash})
+      on conflict do nothing returning 1 as ok`;
+    return rows.length > 0;
+  }
+
+  async shareRanking(limit: number): Promise<ShareRow[]> {
+    await this.ensure();
+    const rows = await this.sql`select s.unit_id, count(*)::int as shares, max(u.content->>'name') as owner
+      from market_shares s join market_units u on u.id = s.unit_id
+      where u.purchases > 0 and u.content is not null
+      group by s.unit_id order by shares desc, s.unit_id limit ${limit}`;
+    return rows.map((row) => ({ unitId: String(row.unit_id), shares: Number(row.shares), owner: row.owner ? String(row.owner) : null }));
+  }
+
+  async shareCount(unitId: string): Promise<number> {
+    await this.ensure();
+    const rows = await this.sql`select count(*)::int as n from market_shares where unit_id = ${unitId}`;
+    return Number(rows[0]?.n ?? 0);
   }
 
   async recordLogin(user: { id: string; email: string; name: string }): Promise<void> {

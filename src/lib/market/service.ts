@@ -3,7 +3,7 @@ import { purchasesEnabled, PURCHASES_DISABLED_LABEL, requireAppOrigin } from "@/
 import { formatCents } from "@/lib/money";
 import { priceForPurchases } from "./pricing";
 import { FileStore, MemoryStore, NeonStore } from "./store";
-import type { MarketStore, StoredUnit } from "./store";
+import type { MarketStore, ShareRow, StoredUnit } from "./store";
 import { createCheckoutSession, stripeClient } from "./stripe";
 import { ContentSchema, LIMITS, UNIT_KIND_LABEL, unitKindOf } from "./types";
 import { DEFAULT_FRAMING } from "./types";
@@ -357,6 +357,8 @@ export type LeaderboardsPayload = {
   valuable: Array<{ unitId: string; label: string; kind: string; paidCents: number; purchases: number; owner: string | null }>;
   owners: Array<{ name: string; units: number }>;
   latest: Array<{ unitId: string; label: string; kind: string; buyer: string; amountCents: number; createdAt: string }>;
+  /** Anuncios más compartidos: cada persona que lo comparte (y no es su dueño) suma un punto al día. */
+  shared: Array<{ unitId: string; label: string; kind: string; owner: string | null; shares: number }>;
 };
 
 export const LEADERBOARD_SIZE = 15;
@@ -372,10 +374,12 @@ export async function getLeaderboards(): Promise<LeaderboardsPayload> {
 async function loadLeaderboards(): Promise<LeaderboardsPayload> {
   const base = { generatedAt: new Date().toISOString(), catalog: unitCatalogCounts() };
   let board;
+  let ranking: ShareRow[] = [];
   try {
-    board = await (await getMarketStore()).leaderboards(LEADERBOARD_SIZE);
+    const store = await getMarketStore();
+    [board, ranking] = await Promise.all([store.leaderboards(LEADERBOARD_SIZE), store.shareRanking(LEADERBOARD_SIZE).catch(() => [])]);
   } catch {
-    return { ...base, available: false, stats: null, valuable: [], owners: [], latest: [] };
+    return { ...base, available: false, stats: null, valuable: [], owners: [], latest: [], shared: [] };
   }
   const describe = (unitId: string) => ({
     label: publicUnitLabel(unitId, buildingNameOf),
@@ -389,6 +393,7 @@ async function loadLeaderboards(): Promise<LeaderboardsPayload> {
     valuable: board.valuable.map((row) => ({ ...row, ...describe(row.unitId) })),
     owners: board.owners,
     latest: board.latest.map((row) => ({ ...row, ...describe(row.unitId) })),
+    shared: ranking.map((row) => ({ ...row, ...describe(row.unitId) })),
   };
 }
 

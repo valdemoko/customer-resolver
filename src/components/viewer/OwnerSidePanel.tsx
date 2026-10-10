@@ -1,6 +1,8 @@
 "use client";
 
-import { ExternalLink, Lock, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ExternalLink, Lock, Pencil, Share2 } from "lucide-react";
+import { fetchShareCount } from "@/lib/market/share-client";
 import { UNIT_KIND_LABEL, unitKindOf } from "@/lib/market/types";
 import type { UnitView } from "@/lib/market/types";
 import { imageUrl } from "@/lib/scene/ads";
@@ -30,7 +32,18 @@ export function OwnerSidePanel({
   readonly editLink?: string;
 }) {
   const owner = view.owner;
+  const [shares, setShares] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setShares(null);
+    void fetchShareCount(unitId).then((count) => alive && setShares(count));
+    return () => {
+      alive = false;
+    };
+  }, [unitId, view.rev]);
   if (!owner) return null;
+  // Quien tiene el enlace privado de edición es el dueño: el servidor lo reconoce y no le suma puntos.
+  const token = editLink ? (() => { try { return new URL(editLink).searchParams.get("edit"); } catch { return null; } })() : null;
   const version = view.rev;
   const since = owner.since ? new Date(owner.since).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "";
   const kind = UNIT_KIND_LABEL[unitKindOf(unitId)];
@@ -82,9 +95,20 @@ export function OwnerSidePanel({
               Editar mi anuncio
             </button>
           ) : null}
-          <ShareLink unitId={unitId} />
+          <ShareLink unitId={unitId} track={{ token, onShares: setShares }} />
           {editLink ? <ShareLink unitId={unitId} href={editLink} label="Copiar enlace de edición" copiedLabel="Enlace de edición copiado" /> : null}
         </div>
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+          <Share2 size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-accent-ink" />
+          {shares === null ? (
+            "Cada persona que comparta este anuncio le suma un punto."
+          ) : (
+            <span aria-live="polite">
+              <span className="tnum font-medium text-ink">{shares.toLocaleString("es-ES")}</span> {shares === 1 ? "punto" : "puntos"} de compartido
+              {onEdit ? "" : ". Comparte el enlace y suma uno"}
+            </span>
+          )}
+        </p>
         {editLink ? <p className="mt-2 text-xs text-muted">El enlace de edición es privado: quien lo tenga puede cambiar tu anuncio.</p> : null}
       </div>
     </aside>

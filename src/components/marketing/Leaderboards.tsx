@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, CircleAlert, Clock3, Crown, Gem, Layers } from "lucide-react";
+import { ArrowUpRight, CircleAlert, Clock3, Crown, Gem, Layers, Share2 } from "lucide-react";
 import { CountUp } from "./CountUp";
 import { Reveal, SpotCard } from "./Reveal";
 import { useLeaderboards } from "./useLeaderboards";
@@ -29,9 +29,10 @@ function relative(iso: string): string {
 }
 
 type Tone = { ring: string; text: string; glow: string; bar: string };
-const TONES: Record<"gold" | "cyan" | "violet", Tone> = {
+const TONES: Record<"gold" | "cyan" | "violet" | "green", Tone> = {
   gold: { ring: "border-[#e8c066]/30", text: "text-[#f0cf84]", glow: "from-[#e8c066]/14", bar: "from-[#e8c066] to-[#d9965a]" },
   cyan: { ring: "border-accent/30", text: "text-accent-ink", glow: "from-accent/12", bar: "from-[#ff7a4d] to-[#ffb08a]" },
+  green: { ring: "border-available/30", text: "text-available", glow: "from-available/12", bar: "from-[#3fae82] to-[#9be0bd]" },
   violet: { ring: "border-[#9fb4d8]/30", text: "text-[#c3d1ea]", glow: "from-[#9fb4d8]/12", bar: "from-[#8fa6cf] to-[#c3d1ea]" },
 };
 
@@ -288,11 +289,41 @@ function Owners({ rows }: { readonly rows: LeaderboardsPayload["owners"] }) {
   );
 }
 
+function Shared({ rows }: { readonly rows: LeaderboardsPayload["shared"] }) {
+  const max = Math.max(1, ...rows.map((row) => row.shares));
+  const fresh = useFresh(rows.map((row) => `${row.unitId}:${row.shares}`));
+  const tone = TONES.green;
+  return (
+    <Panel id="rk-compartidos" tone={tone} icon={<Share2 size={20} strokeWidth={1.8} />} title="Anuncios más compartidos" note="Un punto cada vez que alguien que no es su dueño comparte el anuncio (una vez al día por persona)." delay={240}>
+      {rows.length === 0 ? (
+        <GhostPodium text="Nadie ha compartido todavía ningún anuncio. Abre uno en el mapa y copia su enlace: el primero en compartirse abre el ranking." />
+      ) : (
+        <ol className="flex flex-1 flex-col gap-1.5 px-3 pb-4" aria-label={`Los ${rows.length} anuncios más compartidos`}>
+          {rows.map((row, index) => (
+            <Row
+              key={row.unitId}
+              index={index}
+              lead={index === 0}
+              fresh={fresh.has(`${row.unitId}:${row.shares}`)}
+              tone={tone}
+              title={row.owner ?? row.label}
+              href={`/city/malaga/viewer?unit=${encodeURIComponent(row.unitId)}`}
+              sub={`${row.label}${row.owner ? "" : ` · ${row.kind}`}`}
+              bar={row.shares / max}
+              value={<CountUp value={row.shares} />}
+            />
+          ))}
+        </ol>
+      )}
+    </Panel>
+  );
+}
+
 function Latest({ rows }: { readonly rows: LeaderboardsPayload["latest"] }) {
   const fresh = useFresh(rows.map((row) => `${row.unitId}:${row.createdAt}`));
   const tone = TONES.violet;
   return (
-    <Panel id="rk-ultimos" tone={tone} icon={<Clock3 size={20} strokeWidth={1.8} />} title="Últimas compras" note="Compras completadas, de la más reciente a la más antigua." delay={240}>
+    <Panel id="rk-ultimos" tone={tone} icon={<Clock3 size={20} strokeWidth={1.8} />} title="Actividad en directo" note="Lo último que pasa en Málaga: espacios comprados o reclamados, del más reciente al más antiguo." delay={360}>
       {rows.length === 0 ? (
         <GhostPodium text="Aún no hay compras completadas. La próxima en aparecer aquí puede ser la tuya." />
       ) : (
@@ -304,7 +335,7 @@ function Latest({ rows }: { readonly rows: LeaderboardsPayload["latest"] }) {
               lead={index === 0}
               fresh={fresh.has(`${row.unitId}:${row.createdAt}`)}
               tone={tone}
-              title={row.buyer}
+              title={`${row.buyer} ${row.amountCents === 0 ? "reclamó" : "compró"}`}
               href={`/city/malaga/viewer?unit=${encodeURIComponent(row.unitId)}`}
               sub={
                 <>
@@ -331,10 +362,11 @@ export function Leaderboards() {
     const loading: Array<[string, Tone, React.ReactNode]> = [
       ["Espacios más valiosos", TONES.gold, <Gem key="g" size={20} strokeWidth={1.8} />],
       ["Mayores propietarios", TONES.cyan, <Crown key="c" size={20} strokeWidth={1.8} />],
-      ["Últimas compras", TONES.violet, <Clock3 key="l" size={20} strokeWidth={1.8} />],
+      ["Anuncios más compartidos", TONES.green, <Share2 key="s" size={20} strokeWidth={1.8} />],
+      ["Actividad en directo", TONES.violet, <Clock3 key="l" size={20} strokeWidth={1.8} />],
     ];
     return (
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3" aria-busy="true" aria-label="Cargando clasificaciones">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-busy="true" aria-label="Cargando clasificaciones">
         {loading.map(([title, tone, icon], index) => (
           <Panel key={title} id={`sk-${index}`} tone={tone} icon={icon} title={title} note="Cargando…" delay={index * 100}>
             <SkeletonRows />
@@ -351,9 +383,10 @@ export function Leaderboards() {
         En directo · se actualiza cada 30 s
         <Layers size={14} strokeWidth={1.8} aria-hidden="true" className="ml-1 text-subtle" />
       </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Valuable rows={data.valuable} />
         <Owners rows={data.owners} />
+        <Shared rows={data.shared ?? []} />
         <Latest rows={data.latest} />
       </div>
     </div>
