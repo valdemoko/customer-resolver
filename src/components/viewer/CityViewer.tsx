@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Compass, Crosshair, Layers, Pause, Play, RotateCcw, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Compass, Crosshair, Footprints, Layers, Pause, Play, RotateCcw, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { CityConfig } from "@/lib/cities/schema";
@@ -76,6 +76,9 @@ export function CityViewer({ city }: { city: CityConfig }) {
   const [editTokens, setEditTokens] = useState<EditTokens>({});
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [manualPause, setManualPause] = useState(false);
+  /** Modo «Explorar a pie» activo, y si el dispositivo lo admite (ratón y teclado; en móvil no se ofrece). */
+  const [walking, setWalking] = useState(false);
+  const [canWalk, setCanWalk] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const scene = city.scene;
@@ -165,6 +168,7 @@ export function CityViewer({ city }: { city: CityConfig }) {
         }
       },
       onTrack: (unitId) => setTrackedUnit(unitId),
+      onWalkChange: setWalking,
       onStats: () => undefined,
       onContextLost: () => setStatus("context-lost"),
     });
@@ -186,6 +190,22 @@ export function CityViewer({ city }: { city: CityConfig }) {
       engineRef.current = null;
     };
   }, [city, scene]);
+
+  useEffect(() => {
+    setCanWalk(window.matchMedia("(pointer: fine) and (min-width: 721px)").matches);
+  }, []);
+
+  const toggleWalk = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (engine.isWalking()) {
+      engine.exitWalk();
+      return;
+    }
+    // El botón no debe conservar el foco: Espacio (saltar) volvería a pulsarlo.
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    if (engine.enterWalk()) setNotice(null);
+  }, []);
 
   const toggleRotation = useCallback(() => {
     const engine = engineRef.current;
@@ -461,6 +481,19 @@ export function CityViewer({ city }: { city: CityConfig }) {
             )}
           </Button>
         ) : null}
+        {status === "ready" && canWalk ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={toggleWalk}
+            aria-pressed={walking}
+            title={walking ? "Salir del paseo (Esc)" : "Explorar a pie"}
+            className="bg-surface/85 shadow-[var(--shadow-float)] backdrop-blur-md"
+          >
+            <Footprints size={14} strokeWidth={2} aria-hidden="true" />
+            {walking ? "Salir del paseo" : "Explorar a pie"}
+          </Button>
+        ) : null}
         <Button
           variant="secondary"
           size="sm"
@@ -529,6 +562,19 @@ export function CityViewer({ city }: { city: CityConfig }) {
               {notice.action.label}
             </a>
           ) : null}
+        </div>
+      ) : null}
+
+      {walking ? (
+        <div
+          role="note"
+          className="stamp-in pointer-events-none absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-line-strong bg-surface/90 px-4 py-2.5 text-xs text-muted shadow-[var(--shadow-float)] backdrop-blur-md"
+        >
+          <Hint keys={["W", "A", "S", "D"]} label="moverte" />
+          <Hint keys={["Mayús"]} label="correr" />
+          <Hint keys={["Espacio"]} label="saltar" />
+          <Hint keys={["Arrastrar"]} label="mirar" />
+          <Hint keys={["Esc"]} label="salir" />
         </div>
       ) : null}
 
@@ -659,5 +705,20 @@ function Fallback({
         </div>
       </div>
     </div>
+  );
+}
+
+function Hint({ keys, label }: { keys: string[]; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="inline-flex gap-1">
+        {keys.map((key) => (
+          <kbd key={key} className="rounded-md border border-line-strong bg-sunken px-1.5 py-0.5 font-mono text-[11px] text-ink">
+            {key}
+          </kbd>
+        ))}
+      </span>
+      {label}
+    </span>
   );
 }

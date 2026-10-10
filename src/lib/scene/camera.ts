@@ -101,6 +101,8 @@ export class CityCameraController {
   private followPitch: number | null = null;
   private targetZ = 0;
 
+  /** Con el modo «a pie» activo la órbita no lee entradas ni mueve la cámara. */
+  private suspended = false;
   private azimuthVelocity = 0;
   private pitchVelocity = 0;
   private panVelocityX = 0;
@@ -195,6 +197,7 @@ export class CityCameraController {
   };
 
   private onDoubleClick = (): void => {
+    if (this.suspended) return;
     this.requestHome(!this.reduceMotion);
   };
 
@@ -203,6 +206,7 @@ export class CityCameraController {
   }
 
   private onPointerDown = (event: PointerEvent): void => {
+    if (this.suspended) return;
     // Capturar el puntero puede lanzar si ya no está activo; sin el try la
     // excepción se lleva por delante el resto del manejador.
     try {
@@ -223,6 +227,7 @@ export class CityCameraController {
   };
 
   private onPointerMove = (event: PointerEvent): void => {
+    if (this.suspended) return;
     const previous = this.pointers.get(event.pointerId);
     if (!previous) return;
     const next = { x: event.clientX, y: event.clientY };
@@ -269,6 +274,7 @@ export class CityCameraController {
   };
 
   private onPointerUp = (event: PointerEvent): void => {
+    if (this.suspended) return;
     this.pointers.delete(event.pointerId);
     if (this.pointers.size === 0) {
       this.dragging = false;
@@ -310,6 +316,7 @@ export class CityCameraController {
   }
 
   private onWheel = (event: WheelEvent): void => {
+    if (this.suspended) return;
     event.preventDefault();
     if (event.deltaMode === 0 && Math.abs(event.deltaY) < 1) return;
     const lines = event.deltaMode === 1 ? 33 : event.deltaMode === 2 ? 600 : 1;
@@ -324,6 +331,7 @@ export class CityCameraController {
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    if (this.suspended) return;
     const step = event.shiftKey ? 12 : 5;
     let handled = true;
     switch (event.key) {
@@ -583,7 +591,26 @@ export class CityCameraController {
 
   /* -------------------------------------------------------------- por fotograma */
 
+  /**
+   * Suspende o reanuda la órbita. Al suspender se sueltan arrastres y retornos pendientes; al
+   * reanudar, la cámara vuelve a ser la de la órbita en la última pose que se le dio (`setPose`).
+   */
+  setSuspended(suspended: boolean): void {
+    if (this.suspended === suspended) return;
+    this.suspended = suspended;
+    this.pointers.clear();
+    this.dragging = false;
+    this.follow = null;
+    this.azimuthVelocity = 0;
+    this.pitchVelocity = 0;
+    this.panVelocityX = 0;
+    this.panVelocityZ = 0;
+    this.returnProgress = null;
+    this.returnFrom = null;
+  }
+
   update(deltaSeconds: number): void {
+    if (this.suspended) return;
     const dt = Math.min(deltaSeconds, 0.1); // un parón del navegador no gira media vuelta
     const now = this.now();
 

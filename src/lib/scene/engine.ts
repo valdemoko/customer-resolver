@@ -19,6 +19,8 @@ import type { BuildingRecord, CityMeshes, LandmarkSlot } from "./city";
 import { buildGround } from "./ground";
 import { buildRoads } from "./roads";
 import { buildLife, buildRoutes } from "./life";
+import { createWalkMode, type WalkMode } from "./walkmode";
+import { WalkWorld } from "./walker";
 import type { Life } from "./life";
 import type { RoadMeshes } from "./roads";
 import type { GroundMeshes } from "./ground";
@@ -118,6 +120,8 @@ export type EngineOptions = {
   onStats: (stats: EngineStats) => void;
   onStateChange?: (state: { rotating: boolean; atHome: boolean }) => void;
   onContextLost?: () => void;
+  /** Entra o sale del modo «Explorar a pie». */
+  onWalkChange?: (walking: boolean) => void;
 };
 
 export type EngineStats = {
@@ -180,6 +184,10 @@ export type CityEngine = {
   selectUnit: (unitId: string | null) => void;
   /** Deja de seguir al objeto móvil (si lo había). */
   stopTracking: () => void;
+  /** Modo «Explorar a pie»: suelta un personaje donde mira la cámara. `false` si aún no se puede. */
+  enterWalk: () => boolean;
+  exitWalk: () => void;
+  isWalking: () => boolean;
   getStats: () => EngineStats;
   getSummary: () => SceneSummary;
 };
@@ -315,6 +323,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   let life: Life | null = null;
   type Flight = { start: number; duration: number; from: { x: number; z: number; d: number; az: number; pitch: number }; to: { x: number; z: number; d: number; az: number; pitch: number } };
   let flight: Flight | null = null;
+  let walkMode: WalkMode | null = null;
   let roads: RoadMeshes | null = null;
   let marketViews: UnitView[] = [];
   let marketVersion = "0";
@@ -600,7 +609,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
 
   /** Si la unidad tiene anuncio y se pincha desde lejos, la cámara se acerca a ella (sin cambiar la selección). */
   function zoomToAdvertised(unitId: string | null): void {
-    if (!unitId || controller.getPose().distance < ZOOM_ON_CLICK_FROM) return;
+    if (!unitId || walkMode?.active || controller.getPose().distance < ZOOM_ON_CLICK_FROM) return;
     if (!marketViews.some((view) => view.id === unitId && view.owned)) return;
     const kind = unitId[0];
     if ((kind === "b" || kind === "w") && city) {
@@ -612,8 +621,21 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     }
   }
 
+  /** Sale del modo a pie y devuelve la órbita justo donde estaba el personaje. */
+  function exitWalk(): void {
+    const left = walkMode?.exit();
+    if (!left) return;
+    flight = null;
+    controller.setSuspended(false);
+    // yaw = hacia dónde miraba la cámara; la órbita se coloca en el lado contrario, a vista de calle alta.
+    const azimuthDeg = (Math.atan2(-Math.cos(left.yaw), -Math.sin(left.yaw)) * 180) / Math.PI;
+    controller.setPose({ azimuthDeg, pitchDeg: 38, distance: 90, target: [left.x, left.z] });
+    options.onWalkChange?.(false);
+  }
+
   /** Selecciona una unidad comprable y lleva la cámara hasta ella. Devuelve `false` si no la encuentra. */
   function flyToUnit(unitId: string): boolean {
+    exitWalk();
     const kind = unitId[0];
     if ((kind === "b" || kind === "w") && city) {
       const record = city.buildingsById.get(kind === "b" ? unitId.slice(2) : unitId);
@@ -647,6 +669,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     t: { distance: 60, pitchDeg: 26 },
   };
   function startTracking(unitId: string): boolean {
+    if (walkMode?.active) return false;
     const point = traffic?.worldPositionOf(unitId);
     if (!point) return false;
     flight = null;
@@ -793,6 +816,8 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   };
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
+    // Con un panel abierto, Escape solo lo cierra; sin panel, también sale del modo a pie.
+    if (walkMode?.active && !selection && !parcelSelection) exitWalk();
     stopTracking();
     if (selection) setSelection(null);
     if (parcelSelection) setParcelSelection(null);
@@ -931,7 +956,10 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     }
 
     const t0 = performance.now();
-    if (flight) {
+    if (walkMode?.active) {
+      // El modo a pie coloca la cámara; el «foco» de la escena pasa a ser el personaje.
+      target.copy(walkMode.update(delta));
+    } else if (flight) {
       const t = Math.min(1, (now - flight.start) / flight.duration);
       const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2; // ease in-out cúbica
       const { from, to } = flight;
@@ -945,7 +973,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       });
       if (t >= 1) flight = null;
     }
-    controller.update(delta);
+    if (!walkMode?.active) controller.update(delta);
     uniforms.uTime.value = elapsed;
     const orbitDistance = camera.position.distanceTo(target);
     parcelsVisible = orbitDistance < SHOW_DISTANCE;
@@ -1243,6 +1271,34 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       }
       life = buildLife({ features: loaded.features, circle: { cx: uniforms.uCircle.value.x, cz: uniforms.uCircle.value.y, radius: uniforms.uCircle.value.z }, seed: options.seed, mobile, routes });
       scene.add(life.group);
+      {
+        // Modo «Explorar a pie»: muros = edificios de más de un metro; agua profunda y borde de la zona no se cruzan.
+        const deepWater = new Set(["sea", "dock", "river", "reservoir", "pond"]);
+        const walkWorld = new WalkWorld({
+          buildings: [...city.buildingsById.values()].filter((record) => record.renderHeightM >= 1).map((record) => record.footprint),
+          water: loaded.features
+            .filter((feature) => feature.layer === "water" && deepWater.has(feature.kind || "water"))
+            .flatMap((feature) => feature.polygons.map((polygon) => ({ outer: polygon.outer, holes: polygon.holes }))),
+          bounds: corePlanes,
+        });
+        const wallRay = new THREE.Raycaster();
+        walkMode = createWalkMode({
+          scene,
+          camera,
+          container,
+          world: walkWorld,
+          rayDistance: (from, direction, maxDistance) => {
+            const mesh = city?.pickMesh;
+            if (!mesh) return null;
+            wallRay.set(from, direction);
+            wallRay.far = maxDistance;
+            const hit = wallRay.intersectObject(mesh, false)[0];
+            return hit ? hit.distance : null;
+          },
+          accentHex: hexToNumber(ACCENT),
+          reduceMotion,
+        });
+      }
       mark("barcos");
       summary.cruiseShips = ships.stats.cruise;
       summary.smallBoats = ships.stats.smallPlaced;
@@ -1514,6 +1570,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       const mz = (record.a[1] + record.b[1]) / 2 + record.normal[1] * 0.2;
       return project(mx, 0.3 * options.exaggeration + record.heightM * 0.5, mz);
     },
+    walk: () => (walkMode ? { active: walkMode.active, ...walkMode.snapshot() } : null),
     clipBounds: () => clip,
     coreBounds: () => core,
     clipPlanes: () => clipPlanes,
@@ -1534,6 +1591,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       container.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("keydown", onKeyDown);
       canvas.removeEventListener("webglcontextlost", onContextLostEvent);
+      walkMode?.dispose();
       controller.dispose();
 
       // Liberación explícita: al salir de la ciudad y volver, sin esto se acumula
@@ -1580,6 +1638,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       // Primero se suelta TODO lo que mueve o retiene la cámara y después arranca el retorno:
       // soltar la selección cambia la retención del giro y eso cancelaría un retorno ya iniciado
       // (había que pulsar «Vista inicial» dos veces).
+      exitWalk();
       flight = null;
       stopTracking();
       if (selection) setSelection(null);
@@ -1587,6 +1646,23 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       controller.requestHome(!reduceMotion);
     },
     isManuallyPaused: () => controller.isManuallyPaused(),
+    enterWalk: () => {
+      if (!walkMode || walkMode.active) return false;
+      flight = null;
+      stopTracking();
+      if (selection) setSelection(null);
+      if (parcelSelection) setParcelSelection(null);
+      // Si había algo seleccionado, `setSelection(null)` ya soltó la retención del giro.
+      const yaw = Math.atan2(target.z - camera.position.z, target.x - camera.position.x);
+      // Se suelta justo donde mira la cámara; de muy lejos, el foco es el centro de la ciudad.
+      if (!walkMode.enter(target.x, target.z, yaw)) return false;
+      controller.setSuspended(true);
+      setHover(null);
+      options.onWalkChange?.(true);
+      return true;
+    },
+    exitWalk,
+    isWalking: () => walkMode?.active ?? false,
     select: (id: string | null) => {
       stopTracking();
       if (parcelSelection) setParcelSelection(null, false);

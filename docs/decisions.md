@@ -588,3 +588,8 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 
 ## Fondo de contornos a todo el ancho
 - Los SVG de contornos se pintaban con la proporcion 1920x3000 y en pantallas anchas solo cubrian una banda central. Ahora el lienzo es `-1920 0 5760 3000` con `slice`, y el dibujo original se repite en espejo a izquierda y derecha (`<use>`), sin costuras. `tools/build-contours.mjs` genera ya este formato.
+
+## Modo "Explorar a pie"
+- Solo escritorio (ratón y teclado): el boton no se ofrece en movil. Personaje low poly con camara en tercera persona; WASD/flechas, Mayus corre, Espacio salta (con margen antes y despues de pisar), arrastrar mira, rueda acerca la camara, Esc sale.
+- Logica pura en `src/lib/scene/walker.ts` (probada en `walker.test.ts`): suelo plano, edificios de mas de 1 m como muros (rejilla de 48 m, el personaje se desliza), agua profunda y borde de la zona cubierta no se cruzan. La camara orbital se suspende (`setSuspended`) mientras se camina y vuelve donde estaba el personaje al salir.
+- No se sube a tejados ni hay coche: se descarto por coste frente a lo que aporta en un mapa low poly.
