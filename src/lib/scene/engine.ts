@@ -595,6 +595,23 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     flight = { start: performance.now(), duration: 1500, from: { x: target.x, z: target.z, d: pose.distance, az: pose.azimuthDeg, pitch: pose.pitchDeg }, to };
   }
 
+  /** Distancia (m) a partir de la cual pinchar un anuncio acerca la cámara a él; más cerca, ya se está mirando de cerca. */
+  const ZOOM_ON_CLICK_FROM = 450;
+
+  /** Si la unidad tiene anuncio y se pincha desde lejos, la cámara se acerca a ella (sin cambiar la selección). */
+  function zoomToAdvertised(unitId: string | null): void {
+    if (!unitId || controller.getPose().distance < ZOOM_ON_CLICK_FROM) return;
+    if (!marketViews.some((view) => view.id === unitId && view.owned)) return;
+    const kind = unitId[0];
+    if ((kind === "b" || kind === "w") && city) {
+      const record = city.buildingsById.get(kind === "b" ? unitId.slice(2) : unitId);
+      if (record) flyTo(record.centroid[0], record.centroid[1], Math.min(420, Math.max(80, record.radiusM * 3.4 + 50)));
+    } else if (kind === "p" && parcels) {
+      const parcel = parcels.byId.get(unitId.slice(2));
+      if (parcel) flyTo((parcel.a[0] + parcel.b[0]) / 2, (parcel.a[1] + parcel.b[1]) / 2, 55, 30);
+    }
+  }
+
   /** Selecciona una unidad comprable y lleva la cámara hasta ella. Devuelve `false` si no la encuentra. */
   function flyToUnit(unitId: string): boolean {
     const kind = unitId[0];
@@ -765,10 +782,13 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     }
     stopTracking();
     options.onSelectAd?.(null);
-    if (hit.parcel) setParcelSelection(hit.parcel);
-    else {
+    if (hit.parcel) {
+      setParcelSelection(hit.parcel);
+      zoomToAdvertised(`p:${hit.parcel.id}`);
+    } else {
       if (parcelSelection) setParcelSelection(null);
       setSelection(hit.building);
+      if (hit.building) zoomToAdvertised(unitIdOfRecord(hit.building));
     }
   };
   const onKeyDown = (event: KeyboardEvent) => {
@@ -1557,10 +1577,14 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     },
     setManuallyPaused: (paused: boolean) => controller.setManuallyPaused(paused),
     requestHome: () => {
+      // Primero se suelta TODO lo que mueve o retiene la cámara y después arranca el retorno:
+      // soltar la selección cambia la retención del giro y eso cancelaría un retorno ya iniciado
+      // (había que pulsar «Vista inicial» dos veces).
+      flight = null;
       stopTracking();
-      controller.requestHome(!reduceMotion);
       if (selection) setSelection(null);
       if (parcelSelection) setParcelSelection(null);
+      controller.requestHome(!reduceMotion);
     },
     isManuallyPaused: () => controller.isManuallyPaused(),
     select: (id: string | null) => {

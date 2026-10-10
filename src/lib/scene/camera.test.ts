@@ -515,3 +515,49 @@ describe("accesibilidad y mando", () => {
     expect(estados.at(-1)?.atHome).toBe(false);
   });
 });
+
+/** ¿Ha llegado a la vista inicial (distancia y foco)? Tras llegar, el giro lento se reanuda, así que no se mira el azimut. */
+const backHome = (h: Harness) => {
+  const pose = h.pose();
+  return Math.abs(pose.distance - INITIAL.distance) < INITIAL.distance * 0.01 && Math.hypot(pose.target[0], pose.target[1]) < 2;
+};
+
+describe("«Vista inicial» funciona a la primera", () => {
+  it("soltar la selección justo después de pedir la vista inicial no cancela el retorno", () => {
+    const h = harness();
+    for (let index = 0; index < 12; index += 1) h.wheel(-240);
+    h.advance(1);
+    h.controller.setHold(true); // edificio seleccionado
+    h.advance(0.5);
+    h.controller.requestHome(true); // el botón «Vista inicial»
+    h.controller.setHold(false); // y el motor suelta la selección
+    expect(h.controller.isReturning()).toBe(true);
+    h.advance(2);
+    expect(backHome(h)).toBe(true);
+  });
+
+  it("pasar el ratón por edificios mientras vuelve (cambios de retención) no la interrumpe", () => {
+    const h = harness();
+    for (let index = 0; index < 12; index += 1) h.wheel(-240);
+    h.advance(1);
+    h.controller.requestHome(true);
+    h.advance(0.4);
+    h.controller.setHold(true);
+    h.advance(0.2);
+    h.controller.setHold(false);
+    expect(h.controller.isReturning()).toBe(true);
+    h.advance(1.5);
+    expect(backHome(h)).toBe(true);
+  });
+
+  it("tocar el mapa mientras vuelve sí la cancela (quien arrastra manda)", () => {
+    const h = harness();
+    for (let index = 0; index < 12; index += 1) h.wheel(-240);
+    h.advance(1);
+    h.controller.requestHome(true);
+    h.advance(0.3);
+    h.pointer("pointerdown", 1, 300, 300);
+    expect(h.controller.isReturning()).toBe(false);
+  });
+});
+

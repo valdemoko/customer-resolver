@@ -420,7 +420,9 @@ export class CityCameraController {
 
   /** Pausa el giro (edificio bajo el puntero o seleccionado). */
   setHold(hold: boolean): void {
-    if (this.hold !== hold) this.markInteraction();
+    // Un cambio de retención (pasar el ratón por un edificio, soltar una selección) no es una orden de
+    // mover la cámara: no debe cancelar un retorno a la vista inicial en marcha.
+    if (this.hold !== hold && this.returnProgress === null) this.markInteraction();
     this.hold = hold;
   }
 
