@@ -133,23 +133,16 @@ describe("editar el anuncio después de pagar", () => {
     expect((await getUnitView(OTHER)).owner).toBeNull();
   });
 
-  it("«Mayores propietarios» cuenta PERSONAS: dos anuncios con distinto nombre pero el mismo dueño son un propietario", async () => {
-    await buy(BUILDING, "cs_test_p1", { name: "Panadería Sol", email: "Ana@Example.com" });
-    vi.useFakeTimers({ toFake: ["Date"] });
-    try {
-      vi.setSystemTime(Date.now() + 60_000);
-      await buy(OTHER, "cs_test_p2", { name: "Librería Luna", email: "ana@example.com", userId: "g-1" }); // mismo correo, ahora con cuenta
-    } finally {
-      vi.useRealTimers();
-    }
-    await buy(`b:${units.buildings[2]}`, "cs_test_p3", { name: "Otro dueño", email: "beto@example.com" });
+  it("«Mayores propietarios» cuenta cuántos espacios tiene cada nombre de anunciante", async () => {
+    await buy(BUILDING, "cs_test_p1", { name: "Málaga CF", email: "ana@example.com" });
+    await buy(OTHER, "cs_test_p2", { name: "málaga cf ", email: "beto@example.com" }); // mismo nombre (mayúsculas y espacios aparte), otra persona
+    await buy(`b:${units.buildings[2]}`, "cs_test_p3", { name: "Panadería Sol", email: "ana@example.com" }); // misma persona, otro nombre
     const board = await getLeaderboards();
     expect(board.stats?.owners).toBe(2);
-    // Ana tiene 2 espacios y se enseña el nombre de su anuncio MÁS RECIENTE; nunca su correo.
-    expect(board.owners).toEqual([
-      { name: "Librería Luna", units: 2 },
-      { name: "Otro dueño", units: 1 },
+    expect(board.owners.map((row) => [row.name.trim().toLowerCase(), row.units])).toEqual([
+      ["málaga cf", 2],
+      ["panadería sol", 1],
     ]);
-    expect(JSON.stringify(board)).not.toContain("@");
+    expect(JSON.stringify(board)).not.toContain("@"); // nunca se enseña un correo
   });
 });

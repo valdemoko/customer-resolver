@@ -64,27 +64,14 @@ export function computeLeaderboards(log: PurchaseRecord[], units: StoredUnit[], 
     const current = perUnit.get(entry.unitId) ?? { paid: 0, n: 0 };
     perUnit.set(entry.unitId, { paid: Math.max(current.paid, entry.amountCents), n: current.n + 1 });
   }
-  // «Propietario» es una PERSONA, no un nombre de anuncio: se agrupa por el correo (o la cuenta) de la última
-  // compra de cada espacio, y solo si no hay ninguno, por el nombre. Se enseña el nombre de su anuncio más reciente.
-  const lastBuyer = new Map<string, PurchaseRecord>();
-  for (const entry of visibleLog) lastBuyer.set(entry.unitId, entry);
-  const byOwner = new Map<string, { name: string; units: number; at: string; unitId: string }>();
+  // «Propietario» = el nombre con el que anuncia (sin distinguir mayúsculas): cuántos espacios tiene cada marca.
+  const byOwner = new Map<string, { name: string; units: number }>();
   for (const unit of owned) {
     const name = unit.content!.name;
-    const last = lastBuyer.get(unit.id);
-    const email = last?.buyerEmail?.trim().toLowerCase();
-    const key = email || last?.userId || `nombre:${ownerKey(name)}`;
+    const key = ownerKey(name);
     const current = byOwner.get(key);
-    if (!current) {
-      byOwner.set(key, { name, units: 1, at: unit.updatedAt, unitId: unit.id });
-      continue;
-    }
-    current.units += 1;
-    if (unit.updatedAt > current.at || (unit.updatedAt === current.at && unit.id < current.unitId)) {
-      current.name = name;
-      current.at = unit.updatedAt;
-      current.unitId = unit.id;
-    }
+    if (current) current.units += 1;
+    else byOwner.set(key, { name, units: 1 });
   }
   const ownerOf = new Map(owned.map((unit) => [unit.id, unit.content!.name]));
   return {
@@ -98,10 +85,7 @@ export function computeLeaderboards(log: PurchaseRecord[], units: StoredUnit[], 
       .map(([unitId, value]) => ({ unitId, paidCents: value.paid, purchases: value.n, owner: ownerOf.get(unitId) ?? null }))
       .sort((a, b) => b.paidCents - a.paidCents || b.purchases - a.purchases || a.unitId.localeCompare(b.unitId))
       .slice(0, limit),
-    owners: [...byOwner.values()]
-      .sort((a, b) => b.units - a.units || a.name.localeCompare(b.name))
-      .slice(0, limit)
-      .map(({ name, units }) => ({ name, units })),
+    owners: [...byOwner.values()].sort((a, b) => b.units - a.units || a.name.localeCompare(b.name)).slice(0, limit),
     latest: [...visibleLog]
       .map((entry, index) => ({ entry, index }))
       .sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt) || b.index - a.index)
@@ -835,28 +819,16 @@ export class NeonStore implements MarketStore {
     const [totals, owned, valuable, owners, latest] = await Promise.all([
       this.sql`select (count(*) filter (where released_at is null and refunded_at is null))::int as purchases,
         coalesce(sum(amount_cents) filter (where refunded_at is null), 0)::bigint as revenue from market_purchases`,
-      this.sql`with cur as (
-        select u.id, u.updated_at, u.content->>'name' as name,
-          coalesce(nullif(lower(trim(p.buyer_email)), ''), p.user_id, 'nombre:' || lower(trim(u.content->>'name'))) as owner_key
-        from market_units u
-        left join lateral (select buyer_email, user_id from market_purchases where unit_id = u.id and released_at is null order by id desc limit 1) p on true
-        where u.purchases > 0 and u.content is not null
-      )
-        select count(*)::int as units, count(distinct owner_key)::int as owners from cur`,
+      this.sql`select count(*)::int as units, count(distinct lower(trim(content->>'name')))::int as owners
+        from market_units where purchases > 0 and content is not null`,
       this.sql`select p.unit_id, max(p.amount_cents)::int as paid, count(*)::int as n, u.content->>'name' as owner
         from market_purchases p left join market_units u on u.id = p.unit_id
         where p.amount_cents > 0 and p.released_at is null and p.refunded_at is null
         group by p.unit_id, u.content->>'name'
         order by paid desc, n desc, p.unit_id asc limit ${limit}`,
-      this.sql`with cur as (
-        select u.id, u.updated_at, u.content->>'name' as name,
-          coalesce(nullif(lower(trim(p.buyer_email)), ''), p.user_id, 'nombre:' || lower(trim(u.content->>'name'))) as owner_key
-        from market_units u
-        left join lateral (select buyer_email, user_id from market_purchases where unit_id = u.id order by id desc limit 1) p on true
-        where u.purchases > 0 and u.content is not null
-      )
-        select (array_agg(name order by updated_at desc, id asc))[1] as name, count(*)::int as units
-        from cur group by owner_key
+      this.sql`select min(content->>'name') as name, count(*)::int as units
+        from market_units where purchases > 0 and content is not null
+        group by lower(trim(content->>'name'))
         order by units desc, name asc limit ${limit}`,
       this.sql`select unit_id, content->>'name' as buyer, amount_cents, created_at
         from market_purchases where released_at is null and refunded_at is null order by created_at desc, id desc limit ${limit}`,
