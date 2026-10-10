@@ -104,7 +104,11 @@ for (const [name, seed, stroke, levels] of [
     const major = i % 4 === 0;
     body += `<path d="${contours(values, cols, rows, level, scale)}" stroke-width="${major ? 1.6 : 0.8}" opacity="${major ? 0.9 : 0.55}"/>`;
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cols * scale} ${rows * scale}" fill="none" stroke="${stroke}" stroke-linecap="round">${body}</svg>`;
+  // Lienzo TRES veces más ancho: el dibujo original en el centro y dos copias espejadas a los lados (los bordes
+  // coinciden, sin costuras). Así el fondo llena también las bandas laterales en pantallas anchas, donde un
+  // dibujo de proporción 1920 × 3000 solo ocuparía una franja central. `slice` lo hace cubrir el recuadro.
+  const width = cols * scale;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-width} 0 ${width * 3} ${rows * scale}" preserveAspectRatio="xMidYMid slice" fill="none" stroke="${stroke}" stroke-linecap="round"><g id="t">${body}</g><use href="#t" transform="scale(-1 1)"/><use href="#t" transform="translate(${width * 2} 0) scale(-1 1)"/></svg>`;
   await writeFile(`public/brand/${name}`, svg);
   console.log(name, (svg.length / 1024).toFixed(0), "kB");
 }

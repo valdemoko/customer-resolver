@@ -585,3 +585,6 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 
 - **Zoom al pinchar.** Si el edificio o local pinchado tiene anuncio y la cámara está a más de 450 m, la cámara se acerca a él (misma distancia que al abrir un enlace `?unit=`). Más cerca, ya se está mirando de cerca y no se mueve. Los espacios sin anuncio no acercan.
 - **«Vista inicial» a la primera.** El retorno se cancelaba solo: el motor lo arrancaba y DESPUÉS soltaba la selección, y `setHold` marcaba una interacción que cancelaba el retorno (también un vuelo en curso o el hover mientras volvía). Ahora se suelta primero todo (vuelo, seguimiento, selección) y `setHold` no cancela un retorno ya iniciado. Quien toca el mapa sigue cancelándolo. Cubierto por tests de cámara (fallan con la regla antigua).
+
+## Fondo de contornos a todo el ancho
+- Los SVG de contornos se pintaban con la proporcion 1920x3000 y en pantallas anchas solo cubrian una banda central. Ahora el lienzo es `-1920 0 5760 3000` con `slice`, y el dibujo original se repite en espejo a izquierda y derecha (`<use>`), sin costuras. `tools/build-contours.mjs` genera ya este formato.
