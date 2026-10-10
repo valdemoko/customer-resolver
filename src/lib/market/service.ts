@@ -353,7 +353,7 @@ export type LeaderboardsPayload = {
   available: boolean;
   generatedAt: string;
   catalog: ReturnType<typeof unitCatalogCounts>;
-  stats: { purchases: number; unitsOwned: number; owners: number; revenueCents: number } | null;
+  stats: { purchases: number; unitsOwned: number; owners: number } | null;
   valuable: Array<{ unitId: string; label: string; kind: string; paidCents: number; purchases: number; owner: string | null }>;
   owners: Array<{ name: string; units: number }>;
   latest: Array<{ unitId: string; label: string; kind: string; buyer: string; amountCents: number; createdAt: string }>;
@@ -384,7 +384,8 @@ async function loadLeaderboards(): Promise<LeaderboardsPayload> {
   return {
     ...base,
     available: true,
-    stats: board.stats,
+    // El total recaudado es solo para el panel de administración: nunca se publica.
+    stats: { purchases: board.stats.purchases, unitsOwned: board.stats.unitsOwned, owners: board.stats.owners },
     valuable: board.valuable.map((row) => ({ ...row, ...describe(row.unitId) })),
     owners: board.owners,
     latest: board.latest.map((row) => ({ ...row, ...describe(row.unitId) })),

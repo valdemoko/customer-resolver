@@ -81,6 +81,6 @@ describe("espacios gratis", () => {
     await claimFree({ unitId: FREE_UNIT_IDS[3]!, content: content("Gratis"), userId: "g-1" });
     const board = await getLeaderboards();
     expect(board.valuable).toEqual([]);
-    expect(board.stats?.revenueCents).toBe(0);
+    expect(board.stats).not.toHaveProperty("revenueCents"); // el total recaudado no es público
   });
 });
