@@ -242,6 +242,7 @@ export const SceneSchema = z.object({
     cruisePanelsPerShip: z.number().int().min(2).max(8),
     sailUnits: z.number().int().min(0).max(200),
     planes: z.number().int().min(0).max(3),
+    trucks: z.number().int().min(0).max(30).default(0),
     movingBoats: z.object({ desktop: z.number().int().min(0).max(60), mobile: z.number().int().min(0).max(30) }),
     cruiseCycleSeconds: z.number().min(120).max(7200),
     planeAltitudeM: z.array(z.number().min(60).max(900)).min(1).max(3),

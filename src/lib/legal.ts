@@ -34,7 +34,7 @@ export const legalDocs: LegalDoc[] = [
       {
         heading: "Qué es Resolveo",
         body: [
-          "Resolveo es un sitio web que muestra ciudades reconstruidas en 3D a partir de cartografía pública y permite contratar espacios publicitarios virtuales sobre esas reproducciones: edificios, locales, tramos de muralla, paneles de barcos, velas, aviones y otros elementos del mapa.",
+          "Resolveo es un sitio web que muestra ciudades reconstruidas en 3D a partir de cartografía pública y permite contratar espacios publicitarios virtuales sobre esas reproducciones: edificios, locales, tramos de muralla, paneles de barcos, velas, camiones, aviones y otros elementos del mapa.",
           "Los espacios son virtuales. Comprar uno no supone comprar, alquilar ni adquirir ningún derecho sobre un inmueble o un elemento real, ni genera expectativa de revalorización o de rentabilidad. El mapa es una representación aproximada: no es un plano oficial ni sustituye a la cartografía del Catastro.",
         ],
       },

@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Lock, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { dataUrlBytes, downscaleImage, imageAsDataUrl, saveEdit, startCheckout } from "@/lib/market/client";
+import { claimFreeUnit, dataUrlBytes, downscaleImage, imageAsDataUrl, saveEdit, startCheckout } from "@/lib/market/client";
 import { imageUrl } from "@/lib/scene/ads";
 import type { ImagePreset } from "@/lib/market/client";
 import { unitHasRoof } from "@/lib/market/faces";
 import { formatCents, nextPriceCents } from "@/lib/money";
 import { FaceStage } from "@/lib/market/stage";
 import type { Content, Framing, UnitView } from "@/lib/market/types";
-import { DEFAULT_FRAMING, LIMITS } from "@/lib/market/types";
+import { BASE_PRICE_CENTS, DEFAULT_FRAMING, LIMITS } from "@/lib/market/types";
 import type { FaceModel } from "@/lib/scene/ads";
 
 const kB = (dataUrl: string) => `${Math.max(1, Math.round(dataUrlBytes(dataUrl) / 1000))} kB`;
@@ -148,6 +148,7 @@ export function PurchaseStudio({
   mode = "buy",
   token = null,
   onSaved,
+  onClaimed,
 }: {
   unitId: string;
   label: string;
@@ -159,8 +160,11 @@ export function PurchaseStudio({
   mode?: "buy" | "edit";
   token?: string | null;
   onSaved?: () => void;
+  /** Se llama al reclamar con éxito un espacio gratis. */
+  onClaimed?: () => void;
 }) {
   const editing = mode === "edit";
+  const free = !editing && view.free;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<FaceStage | null>(null);
   const firstField = useRef<HTMLInputElement | null>(null);
@@ -209,7 +213,8 @@ export function PurchaseStudio({
   const [error, setError] = useState<string | null>(null);
 
   const price = formatCents(view.priceCents);
-  const following = formatCents(nextPriceCents(view.priceCents));
+  // Un espacio gratis cuesta 0 €; el siguiente comprador pagará el precio base.
+  const following = formatCents(view.free ? BASE_PRICE_CENTS : nextPriceCents(view.priceCents));
 
   /* ------------------------------------------------------------- escenario */
   useEffect(() => {
@@ -306,6 +311,11 @@ export function PurchaseStudio({
         onSaved?.();
         return;
       }
+      if (free) {
+        await claimFreeUnit({ unitId, content });
+        onClaimed?.();
+        return;
+      }
       const result = await startCheckout({ unitId, unitLabel: label, content, returnPath });
       window.location.assign(result.url);
     } catch (failure) {
@@ -365,6 +375,21 @@ export function PurchaseStudio({
             {editing ? (
               <p className="rounded-2xl border border-line bg-sunken/40 px-3.5 py-2.5 text-xs text-muted">
                 Cambia lo que quieras. Se guarda al instante, no se cobra nada y la protección de tu espacio no cambia.
+              </p>
+            ) : free && account === null ? (
+              <p className="rounded-2xl border border-[#e8b90c]/50 bg-[#e8b90c]/10 px-3.5 py-2.5 text-xs text-ink">
+                Este espacio es gratis, pero hace falta una cuenta de Google (máximo 3 espacios gratis por cuenta).{" "}
+                <a
+                  href={`/api/auth/google?next=${encodeURIComponent(`/city/malaga/viewer?unit=${unitId}`)}`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  Entrar con Google
+                </a>{" "}
+                antes de rellenar el formulario.
+              </p>
+            ) : free ? (
+              <p className="rounded-2xl border border-[#e8b90c]/50 bg-[#e8b90c]/10 px-3.5 py-2.5 text-xs text-ink">
+                Reclamando gratis como <span className="font-medium">{account?.name}</span>. Puedes reclamar hasta 3 espacios gratis.
               </p>
             ) : account ? (
               <p className="rounded-2xl border border-line bg-sunken/40 px-3.5 py-2.5 text-xs text-muted">
@@ -431,7 +456,7 @@ export function PurchaseStudio({
             <label className="flex cursor-pointer items-start gap-2.5 text-sm">
               <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[var(--c-accent)]" />
               <span className="text-muted">
-                Acepto que mi nombre, descripción, web e imágenes sean públicos en el mapa y que, pasados cinco días desde mi compra, quien compre después este espacio sustituirá mi anuncio. Entiendo que la compra es inmediata y definitiva, que no hay devoluciones y que pierdo el derecho de desistimiento. Acepto las{" "}
+                Acepto que mi nombre, descripción, web e imágenes sean públicos en el mapa y que, pasados cinco días desde mi {free ? "reclamación" : "compra"}, quien compre después este espacio sustituirá mi anuncio.{free ? "" : " Entiendo que la compra es inmediata y definitiva, que no hay devoluciones y que pierdo el derecho de desistimiento."} Acepto las{" "}
                 <a href="/legal/condiciones" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">condiciones</a>{" "}y las{" "}
                 <a href="/legal/normas-de-contenido" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-ink">normas de contenido</a>.
               </span>
@@ -443,8 +468,8 @@ export function PurchaseStudio({
             {editing ? null : (
             <div className="mb-3 flex items-end justify-between">
               <div>
-                <p className="text-xs text-muted">Pago único</p>
-                <p className="tnum font-mono text-3xl font-semibold leading-none text-ink">{price}</p>
+                <p className="text-xs text-muted">{free ? "Espacio gratis" : "Pago único"}</p>
+                <p className="tnum font-mono text-3xl font-semibold leading-none text-ink">{free ? "Gratis" : price}</p>
               </div>
               <p className="max-w-[10rem] text-right text-xs text-muted">El siguiente comprador pagará {following}.</p>
             </div>
@@ -454,11 +479,11 @@ export function PurchaseStudio({
                 {error}
               </p>
             ) : null}
-            <Button variant="primary" className="h-12 w-full" onClick={() => void pay()} disabled={busy || working !== null}>
-              {editing ? null : <Lock size={15} strokeWidth={2} aria-hidden="true" />}
-              {editing ? (busy ? "Guardando…" : "Guardar cambios") : busy ? "Abriendo Stripe…" : `Pagar ${price} con Stripe`}
+            <Button variant="primary" className="h-12 w-full" onClick={() => void pay()} disabled={busy || working !== null || (free && !account)}>
+              {editing || free ? null : <Lock size={15} strokeWidth={2} aria-hidden="true" />}
+              {editing ? (busy ? "Guardando…" : "Guardar cambios") : free ? (busy ? "Publicando…" : "Publicar gratis") : busy ? "Abriendo Stripe…" : `Pagar ${price} con Stripe`}
             </Button>
-            {editing ? null : <p className="mt-2 text-center text-xs text-subtle">El cobro lo gestiona Stripe. No guardamos datos de tu tarjeta.</p>}
+            {editing || free ? null : <p className="mt-2 text-center text-xs text-subtle">El cobro lo gestiona Stripe. No guardamos datos de tu tarjeta.</p>}
           </div>
         </section>
       </div>

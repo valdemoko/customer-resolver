@@ -7,8 +7,20 @@ import geoRaw from "@/data/cities/malaga.geo.json";
  * paquete de datos (edificios, locales, tramos de muralla) o que declara la
  * configuración (paneles de crucero, velas, carteles de avioneta).
  */
-const market = (geoRaw as unknown as { scene: { market: { cruisePanelsPerShip: number; sailUnits: number; planes: number; basePriceCents: number } } }).scene
+const market = (geoRaw as unknown as { scene: { market: { cruisePanelsPerShip: number; sailUnits: number; planes: number; trucks?: number; basePriceCents: number } } }).scene
   .market;
+
+import freeRaw from "@/data/market/free-units-malaga.json";
+
+/** Espacios gratis: 100 edificios sin nombre y unos locales. El primer anuncio no cuesta nada. */
+export const FREE_UNIT_IDS: readonly string[] = [
+  ...freeRaw.buildings.map((id) => `b:${id}`),
+  ...freeRaw.parcels.map((id) => `p:${id}`),
+];
+const freeSet = new Set(FREE_UNIT_IDS);
+export const isFreeUnit = (id: string) => freeSet.has(id);
+/** Cuántos espacios gratis puede reclamar una misma cuenta. */
+export const FREE_CLAIMS_PER_ACCOUNT = 3;
 
 const known = {
   buildings: new Set(malagaUnits.buildings),
@@ -34,6 +46,8 @@ export function isKnownUnit(id: string): boolean {
       return Number(a) < market.sailUnits;
     case "a":
       return Number(id.slice("a:plane-".length)) <= market.planes;
+    case "t":
+      return Number(a) >= 1 && Number(a) <= (market.trucks ?? 0);
     default:
       return false;
   }
@@ -48,7 +62,8 @@ export function unitCatalogCounts() {
     cruisePanels: market.cruisePanelsPerShip * 3,
     sails: market.sailUnits,
     planes: market.planes,
-    mobile: market.cruisePanelsPerShip * 3 + market.sailUnits + market.planes,
+    trucks: market.trucks ?? 0,
+    mobile: market.cruisePanelsPerShip * 3 + market.sailUnits + market.planes + (market.trucks ?? 0),
   };
 }
 

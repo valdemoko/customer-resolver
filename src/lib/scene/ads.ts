@@ -97,7 +97,7 @@ export class AdLayer {
   }
 
   /** Nuevo estado del mercado: actualiza el teñido y descarta lo que cambió de dueño. */
-  setUnits(views: UnitView[], version: string): void {
+  setUnits(views: UnitView[], version: string, free: readonly string[] = []): void {
     this.version = version;
     this.units = new Map(views.map((view) => [view.id, view]));
     this.ownedData.fill(0);
@@ -108,6 +108,13 @@ export class AdLayer {
       if (!slot || slot.index < 0 || slot.index >= OWNED_TEXTURE_SIZE) continue;
       // 255 = comprado sin fotos; 160 = comprado con fotos (el local solo se enmarca).
       (slot.table === 0 ? this.ownedData : this.parcelOwnedData)[slot.index] = view.owner && view.owner.faces.length > 0 ? 160 : 255;
+    }
+    // Gratis sin reclamar: valor 40 (el shader lo lee como amarillo).
+    for (const id of free) {
+      if (this.units.get(id)?.owned) continue;
+      const slot = this.indexFor(id);
+      if (!slot || slot.index < 0 || slot.index >= OWNED_TEXTURE_SIZE) continue;
+      (slot.table === 0 ? this.ownedData : this.parcelOwnedData)[slot.index] = 40;
     }
     this.ownedTexture.needsUpdate = true;
     this.parcelOwnedTexture.needsUpdate = true;

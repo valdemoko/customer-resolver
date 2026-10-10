@@ -10,15 +10,16 @@ import { z } from "zod";
  *   · `s:` panel publicitario del casco de un crucero (`s:cruise-1:3`)
  *   · `v:` vela de una embarcación pequeña (`v:12`)
  *   · `a:` cartel remolcado por una avioneta (`a:plane-1`)
+ *   · `t:` camión de carga con anuncio en la caja (`t:3`)
  *
  * El identificador es lo único que viaja entre el visor, la API y la base de
  * datos. El precio sale SIEMPRE del servidor.
  */
 
 export const UNIT_ID_PATTERN =
-  /^(b:(way|relation)\/\d{1,12}|p:L-[0-9a-z]{7}|w:(alcazaba|gibralfaro):\d{1,3}|s:cruise-[1-3]:[0-7]|v:\d{1,3}|a:plane-[1-3])$/;
+  /^(b:(way|relation)\/\d{1,12}|p:L-[0-9a-z]{7}|w:(alcazaba|gibralfaro):\d{1,3}|s:cruise-[1-3]:[0-7]|v:\d{1,3}|a:plane-[1-3]|t:\d{1,2})$/;
 
-export type UnitKind = "building" | "parcel" | "wall" | "ship" | "sail" | "plane";
+export type UnitKind = "building" | "parcel" | "wall" | "ship" | "sail" | "plane" | "truck";
 
 export function unitKindOf(id: string): UnitKind {
   switch (id[0]) {
@@ -32,6 +33,8 @@ export function unitKindOf(id: string): UnitKind {
       return "ship";
     case "v":
       return "sail";
+    case "t":
+      return "truck";
     default:
       return "plane";
   }
@@ -44,6 +47,7 @@ export const UNIT_KIND_LABEL: Record<UnitKind, string> = {
   ship: "Panel de crucero",
   sail: "Vela",
   plane: "Cartel de avioneta",
+  truck: "Camión",
 };
 
 /** Precio inicial de toda unidad: 1 €. */
@@ -113,6 +117,8 @@ export type UnitView = {
   /** Precio de la PRÓXIMA compra, en céntimos. */
   priceCents: number;
   owned: boolean;
+  /** Espacio gratis sin reclamar: el primer anuncio no cuesta nada (hace falta cuenta). */
+  free: boolean;
   /** Cambia con cada compra y con cada edición: sirve para refrescar fotos y caché. */
   rev: string;
   /** Hasta cuándo nadie puede comprar este espacio (5 días tras la última compra), o `null`. */
@@ -134,4 +140,6 @@ export type MarketState = {
   /** Marca de versión: cambia con cada compra, sirve para refrescar texturas. */
   version: string;
   purchasesEnabled: boolean;
+  /** Espacios gratis que nadie ha reclamado todavía (se pintan de amarillo). */
+  free: string[];
 };

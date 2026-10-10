@@ -58,6 +58,7 @@ export function computeLeaderboards(log: PurchaseRecord[], units: StoredUnit[], 
   const owned = units.filter((unit) => unit.purchases > 0 && unit.content);
   const perUnit = new Map<string, { paid: number; n: number }>();
   for (const entry of log) {
+    if (entry.amountCents <= 0) continue; // las reclamaciones gratis no entran en «pago más alto»
     const current = perUnit.get(entry.unitId) ?? { paid: 0, n: 0 };
     perUnit.set(entry.unitId, { paid: Math.max(current.paid, entry.amountCents), n: current.n + 1 });
   }
@@ -115,6 +116,8 @@ export interface MarketStore {
   editContent(unitId: string, content: Content): Promise<StoredUnit | null>;
   /** Espacios que posee ahora la cuenta. */
   ownedBy(userId: string, email?: string | null): Promise<string[]>;
+  /** Cuántos espacios gratis ha reclamado la cuenta (compras de 0 €). */
+  freeClaims(userId: string): Promise<number>;
 }
 
 /* ------------------------------------------------------------------ memoria */
@@ -202,6 +205,10 @@ export class MemoryStore implements MarketStore {
     this.units.set(unitId, next);
     await this.persist();
     return next;
+  }
+
+  async freeClaims(userId: string): Promise<number> {
+    return this.log.filter((entry) => entry.userId === userId && entry.amountCents === 0).length;
   }
 
   async ownedBy(userId: string, email?: string | null): Promise<string[]> {
@@ -294,6 +301,11 @@ export class FileStore extends MemoryStore {
     return super.ownedBy(userId, email);
   }
 
+  override async freeClaims(userId: string) {
+    await this.load();
+    return super.freeClaims(userId);
+  }
+
   protected override async persist(): Promise<void> {
     const { mkdir, writeFile } = await import("node:fs/promises");
     const { dirname } = await import("node:path");
@@ -372,6 +384,7 @@ export class NeonStore implements MarketStore {
         from market_units where purchases > 0 and content is not null`,
       this.sql`select p.unit_id, max(p.amount_cents)::int as paid, count(*)::int as n, u.content->>'name' as owner
         from market_purchases p left join market_units u on u.id = p.unit_id
+        where p.amount_cents > 0
         group by p.unit_id, u.content->>'name'
         order by paid desc, n desc, p.unit_id asc limit ${limit}`,
       this.sql`select min(content->>'name') as name, count(*)::int as units
@@ -497,6 +510,12 @@ export class NeonStore implements MarketStore {
     const rows = await this.sql`update market_units set content = ${JSON.stringify(content)}::jsonb, edits = edits + 1
       where id = ${unitId} and purchases > 0 returning id, purchases, content, updated_at, edits`;
     return rows[0] ? this.toUnit(rows[0]) : null;
+  }
+
+  async freeClaims(userId: string): Promise<number> {
+    await this.ensure();
+    const rows = await this.sql`select count(*)::int as n from market_purchases where user_id = ${userId} and amount_cents = 0`;
+    return Number(rows[0]?.n ?? 0);
   }
 
   async ownedBy(userId: string, email?: string | null): Promise<string[]> {

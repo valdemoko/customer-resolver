@@ -127,7 +127,10 @@ export function patchMaterial(
             ? `{
                  // Comprado: el edificio se tiñe hacia el color de acento y brilla muy poco.
                  float owned = vBid >= 0.0 ? texture2D(uOwnedTex, vec2((vBid + 0.5) / 8192.0, 0.5)).r : 0.0;
-                 diffuseColor.rgb = mix(diffuseColor.rgb, uOwnedColor, owned * 0.3);
+                 // Valores entre 0,1 y 0,2: espacio GRATIS sin reclamar, de amarillo bien visible.
+                 float isFree = step(0.1, owned) * (1.0 - step(0.2, owned));
+                 diffuseColor.rgb = mix(diffuseColor.rgb, uOwnedColor, owned * 0.3 * (1.0 - isFree));
+                 diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.86, 0.1), isFree * 0.93);
                }
                if (abs(vBid - uHover) < 0.5 || abs(vBid - uSelected) < 0.5) {
                  diffuseColor.rgb = diffuseColor.rgb * 1.22 + vec3(0.085, 0.07, 0.05);

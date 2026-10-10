@@ -149,6 +149,9 @@ const FRAGMENT = /* glsl */ `
       if (owned > 0.5) {
         color = uOwnedColor;
         if (!inFrame && owned < 0.9) discard;
+      } else if (owned > 0.1) {
+        // Local GRATIS sin reclamar (valor 40/255): amarillo y relleno.
+        color = vec3(1.0, 0.86, 0.1);
       } else if (!inFrame) {
         discard;
       }

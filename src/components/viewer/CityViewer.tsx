@@ -78,11 +78,11 @@ export function CityViewer({ city }: { city: CityConfig }) {
 
   const scene = city.scene;
 
-  const market = useMarket((state) => engineRef.current?.setMarket(state.units, state.version));
+  const market = useMarket((state) => engineRef.current?.setMarket(state.units, state.version, state.free));
   // El motor puede arrancar después de la primera lectura del mercado: se le
   // vuelve a entregar al estar listo.
   useEffect(() => {
-    if (status === "ready" && market.state) engineRef.current?.setMarket(market.state.units, market.state.version);
+    if (status === "ready" && market.state) engineRef.current?.setMarket(market.state.units, market.state.version, market.state.free);
   }, [status, market.state]);
 
   useEffect(() => {
@@ -292,6 +292,7 @@ export function CityViewer({ city }: { city: CityConfig }) {
     view: market.unit(unitId),
     purchasesEnabled: market.purchasesEnabled,
     onBuy: () => setStudioUnit(unitId),
+    signedIn,
   });
   // Con identidad estable: el estudio reconstruye su escena 3D si el modelo cambia.
   const studioModel = useMemo(
@@ -554,6 +555,14 @@ export function CityViewer({ city }: { city: CityConfig }) {
           model={studioModel}
           returnPath={`/city/${city.slug}/viewer`}
           onClose={() => setStudioUnit(null)}
+          onClaimed={() => {
+            const claimed = studioUnit;
+            setStudioUnit(null);
+            void market.refresh().then(() => {
+              if (claimed) engineRef.current?.selectUnit(claimed);
+            });
+            setNotice({ kind: "ok", text: "Es tuyo. Tu anuncio ya luce en el mapa y puedes editarlo cuando quieras desde Mi cuenta." });
+          }}
         />
       ) : null}
 

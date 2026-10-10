@@ -155,6 +155,16 @@
         "fidelity": "detailed"
       },
       {
+        "id": "farola",
+        "name": "La Farola de Málaga",
+        "osmId": "way/153212848",
+        "heightM": 33,
+        "heightSource": "Altura total estimada en 33 m (torre, linterna y cúpula). Las fuentes no coinciden: el boletín del IAPH da 21,64 m para la torre troncocónica, un informe de la Real Academia de Bellas Artes de San Fernando da 33 m y alguna guía turística 37 m. OpenStreetMap la da con 6 m (solo la casa del farero). Modelo propio simplificado: proporciones estimadas a partir de fotografías, huella de OpenStreetMap.",
+        "modelUrl": "/models/malaga/farola.glb",
+        "facing": null,
+        "fidelity": "detailed"
+      },
+      {
         "id": "ayuntamiento",
         "name": "Ayuntamiento de Málaga",
         "osmId": "way/183870930",
@@ -333,6 +343,7 @@
       "cruisePanelsPerShip": 8,
       "sailUnits": 120,
       "planes": 3,
+    "trucks": 12,
       "movingBoats": {
         "desktop": 14,
         "mobile": 6

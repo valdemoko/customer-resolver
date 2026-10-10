@@ -12,7 +12,7 @@ import { formatLockEnd } from "./lock-label";
 import { signValue, verifySigned } from "@/lib/auth/session";
 import { belongsTo } from "./store";
 import type { Content, MarketState, UnitView } from "./types";
-import { buildingNameOf, isKnownUnit, unitCatalogCounts } from "./units";
+import { FREE_CLAIMS_PER_ACCOUNT, FREE_UNIT_IDS, buildingNameOf, isFreeUnit, isKnownUnit, unitCatalogCounts } from "./units";
 import { publicUnitLabel } from "./label";
 
 /**
@@ -59,14 +59,24 @@ export async function getMarketStore(): Promise<MarketStore> {
   return cachedStore;
 }
 
+/**
+ * Precio de la próxima compra. Un espacio gratis cuesta 0 € la primera vez y después
+ * empieza la escalera normal: el primer comprador de pago paga 1,00 €.
+ */
+export function priceFor(unitId: string, purchases: number): number {
+  if (isFreeUnit(unitId)) return purchases === 0 ? 0 : priceForPurchases(purchases - 1);
+  return priceForPurchases(purchases);
+}
+
 function view(id: string, stored: StoredUnit | null): UnitView {
   const purchases = stored?.purchases ?? 0;
   const content = stored?.content ?? null;
   return {
     id,
     purchases,
-    priceCents: priceForPurchases(purchases),
+    priceCents: priceFor(id, purchases),
     owned: purchases > 0 && content !== null,
+    free: isFreeUnit(id) && purchases === 0,
     rev: `${purchases}.${stored?.edits ?? 0}`,
     lockedUntil: purchases > 0 ? lockedUntil(stored?.updatedAt) : null,
     owner: content
@@ -90,16 +100,18 @@ export async function getMarketState(): Promise<MarketState> {
     store = await getMarketStore();
   } catch (error) {
     // Sin base de datos el visor sigue funcionando: todo «disponible», sin compras.
-    if (error instanceof MarketError && error.status === 503) return { units: [], version: "0", purchasesEnabled: false };
+    if (error instanceof MarketError && error.status === 503) return { units: [], version: "0", purchasesEnabled: false, free: [] };
     throw error;
   }
   const units = await store.listUnits();
+  const taken = new Set(units.map((unit) => unit.id));
   const latest = units.reduce((max, unit) => (unit.updatedAt > max ? unit.updatedAt : max), "");
   const edits = units.reduce((sum, unit) => sum + (unit.edits ?? 0), 0);
   return {
     units: units.map((unit) => view(unit.id, unit)),
     version: `${units.length}:${latest}:${edits}`,
     purchasesEnabled,
+    free: FREE_UNIT_IDS.filter((id) => !taken.has(id)),
   };
 }
 
@@ -166,7 +178,10 @@ export async function createCheckout(
   if (protectedUntil) {
     throw new MarketError(`Este espacio acaba de comprarse y está protegido hasta ${formatLockEnd(protectedUntil)} (hora de Madrid). Vuelve a intentarlo después.`, 409);
   }
-  const amountCents = priceForPurchases(purchases);
+  if (isFreeUnit(input.unitId) && purchases === 0) {
+    throw new MarketError("Este espacio es gratis: se reclama sin pagar, con tu cuenta de Google.", 400);
+  }
+  const amountCents = priceFor(input.unitId, purchases);
 
   const draftId = randomId("dr");
   await store.saveDraft({
@@ -335,4 +350,35 @@ export async function editUnit(input: {
   const updated = await store.editContent(input.unitId, content);
   if (!updated) throw new MarketError("Este espacio todavía no tiene dueño.", 404);
   return view(updated.id, updated);
+}
+
+/**
+ * Reclama un espacio GRATIS (el primer anuncio no cuesta nada). Hace falta cuenta de
+ * Google y cada cuenta puede reclamar un máximo de `FREE_CLAIMS_PER_ACCOUNT`: sin
+ * identidad, una sola persona se llevaría los 100. Después el espacio sigue las
+ * reglas normales (protección de cinco días y precio de 1,00 € para el siguiente).
+ */
+export async function claimFree(input: {
+  unitId: string;
+  content: unknown;
+  userId?: string | null;
+  userEmail?: string | null;
+}): Promise<UnitView> {
+  if (!purchasesEnabled) throw new MarketError(PURCHASES_DISABLED_LABEL, 403);
+  if (!isKnownUnit(input.unitId) || !isFreeUnit(input.unitId)) throw new MarketError("Este espacio no es gratis.", 400);
+  if (!input.userId) throw new MarketError("Entra con Google para reclamar un espacio gratis.", 401);
+  const content = parseContent(input.content);
+  const store = await getMarketStore();
+  const stored = await store.getUnit(input.unitId);
+  const purchases = stored?.purchases ?? 0;
+  if (purchases > 0) throw new MarketError("Alguien reclamó este espacio justo antes que tú.", 409);
+  const claimed = await store.freeClaims(input.userId);
+  if (claimed >= FREE_CLAIMS_PER_ACCOUNT) {
+    throw new MarketError(`Ya has reclamado ${FREE_CLAIMS_PER_ACCOUNT} espacios gratis, el máximo por cuenta.`, 409);
+  }
+  const draftId = randomId("dr");
+  await store.saveDraft({ id: draftId, unitId: input.unitId, content, purchasesAtCreation: 0, createdAt: new Date().toISOString(), userId: input.userId });
+  const result = await store.completePurchase({ sessionId: `free_${draftId}`, draftId, amountCents: 0, buyerEmail: input.userEmail ?? null });
+  if (!result || result.rejected) throw new MarketError("Alguien reclamó este espacio justo antes que tú.", 409);
+  return view(result.unit.id, result.unit);
 }

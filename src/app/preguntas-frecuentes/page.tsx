@@ -18,6 +18,14 @@ const FAQ: ReadonlyArray<{ group: string; items: ReadonlyArray<{ q: string; a: R
         a: "El derecho a mostrar tu anuncio (nombre, texto, web y una foto) en un espacio virtual del mapa 3D: un edificio, un local, un tramo de muralla, un panel de barco… No compras ningún inmueble ni derecho real sobre él.",
       },
       {
+        q: "¿Qué son los espacios en amarillo?",
+        a: "Son 100 edificios sin nombre y 20 locales que regalamos: tu primer anuncio ahí no cuesta nada. Necesitas una cuenta de Google y puedes reclamar hasta 3 por cuenta. Quedan protegidos cinco días y, después, el siguiente comprador paga 1,00 € y la escalera de precios sigue como en cualquier otro espacio.",
+      },
+      {
+        q: "¿Qué son los camiones?",
+        a: "Doce camiones de carga recorren las calles de Málaga con un anuncio en la caja, por las dos caras. Se compran como cualquier otro espacio y tu anuncio viaja con el camión.",
+      },
+      {
         q: "¿Cuánto cuesta?",
         a: "La primera compra de un espacio cuesta 1,00 €. Cada compra sube un 25 % el precio de la siguiente compra de ese mismo espacio: 1,00 €, 1,25 €, 1,56 €, 1,95 €… El precio exacto lo ves antes de pagar.",
       },

@@ -20,6 +20,8 @@ export function unitLabel(
       return `Crucero ${parts[1]?.replace("cruise-", "")} · panel ${Number(parts[2]) + 1}`;
     case "sail":
       return `Vela ${parts[1]}`;
+    case "truck":
+      return `Camión ${parts[1]}`;
     default:
       return `Avioneta ${parts[1]?.replace("plane-", "")}`;
   }

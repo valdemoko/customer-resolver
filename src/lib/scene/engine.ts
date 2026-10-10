@@ -18,6 +18,8 @@ import { buildCity } from "./city";
 import type { BuildingRecord, CityMeshes, LandmarkSlot } from "./city";
 import { buildGround } from "./ground";
 import { buildRoads } from "./roads";
+import { buildLife, buildRoutes } from "./life";
+import type { Life } from "./life";
 import type { RoadMeshes } from "./roads";
 import type { GroundMeshes } from "./ground";
 import { buildWater } from "./water";
@@ -165,7 +167,7 @@ export type CityEngine = {
   getSelection: () => BuildingRecord | null;
   getParcelSelection: () => ParcelRecord | null;
   /** Nuevo estado del mercado: tiñe lo comprado y pinta las fotos de los compradores. */
-  setMarket: (views: UnitView[], version: string) => void;
+  setMarket: (views: UnitView[], version: string, free?: readonly string[]) => void;
   /** Caras, huella y alturas de una unidad: lo que dibuja el estudio de compra. */
   studioModel: (unitId: string) => FaceModel | null;
   /** Identificador de unidad comprable de un edificio por su id, o `null`. */
@@ -306,11 +308,13 @@ export function createCityEngine(options: EngineOptions): CityEngine {
   let ships: Ships | null = null;
   let ads: AdLayer | null = null;
   let traffic: Traffic | null = null;
+  let life: Life | null = null;
   type Flight = { start: number; duration: number; from: { x: number; z: number; d: number; az: number; pitch: number }; to: { x: number; z: number; d: number; az: number; pitch: number } };
   let flight: Flight | null = null;
   let roads: RoadMeshes | null = null;
   let marketViews: UnitView[] = [];
   let marketVersion = "0";
+  let marketFree: readonly string[] = [];
   let selection: BuildingRecord | null = null;
   let hovered: BuildingRecord | null = null;
   let parcelSelection: ParcelRecord | null = null;
@@ -570,8 +574,8 @@ export function createCityEngine(options: EngineOptions): CityEngine {
         heightM: parcel.heightM,
       };
     }
-    if (kind === "s" || kind === "v" || kind === "a") {
-      return { unitId, faces: panelFace(kind === "a" ? 36 : kind === "s" ? 24 : 4), bottomM: 0, topM: kind === "a" ? 9 : kind === "s" ? 6 : 6, centre: [0, 0] };
+    if (kind === "s" || kind === "v" || kind === "a" || kind === "t") {
+      return { unitId, faces: panelFace(kind === "a" ? 36 : kind === "s" ? 24 : kind === "t" ? 6.1 : 4), bottomM: 0, topM: kind === "a" ? 9 : kind === "t" ? 2.35 : 6, centre: [0, 0] };
     }
     return null;
   }
@@ -896,6 +900,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     parcels?.update(camera.position, orbitDistance);
     ships?.update(elapsed, reduceMotion);
     traffic?.update(elapsed, reduceMotion);
+    life?.update(elapsed, reduceMotion);
 
     // Hover con la cámara en movimiento: se vuelve a lanzar el rayo aunque el
     // puntero esté quieto, porque lo que hay debajo ha cambiado.
@@ -1161,6 +1166,8 @@ export function createCityEngine(options: EngineOptions): CityEngine {
         radiusM: options.radiusM,
       });
       scene.add(ships.group);
+      // Calles reales por las que circulan coches, camiones y peatones.
+      const routes = buildRoutes(loaded.features, { cx: uniforms.uCircle.value.x, cz: uniforms.uCircle.value.y, radius: uniforms.uCircle.value.z });
       if (options.traffic) {
         traffic = buildTraffic({
           ships,
@@ -1169,9 +1176,13 @@ export function createCityEngine(options: EngineOptions): CityEngine {
           waterLevel: seaLevel,
           seed: options.seed,
           radiusM: options.radiusM,
+          routes: routes.drive,
+          focus: [uniforms.uCircle.value.x + 250, uniforms.uCircle.value.y - 200],
         });
         scene.add(traffic.group);
       }
+      life = buildLife({ features: loaded.features, circle: { cx: uniforms.uCircle.value.x, cz: uniforms.uCircle.value.y, radius: uniforms.uCircle.value.z }, seed: options.seed, mobile, routes });
+      scene.add(life.group);
       mark("barcos");
       summary.cruiseShips = ships.stats.cruise;
       summary.smallBoats = ships.stats.smallPlaced;
@@ -1199,7 +1210,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       scene.add(ads.group);
       uniforms.uOwnedTex.value = ads.ownedTexture;
       parcels.setOwnedTexture(ads.parcelOwnedTexture);
-      if (marketViews.length > 0) ads.setUnits(marketViews, marketVersion);
+      if (marketViews.length > 0 || marketFree.length > 0) ads.setUnits(marketViews, marketVersion, marketFree);
       traffic?.setMarket(marketViews, (id, key) => ads?.texture(id, key) ?? null);
       mark("locales");
       summary.parcels = parcels.stats.total;
@@ -1340,6 +1351,8 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     trafficStats: () => traffic?.stats ?? null,
     trafficSnapshot: () => traffic?.snapshot() ?? null,
     roadStats: () => roads?.stats ?? null,
+    lifeStats: () => life?.stats ?? null,
+    lifeSnapshot: () => life?.snapshot() ?? null,
     /** Solo diagnóstico: oculta o muestra las mallas cuyo nombre empieza por `prefix`. */
     setVisibleByName: (prefix: string, visible: boolean) => {
       let changed = 0;
@@ -1372,6 +1385,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       elapsed = seconds;
       timeFrozen = true;
       traffic?.update(elapsed, false);
+      life?.update(elapsed, false);
     },
     screenOfUnit: (unitId: string) => {
       const point = traffic?.worldPositionOf(unitId);
@@ -1467,6 +1481,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
       parcels?.dispose();
       ads?.dispose();
       traffic?.dispose();
+      life?.dispose();
       for (const texture of water?.textures ?? []) texture.dispose();
       for (const object of [city, clouds, trees, ground, roads, water, ships]) {
         if (!object) continue;
@@ -1513,10 +1528,11 @@ export function createCityEngine(options: EngineOptions): CityEngine {
     },
     getSelection: () => selection,
     getParcelSelection: () => parcelSelection,
-    setMarket: (views: UnitView[], version: string) => {
+    setMarket: (views: UnitView[], version: string, free: readonly string[] = []) => {
       marketViews = views;
       marketVersion = version;
-      ads?.setUnits(views, version);
+      marketFree = free;
+      ads?.setUnits(views, version, free);
       traffic?.setMarket(views, (id, key) => ads?.texture(id, key) ?? null);
     },
     studioModel: (unitId: string) => faceModelOf(unitId),

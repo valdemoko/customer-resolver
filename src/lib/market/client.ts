@@ -36,6 +36,17 @@ export async function confirmCheckout(sessionId: string): Promise<{ applied: boo
   return json(await fetch(`/api/market/confirm?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" }));
 }
 
+/** Reclama un espacio gratis (hace falta sesión). */
+export async function claimFreeUnit(input: { unitId: string; content: Content }): Promise<{ unit: UnitView }> {
+  return json(
+    await fetch("/api/market/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
 /** Guarda los cambios del anuncio de un espacio ya comprado (sin cobrar). */
 export async function saveEdit(input: { unitId: string; content: Content; token?: string | null }): Promise<{ unit: UnitView }> {
   return json(

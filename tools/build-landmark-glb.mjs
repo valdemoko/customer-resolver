@@ -251,7 +251,7 @@ const [towerU, northV] = fromPixel(475, 305);
 const [southU, southV] = fromPixel(497, 523);
 
 // Torre norte, completa: cuatro cuerpos hasta 84 m y el arpón hasta 92 m.
-box(towerU, northV, towerHalf, BODY_HEIGHT, 58, WALL, WALL);
+box(towerU, northV, towerHalf, 0, 58, WALL, WALL); // desde el suelo: sin hueco bajo la torre
 box(towerU, northV, towerHalf * 0.86, 58, 71, WALL_DARK, WALL_DARK);
 prism(octagon(towerU, northV, towerHalf * 0.62), 71, 79.5, WALL, TOWER_CAP);
 cone(towerU, northV, towerHalf * 0.6, 79.5, NORTH_TOWER, TOWER_CAP);
@@ -262,7 +262,7 @@ cone(towerU, northV, towerHalf * 0.6, 79.5, NORTH_TOWER, TOWER_CAP);
 }
 
 // Torre sur, inacabada: se queda en un muñón de dos cuerpos (altura estimada).
-box(southU, southV, towerHalf, BODY_HEIGHT, 50, WALL, WALL);
+box(southU, southV, towerHalf, 0, 50, WALL, WALL); // desde el suelo: sin hueco bajo la torre
 box(southU, southV, towerHalf * 0.9, 50, SOUTH_TOWER_STUMP, WALL_DARK, ROOF_RIDGE);
 
 /* --------------------------------------------------------------------- GLB */

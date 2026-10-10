@@ -79,8 +79,8 @@ export function UnitTooltip({ unitId, label, view }: { unitId: string; label: st
         </div>
       ) : (
         <p className="mt-1.5 flex items-baseline gap-2.5">
-          <span className="tnum font-mono text-2xl font-semibold text-ink">{formatCents(view.priceCents)}</span>
-          <span className="text-sm text-available">Disponible</span>
+          <span className="tnum font-mono text-2xl font-semibold text-ink">{view.free ? "Gratis" : formatCents(view.priceCents)}</span>
+          <span className={view.free ? "text-sm font-medium text-[#e8b90c]" : "text-sm text-available"}>{view.free ? "Primer anuncio gratis" : "Disponible"}</span>
         </p>
       )}
     </div>

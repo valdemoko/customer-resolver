@@ -314,7 +314,7 @@ function Latest({ rows }: { readonly rows: LeaderboardsPayload["latest"] }) {
                   </time>
                 </>
               }
-              value={<CountUp value={row.amountCents} unit="eur" />}
+              value={row.amountCents === 0 ? "Gratis" : <CountUp value={row.amountCents} unit="eur" />}
             />
           ))}
         </ol>

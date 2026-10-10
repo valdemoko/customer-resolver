@@ -5,7 +5,7 @@ import type { UnitView } from "@/lib/market/types";
 import { PanelShell } from "./PanelShell";
 import { PurchaseBox } from "./PurchaseBox";
 
-export type MarketSlot = { unitId: string; view: UnitView; purchasesEnabled: boolean; onBuy: () => void };
+export type MarketSlot = { unitId: string; view: UnitView; purchasesEnabled: boolean; onBuy: () => void; signedIn?: boolean | null };
 
 /**
  * Ficha del edificio seleccionado, mínima a propósito: el nombre (o «Edificio sin

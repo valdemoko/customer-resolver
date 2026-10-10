@@ -25,6 +25,8 @@ import { seededRandom } from "./polygon";
 import { findSeaPath, reachableCells, smoothPath } from "./seamap";
 import type { SeaMap } from "./seamap";
 import { box, buildLaunchGeometry, buildSailboatGeometry, cruiseHullTop } from "./ships";
+import { TRUCK_PANEL, agentPose, buildTruckGeometry, spawnAgent, stepAgent } from "./life";
+import type { Agent, Route } from "./life";
 import type { Ships } from "./ships";
 
 export type TrafficConfig = {
@@ -35,6 +37,8 @@ export type TrafficConfig = {
   cruiseCycleSeconds: number;
   planeAltitudeM: number[];
   planeOrbitM: number[];
+  /** Camiones de carga con anuncio en la caja (unidades `t:1`…). */
+  trucks?: number;
 };
 
 /* ------------------------------------------------------------ funciones puras */
@@ -127,7 +131,7 @@ export function cruisePose(
 
 /* ------------------------------------------------------------ paneles */
 
-type PanelKind = "ship" | "sail" | "plane";
+type PanelKind = "ship" | "sail" | "plane" | "truck";
 
 type Panel = {
   unitId: string;
@@ -211,6 +215,7 @@ export type TrafficStats = {
   sailingBoats: number;
   loops: number;
   planes: number;
+  trucks: number;
   panels: number;
   /** Cruceros que se quedan amarrados y por qué (para diagnóstico). */
   cruiseBlocked: Array<{ ship: number; reason: string }>;
@@ -227,7 +232,12 @@ export type Traffic = {
   /** Posición actual de un panel en el mundo (para comprobaciones y enfoque). */
   worldPositionOf: (unitId: string) => THREE.Vector3 | null;
   /** Posiciones de barcos y avionetas ahora mismo. */
-  snapshot: () => { cruise: Array<{ id: number; x: number; z: number }>; planes: Array<{ x: number; y: number; z: number }>; sailers: number };
+  snapshot: () => {
+    cruise: Array<{ id: number; x: number; z: number }>;
+    planes: Array<{ x: number; y: number; z: number }>;
+    trucks: Array<{ x: number; z: number }>;
+    sailers: number;
+  };
   /** ¿Es una unidad móvil de este tráfico? */
   hasUnit: (unitId: string) => boolean;
   stats: TrafficStats;
@@ -241,6 +251,10 @@ export function buildTraffic(options: {
   waterLevel: number;
   seed: number;
   radiusM: number;
+  /** Calzadas por las que circulan los camiones (de `buildRoutes`). */
+  routes?: Route[];
+  /** Punto hacia el que se prefiere colocar los camiones (el centro de la zona nítida). */
+  focus?: [number, number];
 }): Traffic {
   const { ships, config, waterLevel, radiusM } = options;
   const random = seededRandom(options.seed ^ 0x7a11c3);
@@ -249,6 +263,7 @@ export function buildTraffic(options: {
   const geometries: THREE.BufferGeometry[] = [];
   const panels: Panel[] = [];
   const panelMaterials: THREE.MeshBasicMaterial[] = [];
+  const extraMaterials: THREE.Material[] = [];
   const pickables: THREE.Mesh[] = [];
   const sea: SeaMap = ships.sea;
 
@@ -269,7 +284,7 @@ export function buildTraffic(options: {
       geometries.push(geometry);
       const mesh = new THREE.Mesh(geometry, material);
       mesh.scale.set(size[0], size[1], 1);
-      mesh.position.set(at[0], at[1], at[2] + side * (kind === "sail" ? 0.004 : 0.15));
+      mesh.position.set(at[0], at[1], at[2] + side * (kind === "sail" ? 0.004 : kind === "truck" ? 0.03 : 0.15));
       if (side === -1) mesh.rotation.y = Math.PI;
       mesh.renderOrder = 18;
       mesh.name = unitId;
@@ -513,11 +528,64 @@ export function buildTraffic(options: {
     });
   }
 
+  /* -------------------------------------------------------------- camiones */
+  // Camiones de carga que recorren las calles despacio; la caja trasera lleva el anuncio por las dos caras.
+  type Truck = { anchor: THREE.Group; agent: Agent };
+  const trucks: Truck[] = [];
+  const truckRoutes = options.routes ?? [];
+  const TRUCK_SCALE = 1.4;
+  if (truckRoutes.length > 0 && (config.trucks ?? 0) > 0) {
+    const truckGeometry = buildTruckGeometry();
+    geometries.push(truckGeometry);
+    const truckMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+    extraMaterials.push(truckMaterial);
+    // Se reparten por las calles más largas, de una en una.
+    // Las más largas, y de preferencia cerca del centro (es donde se mira).
+    const central = (route: Route) => {
+      const mid = samplePath(route.path, route.path.length / 2);
+      const focus = options.focus ?? [0, 0];
+      return Math.hypot(mid.x - focus[0], mid.z - focus[1]);
+    };
+    const longest = [...truckRoutes]
+      .filter((route) => route.path.length >= 110)
+      .sort((a, b) => central(a) - central(b))
+      .slice(0, Math.max((config.trucks ?? 0) * 3, 12));
+    for (let i = 0; i < (config.trucks ?? 0); i += 1) {
+      const anchor = new THREE.Group();
+      anchor.name = `camion-${i + 1}`;
+      anchor.scale.setScalar(TRUCK_SCALE);
+      const body = new THREE.Mesh(truckGeometry, truckMaterial);
+      body.frustumCulled = false;
+      anchor.add(body);
+      const id = `t:${i + 1}`;
+      const { width, height, x, y, halfBeam } = TRUCK_PANEL;
+      addPanel(id, "truck", anchor, [width, height], [x, y, halfBeam], [1], { hideWhenFree: false });
+      addPanel(id, "truck", anchor, [width, height], [x, y, -halfBeam], [-1], { hideWhenFree: false });
+      group.add(anchor);
+      trucks.push({ anchor, agent: spawnAgent(longest[i % longest.length]!, random, [2.6, 4.0], (route) => route.half * 0.4) });
+    }
+  }
+  const placeTrucks = () => {
+    for (const truck of trucks) {
+      const { x, z, yaw } = agentPose(truck.agent, false);
+      truck.anchor.position.set(x, 0.3, z);
+      truck.anchor.rotation.y = yaw;
+    }
+  };
+  placeTrucks();
+  let truckClock = 0;
+
   /* ------------------------------------------------------------ movimiento */
   const cycle = config.cruiseCycleSeconds;
   const PLANE_SPEED = 46;
   const update = (elapsed: number, reduceMotion: boolean) => {
     if (reduceMotion) return;
+    const truckDt = Math.min(0.1, Math.max(0, elapsed - truckClock));
+    truckClock = elapsed;
+    if (truckDt > 0 && trucks.length > 0) {
+      for (const truck of trucks) stepAgent(truck.agent, truckDt, 0.8);
+      placeTrucks();
+    }
     for (const cruise of cruises) {
       const { record, path } = cruise;
       if (!path) continue;
@@ -602,6 +670,7 @@ export function buildTraffic(options: {
     sailingBoats: sailers.length,
     loops: loops.length,
     planes: planes.length,
+    trucks: trucks.length,
     panels: panels.length,
     cruisePaths: pathInfo,
     cruiseBlocked: blocked,
@@ -620,6 +689,7 @@ export function buildTraffic(options: {
     snapshot: () => ({
       cruise: cruises.map((c) => ({ id: c.record.id, x: c.record.mesh.position.x, z: c.record.mesh.position.z })),
       planes: planes.map((p) => ({ x: p.anchor.position.x, y: p.anchor.position.y, z: p.anchor.position.z })),
+      trucks: trucks.map((t) => ({ x: t.anchor.position.x, z: t.anchor.position.z })),
       sailers: sailers.length,
     }),
     pick: (raycaster) => {
@@ -631,6 +701,7 @@ export function buildTraffic(options: {
     dispose: () => {
       for (const geometry of geometries) geometry.dispose();
       for (const material of panelMaterials) material.dispose();
+      for (const material of extraMaterials) material.dispose();
     },
   };
 }

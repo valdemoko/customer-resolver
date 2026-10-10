@@ -42,9 +42,13 @@ export function useMarket(onState: (state: MarketState) => void) {
   const byId = useMemo(() => new Map((state?.units ?? []).map((unit) => [unit.id, unit])), [state]);
 
   /** Vista de una unidad; si nadie la ha comprado, la de «disponible por 1,00 €». */
+  const freeIds = useMemo(() => new Set(state?.free ?? []), [state]);
   const unit = useCallback(
-    (id: string): UnitView => byId.get(id) ?? { id, purchases: 0, priceCents: BASE_PRICE_CENTS, owned: false, rev: "0.0", lockedUntil: null, owner: null },
-    [byId],
+    (id: string): UnitView => {
+      const free = freeIds.has(id);
+      return byId.get(id) ?? { id, purchases: 0, priceCents: free ? 0 : BASE_PRICE_CENTS, owned: false, free, rev: "0.0", lockedUntil: null, owner: null };
+    },
+    [byId, freeIds],
   );
 
   return { state, error, refresh, unit, purchasesEnabled: state?.purchasesEnabled ?? false };
