@@ -242,3 +242,14 @@ describe("encuesta de la próxima ciudad", () => {
     await expect(admin.addPollCity("jefe@example.com", "x")).rejects.toMatchObject({ status: 400 });
   });
 });
+
+describe("cuentas en el panel", () => {
+  it("incluye a quien solo ha iniciado sesión, sin duplicar a quien ya compró", async () => {
+    const store = await (await import("@/lib/market/service")).getMarketStore();
+    await store.recordLogin({ id: "g-solo", email: "Solo@Example.com", name: "Solo" });
+    const accounts = await store.adminAccounts();
+    const solo = accounts.find((row) => row.key === "solo@example.com");
+    expect(solo).toMatchObject({ purchases: 0, units: 0, name: "Solo" });
+    expect(accounts.filter((row) => row.key === "solo@example.com")).toHaveLength(1);
+  });
+});

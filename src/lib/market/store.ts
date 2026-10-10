@@ -132,7 +132,22 @@ export type AdminPurchase = {
   refundedAt: string | null;
   releasedAt: string | null;
 };
-export type AdminAccount = { key: string; email: string | null; purchases: number; freeClaims: number; paidCents: number; units: number; lastAt: string };
+export type AdminAccount = { key: string; email: string | null; name?: string | null; purchases: number; freeClaims: number; paidCents: number; units: number; lastAt: string };
+
+/** Suma a la lista de cuentas las personas que solo han iniciado sesión (sin compras ni reclamaciones). */
+function withLogins(accounts: AdminAccount[], logins: Array<{ userId: string; email: string; name: string; lastSeen: string }>): AdminAccount[] {
+  const byKey = new Map(accounts.map((row) => [row.key, row]));
+  for (const login of logins) {
+    const key = login.email.trim().toLowerCase() || login.userId;
+    const row = byKey.get(key);
+    if (row) {
+      row.name = login.name || row.name || null;
+      continue;
+    }
+    byKey.set(key, { key, email: login.email, name: login.name, purchases: 0, freeClaims: 0, paidCents: 0, units: 0, lastAt: login.lastSeen });
+  }
+  return [...byKey.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+}
 export type Ban = { key: string; reason: string; createdAt: string };
 export type AdminLogEntry = { id: string; at: string; admin: string; action: string; target: string; detail: string };
 export type PollOption = { id: string; label: string; active: boolean };
@@ -414,7 +429,8 @@ export class MemoryStore implements MarketStore {
       const row = key ? byKey.get(key) : undefined;
       if (row) row.units += 1;
     }
-    return [...byKey.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+    const logins = [...this.loginUsers.entries()].map(([userId, user]) => ({ userId, email: user.email, name: user.name, lastSeen: user.lastSeen }));
+    return withLogins([...byKey.values()], logins);
   }
 
   async adminStats() {
@@ -521,7 +537,7 @@ export class MemoryStore implements MarketStore {
   }
 
   protected visitDays = new Map<string, Set<string>>();
-  protected loginUsers = new Map<string, { email: string; name: string; logins: number }>();
+  protected loginUsers = new Map<string, { email: string; name: string; logins: number; lastSeen: string }>();
 
   async recordVisit(day: string, hash: string): Promise<void> {
     const set = this.visitDays.get(day) ?? new Set<string>();
@@ -554,7 +570,7 @@ export class MemoryStore implements MarketStore {
 
   async recordLogin(user: { id: string; email: string; name: string }): Promise<void> {
     const current = this.loginUsers.get(user.id);
-    this.loginUsers.set(user.id, { email: user.email, name: user.name, logins: (current?.logins ?? 0) + 1 });
+    this.loginUsers.set(user.id, { email: user.email, name: user.name, logins: (current?.logins ?? 0) + 1, lastSeen: new Date().toISOString() });
   }
 
   protected async persist(): Promise<void> {
@@ -1039,7 +1055,7 @@ export class NeonStore implements MarketStore {
 
   async adminAccounts(): Promise<AdminAccount[]> {
     await this.ensure();
-    const [accounts, owned] = await Promise.all([
+    const [accounts, owned, users] = await Promise.all([
       this.sql`select coalesce(nullif(lower(trim(buyer_email)), ''), user_id) as key, max(buyer_email) as email,
           count(*)::int as purchases, (count(*) filter (where amount_cents = 0))::int as free_claims,
           coalesce(sum(amount_cents) filter (where refunded_at is null), 0)::bigint as paid, max(created_at) as last_at
@@ -1049,9 +1065,10 @@ export class NeonStore implements MarketStore {
         from market_units u
         join lateral (select buyer_email, user_id from market_purchases where unit_id = u.id and released_at is null order by id desc limit 1) p on true
         where u.purchases > 0 group by 1`,
+      this.sql`select user_id, email, name, last_seen from site_users order by last_seen desc limit 500`,
     ]);
     const units = new Map(owned.map((row) => [String(row.key), Number(row.units)]));
-    return accounts.map((row) => ({
+    const buyers = accounts.map((row) => ({
       key: String(row.key),
       email: row.email ? String(row.email) : null,
       purchases: Number(row.purchases),
@@ -1060,6 +1077,10 @@ export class NeonStore implements MarketStore {
       units: units.get(String(row.key)) ?? 0,
       lastAt: new Date(String(row.last_at)).toISOString(),
     }));
+    return withLogins(
+      buyers,
+      users.map((row) => ({ userId: String(row.user_id), email: String(row.email ?? ""), name: String(row.name ?? ""), lastSeen: new Date(String(row.last_seen)).toISOString() })),
+    );
   }
 
   async adminStats() {

@@ -573,7 +573,7 @@ function Accounts({ run }: { run: Run }) {
   return (
     <section aria-labelledby="t-cuentas">
       <h1 id="t-cuentas" className="display-face text-[1.9rem] font-medium tracking-[-0.03em] text-ink sm:text-[2.4rem]">Cuentas</h1>
-      <p className="mt-1 text-sm text-muted">Personas que han comprado o reclamado algo, agrupadas por correo. Un bloqueo les impide entrar, comprar, reclamar y editar.</p>
+      <p className="mt-1 text-sm text-muted">Todas las personas que han iniciado sesión con Google y quienes han comprado o reclamado algo, agrupadas por correo. Un bloqueo les impide entrar, comprar, reclamar y editar.</p>
 
       <div className="mt-6 rounded-2xl border border-line p-5">
         <h2 className="text-base font-medium text-ink">Bloquear un correo</h2>
@@ -609,14 +609,15 @@ function Accounts({ run }: { run: Run }) {
       <h2 className="mt-8 text-base font-medium text-ink">Personas</h2>
       <input className={cn(field, "mt-3 max-w-xs")} placeholder="Buscar por correo" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Buscar cuentas" />
       <div className="mt-4 space-y-2">
-        {rows.length === 0 ? <Empty>Todavía no hay compradores.</Empty> : null}
+        {rows.length === 0 ? <Empty>Todavía no hay cuentas.</Empty> : null}
         {rows.map((row) => (
           <article key={row.key} className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-line bg-surface/50 px-4 py-3">
             <div className="min-w-0 flex-1 basis-56">
               <p className="truncate text-sm font-medium text-ink">{row.email ?? row.key}</p>
-              <p className="truncate text-xs text-subtle">Última actividad {when(row.lastAt)}</p>
+              <p className="truncate text-xs text-subtle">{row.name ? `${row.name} · ` : ""}Última actividad {when(row.lastAt)}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+              {row.purchases === 0 ? <Badge>Solo ha iniciado sesión</Badge> : null}
               <Badge>{row.units} {row.units === 1 ? "espacio" : "espacios"}</Badge>
               <Badge>{row.purchases} {row.purchases === 1 ? "compra" : "compras"}</Badge>
               {row.freeClaims > 0 ? <Badge tone="free">{row.freeClaims} gratis</Badge> : null}
