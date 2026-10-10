@@ -24,8 +24,14 @@ export async function GET(request: NextRequest) {
   try {
     const user = await exchangeCode(code);
     if (await isBanned(user.email, user.id)) return failure("suspendida");
-    // Cuenta para el contador de personas que han entrado; si falla, el acceso no se ve afectado.
-    void getMarketStore().then((store) => store.recordLogin(user)).catch(() => undefined);
+    // Alta en la lista de cuentas y en el contador de personas que han entrado. Hay que ESPERARLA: en un
+    // Worker, una promesa suelta se corta al devolver la respuesta y la cuenta nunca llegaba a guardarse.
+    // Si falla, el acceso no se ve afectado.
+    try {
+      await (await getMarketStore()).recordLogin(user);
+    } catch (error) {
+      console.error("[auth] recordLogin", error instanceof Error ? error.message : error);
+    }
     const response = back(next);
     response.cookies.set(SESSION_COOKIE, await createSessionToken(user), cookieOptions(SESSION_DAYS * 86400));
     response.cookies.delete("rs_oauth");

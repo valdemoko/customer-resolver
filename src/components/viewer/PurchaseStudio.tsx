@@ -255,14 +255,21 @@ export function PurchaseStudio({
     stageRef.current?.setImages(photo || null, photo && hasRoof ? photo : null);
   }, [photo, hasRoof]);
 
+  // El foco va al primer campo SOLO al abrir: `onClose` cambia en cada redibujado del padre, y si este
+  // efecto dependiera de él, el cursor saltaría al nombre mientras se rellena el resto del formulario.
   useEffect(() => {
     firstField.current?.focus();
+  }, []);
+
+  const closeRef = useRef({ busy, onClose });
+  closeRef.current = { busy, onClose };
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
+      if (event.key === "Escape" && !closeRef.current.busy) closeRef.current.onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
+  }, []);
 
   /* --------------------------------------------------------------- imágenes */
   const pick = useCallback(async (file: File | undefined, preset: ImagePreset, set: (value: string) => void) => {
