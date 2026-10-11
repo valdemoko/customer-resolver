@@ -3,8 +3,11 @@
  * suelo en calles.
  *
  *  · Bordillo: una cinta clara de 0,55 m sobre el contorno de las calzadas
- *    principales y secundarias (las aristas de corte de tesela se saltan: no son
- *    borde de calle y dibujarían una raya cruzando la calzada).
+ *    principales y secundarias. Solo donde de verdad hay orilla de calzada: una
+ *    arista con calzada a UN lado y nada al otro. Las aristas de corte de tesela,
+ *    las que separan dos trozos de la misma calle y las espinas degeneradas del
+ *    recorte (calzada a los dos lados, o a ninguno) no son borde de calle y
+ *    dibujaban rayas rectas cruzando la calzada y el suelo.
  *  · Línea central discontinua en las calles principales. Un trozo de línea no se
  *    dibuja si cae dentro de la calzada de OTRA calle que lo cruza, para no pintar
  *    rayas encima de los cruces.
@@ -18,6 +21,7 @@ import { MeshBuilder } from "./mesh";
 import { patchMaterial } from "./materials";
 import type { SceneUniforms } from "./materials";
 import { hexToNumber } from "./palette";
+import { pointInRing } from "./polygon";
 import { isTileCut } from "./tiles";
 import type { CityFeature } from "./tiles";
 
@@ -33,7 +37,7 @@ export type RoadMeshes = {
   group: THREE.Group;
   materials: THREE.Material[];
   geometries: THREE.BufferGeometry[];
-  stats: { curbSegments: number; dashes: number; skippedAtJunctions: number; triangles: number };
+  stats: { curbSegments: number; dashes: number; skippedAtJunctions: number; skippedSeams: number; triangles: number };
 };
 
 /** Cinta plana centrada en a→b, con normal hacia arriba. */
@@ -67,17 +71,78 @@ export function buildRoads(features: CityFeature[], uniforms: SceneUniforms): Ro
 
   const curbs = new MeshBuilder();
   let curbSegments = 0;
+  let skippedSeams = 0;
+
+  // Índice de las calzadas (principales y secundarias) para saber si un punto cae sobre asfalto.
+  type RoadPolygon = { outer: Array<[number, number]>; holes: Array<Array<[number, number]>>; minX: number; maxX: number; minZ: number; maxZ: number };
+  const ROAD_CELL = 64;
+  const roadGrid = new Map<string, RoadPolygon[]>();
+  const roadPolygons: Array<{ polygon: CityFeature["polygons"][number]; kind: string }> = [];
   for (const feature of features) {
     if (feature.layer !== "surface" || (feature.kind !== "road_major" && feature.kind !== "road_minor")) continue;
     for (const polygon of feature.polygons) {
-      const rings: Array<[Array<[number, number]>, number[] | undefined]> = [[polygon.outer, polygon.outerBorder]];
-      polygon.holes.forEach((hole, index) => rings.push([hole, polygon.holesBorder?.[index]]));
-      for (const [ring, flags] of rings) {
-        for (let i = 0; i < ring.length; i += 1) {
-          const a = ring[i];
-          const b = ring[(i + 1) % ring.length];
-          if (!a || !b || isTileCut(flags, i)) continue;
-          if (strip(curbs, a[0], a[1], b[0], b[1], CURB_WIDTH, CURB_COLOR)) curbSegments += 1;
+      roadPolygons.push({ polygon, kind: feature.kind });
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minZ = Infinity;
+      let maxZ = -Infinity;
+      for (const [x, z] of polygon.outer) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+      const entry: RoadPolygon = { outer: polygon.outer, holes: polygon.holes, minX, maxX, minZ, maxZ };
+      for (let cx = Math.floor(minX / ROAD_CELL); cx <= Math.floor(maxX / ROAD_CELL); cx += 1) {
+        for (let cz = Math.floor(minZ / ROAD_CELL); cz <= Math.floor(maxZ / ROAD_CELL); cz += 1) {
+          const key = `${cx}:${cz}`;
+          const list = roadGrid.get(key);
+          if (list) list.push(entry);
+          else roadGrid.set(key, [entry]);
+        }
+      }
+    }
+  }
+  const onRoad = (x: number, z: number): boolean => {
+    for (const road of roadGrid.get(`${Math.floor(x / ROAD_CELL)}:${Math.floor(z / ROAD_CELL)}`) ?? []) {
+      if (x < road.minX || x > road.maxX || z < road.minZ || z > road.maxZ) continue;
+      if (!pointInRing([x, z], road.outer)) continue;
+      if (road.holes.some((hole) => pointInRing([x, z], hole))) continue;
+      return true;
+    }
+    return false;
+  };
+  /** ¿Es esta arista orilla de calzada? Calzada a un lado y nada al otro (se prueba cada pocos metros). */
+  const isKerb = (ax: number, az: number, bx: number, bz: number): boolean => {
+    const length = Math.hypot(bx - ax, bz - az);
+    if (length < 0.2) return false;
+    const nx = (bz - az) / length;
+    const nz = -(bx - ax) / length;
+    const x = (ax + bx) / 2;
+    const z = (az + bz) / 2;
+    return onRoad(x + nx * 0.4, z + nz * 0.4) !== onRoad(x - nx * 0.4, z - nz * 0.4);
+  };
+  const PIECE_M = 10;
+  for (const { polygon } of roadPolygons) {
+    const rings: Array<[Array<[number, number]>, number[] | undefined]> = [[polygon.outer, polygon.outerBorder]];
+    polygon.holes.forEach((hole, index) => rings.push([hole, polygon.holesBorder?.[index]]));
+    for (const [ring, flags] of rings) {
+      for (let i = 0; i < ring.length; i += 1) {
+        const a = ring[i];
+        const b = ring[(i + 1) % ring.length];
+        if (!a || !b || isTileCut(flags, i)) continue;
+        // Una arista larga se recorre a trozos: puede ser orilla en un tramo y empalme con otra calle en el siguiente.
+        const pieces = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / PIECE_M));
+        for (let k = 0; k < pieces; k += 1) {
+          const ax = a[0] + ((b[0] - a[0]) * k) / pieces;
+          const az = a[1] + ((b[1] - a[1]) * k) / pieces;
+          const bx = a[0] + ((b[0] - a[0]) * (k + 1)) / pieces;
+          const bz = a[1] + ((b[1] - a[1]) * (k + 1)) / pieces;
+          if (!isKerb(ax, az, bx, bz)) {
+            skippedSeams += 1;
+            continue;
+          }
+          if (strip(curbs, ax, az, bx, bz, CURB_WIDTH, CURB_COLOR)) curbSegments += 1;
         }
       }
     }
@@ -182,5 +247,5 @@ export function buildRoads(features: CityFeature[], uniforms: SceneUniforms): Ro
     geometries.push(geometry);
     triangles += builder.triangleCount;
   }
-  return { group, materials: [material], geometries, stats: { curbSegments, dashes: dashCount, skippedAtJunctions: skipped, triangles } };
+  return { group, materials: [material], geometries, stats: { curbSegments, dashes: dashCount, skippedAtJunctions: skipped, skippedSeams, triangles } };
 }

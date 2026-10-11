@@ -611,3 +611,6 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 ## Fotos por lados del edificio, sin espejo
 - Una cara de un edificio es ahora un LADO: paredes seguidas que miran hacia el mismo sitio (fachada curva, con quiebros o con escalones de menos de 5 m) forman una sola cara y la foto se reparte entera a lo largo de ella por la proyeccion sobre el lado (`buildingFaces`, `faceStrip` en `market/faces.ts`). Las paredes de los escalones no llevan foto. Las caras de anuncios existentes usaban `all`, asi que no se rompe ningun anuncio.
 - Espejo: con huellas antihorarias u crecia hacia la izquierda visto desde fuera, asi que toda foto de fachada salia invertida (`faceFlipsU` lo corrige para cualquier cara). En el techo, v iba al reves que z (`roofUVs`). Mapa y estudio de compra usan la misma geometria.
+
+## Bordillos solo donde hay orilla de calzada
+- Aparecian lineas rectas finas cruzando calles y suelo: bordillos dibujados en aristas que no son orilla (cortes entre teselas con buffer, empalmes entre dos trozos de la misma calle y espinas degeneradas del recorte). Ahora una arista (revisada cada 10 m) solo lleva bordillo si hay calzada a un lado y nada al otro (`isKerb` en `scene/roads.ts`); se descartaron unos 17.500 trozos de 55.000. Se comprobo apagando el grupo `marcas-viales`: las lineas desaparecian con el.
