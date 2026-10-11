@@ -135,9 +135,9 @@ for (const [label, viewport] of [["desktop", { width: 1440, height: 900 }], ["mo
   const apiState = await real.page.evaluate(async () => (await fetch("/api/market/leaderboards")).json());
   const emptyText = await real.page.locator("section[aria-labelledby='clasificaciones']").innerText();
   check(
-    `${label} · Málaga: con datos reales muestra tres clasificaciones coherentes con la API`,
+    `${label} · Málaga: con datos reales muestra cuatro clasificaciones coherentes con la API`,
     apiState.available
-      ? (apiState.valuable.length === 0 ? /Todavía no se ha completado/.test(emptyText) : true) && (await real.page.locator("section[aria-labelledby^='rk-']").count()) === 3
+      ? (apiState.valuable.length === 0 ? /Todavía no se ha completado/.test(emptyText) : true) && (await real.page.locator("section[aria-labelledby^='rk-']").count()) === 4
       : /no están disponibles/.test(emptyText),
     { purchases: apiState.stats?.purchases, rows: apiState.valuable?.length },
   );
@@ -149,7 +149,8 @@ for (const [label, viewport] of [["desktop", { width: 1440, height: 900 }], ["mo
   await full.page.waitForSelector("section[aria-labelledby='rk-valor'] ol > li", { timeout: 15000 });
   await scrollAll(full.page);
   const rows = await full.page.$$eval("section[aria-labelledby^='rk-'] ol", (lists) => lists.map((l) => l.querySelectorAll(":scope > li").length));
-  check(`${label} · Málaga: tres clasificaciones de 15 filas como máximo`, rows.length === 3 && rows.every((n) => n === 15), rows);
+  // Valiosos, propietarios y actividad llenos; «compartidos» solo tiene lista si alguien ha compartido algo.
+  check(`${label} · Málaga: clasificaciones de 15 filas como máximo`, rows.length >= 3 && rows.every((n) => n <= 15) && rows.filter((n) => n === 15).length >= 3, rows);
   const firstValues = await full.page.$$eval("section[aria-labelledby='rk-valor'] ol > li td:last-child", (cells) => cells.map((c) => c.textContent));
   const euros = firstValues.map((t) => Number((t ?? "").replace(/[^\d,]/g, "").replace(",", ".")));
   check(`${label} · Málaga: «más valiosos» ordenado de mayor a menor importe`, euros.every((v, i) => i === 0 || euros[i - 1] >= v), euros);

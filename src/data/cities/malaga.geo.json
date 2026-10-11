@@ -130,6 +130,12 @@
         "Alameda Principal"
       ]
     },
+    "closedCourtyards": [
+      {
+        "osmId": "relation/10628222",
+        "note": "Manzana con un patio interior de mas de 1.200 m2 que se dejaba abierto y desde el tejado se veia el interior como un agujero sin cerrar. Se cierra con tejado: es una decision de producto, no un dato de OpenStreetMap."
+      }
+    ],
     "heightOverrides": [
       {
         "osmId": "way/1217545895",

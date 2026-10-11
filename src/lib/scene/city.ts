@@ -101,6 +101,8 @@ export type BuildOptions = {
   exaggeration: number;
   /** Alturas dibujadas fijadas por producto, por identificador OSM. */
   heightOverrides?: Array<{ osmId: string; name?: string | undefined; heightM: number }> | undefined;
+  /** Edificios (id de OSM) cuyo patio interior se cierra con tejado aunque sea grande. */
+  closedCourtyards?: string[] | undefined;
   zoneSizeM?: number;
   /** Área mínima de un edificio, en m²: por debajo es ruido del teselado. */
   minBuildingAreaM2?: number;
@@ -126,10 +128,11 @@ function byLayer(features: CityFeature[], layer: CityFeature["layer"]): CityFeat
 const MIN_OPEN_COURTYARD_M2 = 1200;
 
 /** Recorta un polígono con sus huecos, limpiando vértices repetidos. */
-function cleanPolygon(polygon: Polymesh): Polymesh | null {
+function cleanPolygon(polygon: Polymesh, closeCourtyards = false): Polymesh | null {
   if (polygon.outer.length < 3) return null;
   const outer = dedupeRing(polygon.outer);
-  const holes = polygon.holes
+  // Un edificio de la lista `closedCourtyards` no deja ningún patio abierto, por grande que sea.
+  const holes = closeCourtyards ? [] : polygon.holes
     // Solo se conservan los huecos grandes (el ruedo de una plaza de toros, un patio
     // de manzana enorme): los patios pequeños se rellenan, porque desde la vista
     // aérea se leían como agujeros en el edificio.
@@ -276,10 +279,11 @@ export function buildCity(options: BuildOptions): CityMeshes {
   }
 
   /* ------------------------------------------------------------ edificios */
+  const closedCourtyards = new Set(options.closedCourtyards ?? []);
   for (const feature of byLayer(features, "buildings")) {
     if (absorbed.has(feature.osmId)) continue;
     for (const raw of feature.polygons) {
-      const polygon = cleanPolygon(raw);
+      const polygon = cleanPolygon(raw, closedCourtyards.has(feature.osmId));
       if (!polygon) continue;
       const area = polygonArea(polygon.outer);
       if (area < minBuildingAreaM2) continue;

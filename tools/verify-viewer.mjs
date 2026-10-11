@@ -273,7 +273,9 @@ if (run("hover")) {
       // Fase C: la ventana emergente de un espacio (nombre y precio) al pasar el ratón es una función pedida.
       el.closest("[role='tooltip']") ||
       // El ranking de los más caros, a la izquierda del visor, es una función pedida.
-      el.closest("section[aria-label='Los espacios más caros']");
+      el.closest("section[aria-label='Los espacios más caros']") ||
+      // El contador de personas que han visto el mapa (arriba en el centro) es una función pedida.
+      el.closest("[role='status'][aria-label$='este mapa']");
     const found = [];
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {

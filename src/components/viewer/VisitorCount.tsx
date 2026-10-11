@@ -35,9 +35,8 @@ export function VisitorCount() {
   return (
     <div
       role="status"
-      title={label}
       aria-label={label}
-      className="pointer-events-auto absolute left-1/2 top-3 z-20 hidden h-10 sm:flex -translate-x-1/2 items-center gap-2 rounded-full border border-line-strong bg-surface/85 pl-1.5 pr-4 text-sm text-ink shadow-[var(--shadow-float)] backdrop-blur-md"
+      className="pointer-events-none absolute left-1/2 top-3 z-20 hidden h-10 sm:flex -translate-x-1/2 items-center gap-2 rounded-full border border-line-strong bg-surface/85 pl-1.5 pr-4 text-sm text-ink shadow-[var(--shadow-float)] backdrop-blur-md"
     >
       <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-accent-ink" aria-hidden="true">
         <Eye size={15} strokeWidth={1.9} />

@@ -149,6 +149,7 @@ export function CityViewer({ city, mapCities = [] }: { city: CityConfig; mapCiti
       trees: scene.trees,
       landmarks: scene.landmarks,
       heightOverrides: scene.heightOverrides,
+      closedCourtyards: scene.closedCourtyards.map((entry) => entry.osmId),
       shadows: scene.shadows,
       onPhase: (phase, progress) => {
         setPhases((current) => ({

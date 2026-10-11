@@ -617,3 +617,6 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 
 ## Contador de visitas en el visor
 - Un circulo con un ojo y el total de personas distintas que han entrado en la web (el mismo dato del panel de admin) arriba en el centro del visor, solo en pantallas desde 640 px (en movil se solapa con los botones). `GET /api/visits` es publico, solo devuelve el total, y se cachea un minuto en el borde y otro en la instancia (`visitTotal`). Si no se puede leer, no se muestra nada.
+
+## Patios cerrados por configuracion
+- `closedCourtyards` (en `malaga.geo.json`, con nota) lista edificios cuyo patio interior grande se cierra con tejado en vez de dejarlo abierto (el limite general sigue siendo 1.200 m2: mas grande se deja abierto, p. ej. el ruedo de la plaza de toros). Primer caso: `relation/10628222`, de cuyo tejado se veia el interior como un agujero. Es una decision de producto, no un dato de OpenStreetMap.

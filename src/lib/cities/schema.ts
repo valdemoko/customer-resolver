@@ -314,6 +314,8 @@ export const SceneSchema = z.object({
   heightOverrides: z
     .array(z.object({ osmId: z.string().regex(/^(way|relation)\/\d+$/), name: z.string().min(1).optional(), heightM: z.number().positive(), note: z.string().min(1) }))
     .default([]),
+  /** Edificios cuyo patio interior grande se cierra con tejado (decisión de producto: se leía como un agujero). */
+  closedCourtyards: z.array(z.object({ osmId: z.string().regex(/^(way|relation)\/\d+$/), note: z.string().min(1) })).default([]),
   /** Sombras de mapa. En móvil se apagan solas; aquí se declara la intención. */
   shadows: z.boolean(),
 });

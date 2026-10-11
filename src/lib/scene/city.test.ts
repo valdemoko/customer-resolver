@@ -49,6 +49,22 @@ function wallNormals(geometry: THREE.BufferGeometry, axis: "x" | "z", value: num
   return out;
 }
 
+describe("patios cerrados por configuración", () => {
+  const outer: Array<[number, number]> = [[0, 0], [100, 0], [100, 100], [0, 100]];
+  const hole: Array<[number, number]> = [[30, 30], [70, 30], [70, 70], [30, 70]];
+  const walls = (closed: string[]) => {
+    const city = buildCity({ features: [building("relation/7", outer, [hole])], uniforms, landmarks: [], fortresses: [], exaggeration: 1.25, closedCourtyards: closed });
+    const mesh = city.group.children.find((child) => child.name.startsWith("edificios")) as THREE.Mesh;
+    return wallNormals(mesh.geometry, "x", 30).length;
+  };
+
+  it("un edificio de la lista no tiene paredes de patio: el tejado lo cierra", () => {
+    expect(walls([])).toBeGreaterThan(0); // sin la opción, el patio grande sigue abierto
+    expect(walls(["relation/7"])).toBe(0);
+    expect(walls(["relation/999"])).toBeGreaterThan(0); // otro edificio no se toca
+  });
+});
+
 describe("edificios con patio interior", () => {
   // Patio grande (1.600 m²: un ruedo): se deja abierto y con paredes propias.
   const outer: Array<[number, number]> = [[0, 0], [100, 0], [100, 100], [0, 100]];

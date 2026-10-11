@@ -103,6 +103,8 @@ export type EngineOptions = {
   trees: { maxDesktop: number; maxMobile: number; palmStreets: string[] };
   landmarks: LandmarkConfig[];
   heightOverrides?: Array<{ osmId: string; name?: string | undefined; heightM: number }> | undefined;
+  /** Edificios (id de OSM) cuyo patio interior se cierra con tejado. */
+  closedCourtyards?: string[] | undefined;
   shadows: boolean;
   onPhase: (phase: PhaseId, progress: { done: number; total: number; note?: string }) => void;
   onSelect: (selection: BuildingRecord | null) => void;
@@ -1124,6 +1126,7 @@ export function createCityEngine(options: EngineOptions): CityEngine {
         uniforms,
         landmarks: options.landmarks,
         heightOverrides: options.heightOverrides,
+        closedCourtyards: options.closedCourtyards,
         fortresses: options.fortresses,
         exaggeration: options.exaggeration,
       });
