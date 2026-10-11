@@ -614,3 +614,6 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 
 ## Bordillos solo donde hay orilla de calzada
 - Aparecian lineas rectas finas cruzando calles y suelo: bordillos dibujados en aristas que no son orilla (cortes entre teselas con buffer, empalmes entre dos trozos de la misma calle y espinas degeneradas del recorte). Ahora una arista (revisada cada 10 m) solo lleva bordillo si hay calzada a un lado y nada al otro (`isKerb` en `scene/roads.ts`); se descartaron unos 17.500 trozos de 55.000. Se comprobo apagando el grupo `marcas-viales`: las lineas desaparecian con el.
+
+## Contador de visitas en el visor
+- Un circulo con un ojo y el total de personas distintas que han entrado en la web (el mismo dato del panel de admin) arriba en el centro del visor, solo en pantallas desde 640 px (en movil se solapa con los botones). `GET /api/visits` es publico, solo devuelve el total, y se cachea un minuto en el borde y otro en la instancia (`visitTotal`). Si no se puede leer, no se muestra nada.

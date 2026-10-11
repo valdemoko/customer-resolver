@@ -32,3 +32,24 @@ export async function recordVisit(input: { ip: string; userAgent: string | null;
   await store.recordVisit(madridDay(input.now), await visitorHash(input.ip, input.userAgent!));
   return true;
 }
+
+let totalCache: { at: number; value: number } | null = null;
+const TOTAL_TTL_MS = 60_000;
+
+/** Personas distintas que han entrado en la web, o `null` si no se puede leer. Caché de un minuto por instancia. */
+export async function visitTotal(now = Date.now()): Promise<number | null> {
+  if (totalCache && now - totalCache.at < TOTAL_TTL_MS) return totalCache.value;
+  try {
+    const store = await getMarketStore();
+    const { total } = await store.visitStats(madridDay(new Date(now)));
+    totalCache = { at: now, value: total };
+    return total;
+  } catch {
+    return totalCache?.value ?? null;
+  }
+}
+
+/** Solo para pruebas. */
+export function resetVisitTotalCache(): void {
+  totalCache = null;
+}

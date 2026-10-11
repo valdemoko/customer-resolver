@@ -9,7 +9,7 @@ vi.mock("@/lib/env", () => ({
 import { MemoryStore } from "@/lib/market/store";
 import { getMarketStore, setMarketStore } from "@/lib/market/service";
 import { adminOverview } from "@/lib/admin/service";
-import { isBot, madridDay, recordVisit, visitorHash } from "./visits";
+import { isBot, madridDay, recordVisit, resetVisitTotalCache, visitorHash, visitTotal } from "./visits";
 
 const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 const FIREFOX = "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0";
@@ -17,6 +17,7 @@ const FIREFOX = "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefo
 beforeEach(() => {
   vi.stubEnv("SESSION_SECRET", "z".repeat(40));
   setMarketStore(new MemoryStore());
+  resetVisitTotalCache();
 });
 
 describe("detección de robots", () => {
@@ -93,5 +94,20 @@ describe("contador de visitantes únicos", () => {
     const overview = await adminOverview();
     expect(overview.visitors.total).toBe(1);
     expect(overview.visitors.byDay).toHaveLength(14);
+  });
+});
+
+describe("total público de visitas", () => {
+  it("es el mismo total que ve el panel, se guarda un minuto y no falla si no hay datos", async () => {
+    expect(await visitTotal()).toBe(0);
+    await recordVisit({ ip: "1.1.1.1", userAgent: CHROME });
+    await recordVisit({ ip: "2.2.2.2", userAgent: FIREFOX });
+    const now = Date.now();
+    expect(await visitTotal(now + 120_000)).toBe(2); // pasado el minuto de caché, ya cuenta las dos
+    await recordVisit({ ip: "3.3.3.3", userAgent: CHROME });
+    expect(await visitTotal(now + 120_000 + 30_000)).toBe(2); // dentro del minuto: la lectura guardada
+    expect(await visitTotal(now + 120_000 + 90_000)).toBe(3);
+    const overview = await adminOverview();
+    expect(overview.visitors.total).toBe(3);
   });
 });
