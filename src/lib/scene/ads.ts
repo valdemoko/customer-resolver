@@ -14,7 +14,7 @@
 
 import * as THREE from "three";
 import type { Face } from "@/lib/market/faces";
-import { frameUV, imageKeyFor, roofUVs } from "@/lib/market/faces";
+import { faceStrip, frameUV, imageKeyFor, roofUVs } from "@/lib/market/faces";
 import type { UnitView } from "@/lib/market/types";
 
 export const OWNED_TEXTURE_SIZE = 8192;
@@ -165,25 +165,33 @@ export class AdLayer {
       if (!key) continue;
       const texture = this.texture(unitId, key);
       if (!texture) continue;
-      const ox = face.normal[0] * OFFSET_M;
-      const oz = face.normal[1] * OFFSET_M;
-      const positions = new Float32Array([
-        face.a[0] + ox, model.bottomM, face.a[1] + oz,
-        face.b[0] + ox, model.bottomM, face.b[1] + oz,
-        face.b[0] + ox, model.topM, face.b[1] + oz,
-        face.a[0] + ox, model.topM, face.a[1] + oz,
-      ]);
+      // Una banda a lo largo de todo el lado (una sola foto, continua entre paredes y sin espejo).
+      const segments = faceStrip(face, OFFSET_M);
+      if (segments.length === 0) continue;
+      const positions = new Float32Array(segments.length * 4 * 3);
+      const indices: number[] = [];
+      segments.forEach((segment, i) => {
+        positions.set(
+          [segment.a[0], model.bottomM, segment.a[1], segment.b[0], model.bottomM, segment.b[1], segment.b[0], model.topM, segment.b[1], segment.a[0], model.topM, segment.a[1]],
+          i * 12,
+        );
+        indices.push(i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3);
+      });
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      const uv = new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), 2);
+      const uv = new THREE.BufferAttribute(new Float32Array(segments.length * 4 * 2), 2);
       geometry.setAttribute("uv", uv);
-      geometry.setIndex([0, 1, 2, 0, 2, 3]);
+      geometry.setIndex(indices);
       geometry.computeBoundingSphere();
-      // La foto cubre la cara sin deformarse: se recorta lo que sobra.
+      // La foto cubre el lado sin deformarse: se recorta lo que sobra.
       const surface = face.widthM / Math.max(0.1, height);
       whenImageReady(texture, (aspect) => {
         const [u0, v0, u1, v1] = frameUV(surface, aspect, view.owner?.framing);
-        uv.array.set([u0, v0, u1, v0, u1, v1, u0, v1]);
+        segments.forEach((segment, i) => {
+          const ua = u0 + segment.ua * (u1 - u0);
+          const ub = u0 + segment.ub * (u1 - u0);
+          uv.array.set([ua, v0, ub, v0, ub, v1, ua, v1], i * 8);
+        });
         uv.needsUpdate = true;
       });
       const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, toneMapped: false });

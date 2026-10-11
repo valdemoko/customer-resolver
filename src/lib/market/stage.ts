@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { Face } from "./faces";
-import { frameUV, roofUVs } from "./faces";
+import { faceStrip, frameUV, roofUVs } from "./faces";
 import type { Framing } from "./types";
 
 /**
@@ -47,6 +47,8 @@ export class FaceStage {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(36, 1, 0.1, 5000);
   private readonly faceMeshes: Array<{ mesh: THREE.Mesh; width: number; height: number }> = [];
+  /** Coordenada u de la foto de cada punto de la banda de una cara. */
+  private readonly faceU = new Map<THREE.BufferGeometry, Array<[number, number]>>();
   private roofMesh: { mesh: THREE.Mesh; points: Array<[number, number]> } | null = null;
   private readonly disposables: Array<{ dispose: () => void }> = [];
   private readonly placeholderTexture: THREE.CanvasTexture;
@@ -135,16 +137,27 @@ export class FaceStage {
   }
 
   private makeFaceMesh(face: Face, cx: number, cz: number, bottom: number, top: number, flat: boolean): THREE.Mesh {
-    const off = 0.08;
-    const ax = (flat ? -face.widthM / 2 : face.a[0] - cx) + face.normal[0] * off;
-    const az = (flat ? 0 : face.a[1] - cz) + face.normal[1] * off;
-    const bx = (flat ? face.widthM / 2 : face.b[0] - cx) + face.normal[0] * off;
-    const bz = (flat ? 0 : face.b[1] - cz) + face.normal[1] * off;
-    const positions = new Float32Array([ax, bottom, az, bx, bottom, bz, bx, top, bz, ax, top, az]);
+    // Misma banda que en el mapa: una sola foto a lo largo de toda la fachada y sin espejo.
+    const local: Face = flat
+      ? { ...face, a: [-face.widthM / 2, 0], b: [face.widthM / 2, 0] }
+      : { ...face, a: [face.a[0] - cx, face.a[1] - cz], b: [face.b[0] - cx, face.b[1] - cz] };
+    if (!flat && face.path) local.path = face.path.map(([x, z]) => [x - cx, z - cz] as [number, number]);
+    else delete local.path;
+    const segments = faceStrip(local, 0.08);
+    const positions = new Float32Array(Math.max(1, segments.length) * 12);
+    const indices: number[] = [];
+    segments.forEach((segment, i) => {
+      positions.set(
+        [segment.a[0], bottom, segment.a[1], segment.b[0], bottom, segment.b[1], segment.b[0], top, segment.b[1], segment.a[0], top, segment.a[1]],
+        i * 12,
+      );
+      indices.push(i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3);
+    });
     const geometry = this.track(new THREE.BufferGeometry());
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute("uv", new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), 2));
-    geometry.setIndex([0, 1, 2, 0, 2, 3]);
+    geometry.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(Math.max(1, segments.length) * 8), 2));
+    geometry.setIndex(indices);
+    this.faceU.set(geometry, segments.map((segment) => [segment.ua, segment.ub] as [number, number]));
     const material = this.track(new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, toneMapped: false }));
     return new THREE.Mesh(geometry, material);
   }
@@ -197,13 +210,14 @@ export class FaceStage {
     for (const { mesh, width, height } of this.faceMeshes) {
       const material = mesh.material as THREE.MeshBasicMaterial;
       const uv = mesh.geometry.getAttribute("uv") as THREE.BufferAttribute;
+      const us = this.faceU.get(mesh.geometry) ?? [];
       if (facade && image) {
         const [u0, v0, u1, v1] = frameUV(width / height, image.width / image.height, this.framing);
-        uv.array.set([u0, v0, u1, v0, u1, v1, u0, v1]);
+        us.forEach(([ua, ub], i) => uv.array.set([u0 + ua * (u1 - u0), v0, u0 + ub * (u1 - u0), v0, u0 + ub * (u1 - u0), v1, u0 + ua * (u1 - u0), v1], i * 8));
         material.map = facade;
       } else {
         const repeat = Math.max(1, Math.round(width / 8));
-        uv.array.set([0, 0, repeat, 0, repeat, 1, 0, 1]);
+        us.forEach(([ua, ub], i) => uv.array.set([ua * repeat, 0, ub * repeat, 0, ub * repeat, 1, ua * repeat, 1], i * 8));
         material.map = this.placeholderTexture;
       }
       uv.needsUpdate = true;

@@ -607,3 +607,7 @@ Vista inicial: 0,72 → ≈ 2,4 ms de CPU por fotograma y 100 → 152 llamadas d
 - Ranking publico "Anuncios mas compartidos" en la pagina de la ciudad y pestanas Mas caros / Compartidos / Actividad en el visor; "Actividad en directo" sustituye a "Ultimas compras" y un aviso en el visor ensena lo que ocurre mientras se mira el mapa.
 - Las altas de cuenta (`recordLogin`) deben ESPERARSE en el Worker: una promesa suelta se corta al devolver la respuesta y las cuentas nuevas no llegaban al panel. `/api/auth/me` anota tambien a quien ya tenia sesion.
 - El formulario de compra solo enfoca el primer campo al abrirse: antes volvia a hacerlo en cada redibujado del padre.
+
+## Fotos por lados del edificio, sin espejo
+- Una cara de un edificio es ahora un LADO: paredes seguidas que miran hacia el mismo sitio (fachada curva, con quiebros o con escalones de menos de 5 m) forman una sola cara y la foto se reparte entera a lo largo de ella por la proyeccion sobre el lado (`buildingFaces`, `faceStrip` en `market/faces.ts`). Las paredes de los escalones no llevan foto. Las caras de anuncios existentes usaban `all`, asi que no se rompe ningun anuncio.
+- Espejo: con huellas antihorarias u crecia hacia la izquierda visto desde fuera, asi que toda foto de fachada salia invertida (`faceFlipsU` lo corrige para cualquier cara). En el techo, v iba al reves que z (`roofUVs`). Mapa y estudio de compra usan la misma geometria.
